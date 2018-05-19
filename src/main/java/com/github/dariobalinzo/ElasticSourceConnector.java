@@ -27,16 +27,11 @@ import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceConnector;
-import org.apache.logging.log4j.core.util.IOUtils;
-import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -110,17 +105,7 @@ public class ElasticSourceConnector extends SourceConnector {
 
     public static void main(String[] args) throws Exception {
 
-        ElasticConnection es = new ElasticConnection("localhost", 9200, 10, 100);
-        Response indices = es.getClient().getLowLevelClient().performRequest("GET", "_cat/indices");
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(indices.getEntity().getContent()));
-        String line = null;
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line.split("\\s+")[2]);
-
-
-        }
-        es.closeQuietly();
     }
 
     @Override

@@ -96,6 +96,14 @@ public class ElasticConnection {
         return client;
     }
 
+    public long getConnectionRetryBackoff() {
+        return connectionRetryBackoff;
+    }
+
+    public int getMaxConnectionAttempts() {
+        return maxConnectionAttempts;
+    }
+
     public void closeQuietly() {
         try {
             client.close();

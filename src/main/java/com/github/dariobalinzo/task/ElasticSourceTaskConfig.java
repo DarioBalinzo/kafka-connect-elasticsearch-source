@@ -19,10 +19,10 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import org.apache.kafka.common.config.ConfigDef;
-        import org.apache.kafka.common.config.ConfigDef.Importance;
-        import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
 
-        import java.util.Map;
+import java.util.Map;
 
 /**
  * Configuration options for a single ElasticSourceTask. These are processed after all
