@@ -39,10 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
@@ -85,7 +82,7 @@ public class ElasticSourceTask extends SourceTask {
 
         initEsConnection();
 
-        indices = config.getList(ElasticSourceTaskConfig.INDICES_CONFIG);
+        indices = Arrays.asList(config.getString(ElasticSourceTaskConfig.INDICES_CONFIG).split(","));
         if (indices.isEmpty()) {
             throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
                     + "least one index assigned to it");

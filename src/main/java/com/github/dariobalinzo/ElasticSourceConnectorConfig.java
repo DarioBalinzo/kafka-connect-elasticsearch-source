@@ -66,9 +66,9 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
     public static final String BATCH_MAX_ROWS_CONFIG = "batch.max.rows";
     private static final String BATCH_MAX_ROWS_DOC =
-            "Maximum number of document to include in a single batch when polling for new data.";
+            "Maximum number of documents to include in a single batch when polling for new data.";
     private static final int BATCH_MAX_ROWS_DEFAULT = 10000;
-    private static final String BATCH_MAX_ROWS_DISPLAY = "Max Document Per Batch";
+    private static final String BATCH_MAX_ROWS_DISPLAY = "Max Documents Per Batch";
 
     private static final String MODE_UNSPECIFIED = "";
     private static final String MODE_BULK = "bulk";

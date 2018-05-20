@@ -20,7 +20,6 @@ import com.github.dariobalinzo.task.ElasticSourceTask;
 import com.github.dariobalinzo.utils.ElasticConnection;
 import com.github.dariobalinzo.utils.Utils;
 import com.github.dariobalinzo.utils.Version;
-import com.sun.deploy.util.StringUtils;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
@@ -109,21 +108,25 @@ public class ElasticSourceConnector extends SourceConnector {
 
         Response resp;
         try {
-            resp = elasticConnection.getClient().getLowLevelClient().performRequest("GET", "_cat/indices");
+            resp = elasticConnection.getClient()
+                    .getLowLevelClient()
+                    .performRequest("GET", "_cat/indices");
         } catch (IOException e) {
             logger.error("error in searching index names");
             throw new RuntimeException(e);
         }
 
 
-        List<String> currentIndexes = Utils.getIndexList(resp, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+        List<String> currentIndexes = Utils.getIndexList(resp,
+                config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)
+        );
         int numGroups = Math.min(currentIndexes.size(), maxTasks);
         List<List<String>> tablesGrouped = Utils.groupPartitions(currentIndexes, numGroups);
         List<Map<String, String>> taskConfigs = new ArrayList<>(tablesGrouped.size());
-        for (List<String> taskTables : tablesGrouped) {
+        for (List<String> taskIndices : tablesGrouped) {
             Map<String, String> taskProps = new HashMap<>(configProperties);
             taskProps.put(ElasticSourceConnectorConfig.INDICES_CONFIG,
-                    StringUtils.join(taskTables, ","));
+                    String.join(",",taskIndices));
             taskConfigs.add(taskProps);
         }
         return taskConfigs;
