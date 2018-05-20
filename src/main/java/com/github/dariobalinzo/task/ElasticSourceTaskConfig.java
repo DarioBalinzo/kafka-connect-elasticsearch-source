@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");

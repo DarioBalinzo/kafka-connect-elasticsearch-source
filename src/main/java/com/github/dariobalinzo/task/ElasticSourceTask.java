@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,13 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.schema.SchemaConverter;
+import com.github.dariobalinzo.schema.StructConverter;
 import com.github.dariobalinzo.utils.ElasticConnection;
 import com.github.dariobalinzo.utils.Version;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.types.Password;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
@@ -31,6 +34,7 @@ import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,11 +45,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
 
 public class ElasticSourceTask extends SourceTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTask.class);
+    private static final String INDEX = "index";
+    private static final String POSITION = "position";
 
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
@@ -54,6 +61,10 @@ public class ElasticSourceTask extends SourceTask {
     private List<String> indices;
     private long connectionRetryBackoff;
     private int maxConnectionAttempts;
+    private String topic;
+    private String incrementingField;
+    private int size;
+    private int pollingMs;
 
     public ElasticSourceTask() {
 
@@ -79,6 +90,11 @@ public class ElasticSourceTask extends SourceTask {
             throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
                     + "least one index assigned to it");
         }
+
+        topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
+        incrementingField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        size = config.getInt(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG);
+        pollingMs = config.getInt(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG);
     }
 
     private void initEsConnection() {
@@ -116,38 +132,100 @@ public class ElasticSourceTask extends SourceTask {
 
     }
 
+
     //will be called by connect with a different thread than the stop thread
+    @Override
     public List<SourceRecord> poll() throws InterruptedException {
 
         List<SourceRecord> results = new ArrayList<>();
         indices.forEach(
                 index -> {
                     if (!stopping.get()) {
-                        logger.info("fetching from {}",index);
-                        String lastValue = fetchLastOffset();
-                        logger.info("found last value {}",lastValue);
+                        logger.info("fetching from {}", index);
+                        String lastValue = fetchLastOffset(index);
+                        logger.info("found last value {}", lastValue);
                         if (lastValue != null) {
                             executeScroll(index, lastValue, results);
                         }
                     }
                 }
         );
+        if (results.isEmpty()) {
+            Thread.sleep(pollingMs);
+        }
         return results;
     }
 
-    private String fetchLastOffset() {
+    private String fetchLastOffset(String index) {
+
+
+        Map<String, Object> offset = null; // context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
+        if (offset != null) {
+            return (String) offset.get(POSITION);
+        } else {
+            //fetching the lower level directly to the elastic index (if it is not empty)
+            SearchRequest searchRequest = new SearchRequest(index);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(
+                    matchAllQuery()
+            ).sort(incrementingField, SortOrder.ASC);
+            searchSourceBuilder.size(1); // only one record
+            searchRequest.source(searchSourceBuilder);
+            SearchResponse searchResponse = null;
+            try {
+                for (int i = 0; i < maxConnectionAttempts; ++i) {
+                    try {
+                        searchResponse = es.getClient().search(searchRequest);
+                        break;
+                    } catch (IOException e) {
+                        logger.error("error in scroll");
+                        Thread.sleep(connectionRetryBackoff);
+                    }
+                }
+                if (searchResponse == null) {
+                    throw new RuntimeException("connection failed");
+                }
+                SearchHits hits = searchResponse.getHits();
+                int totalShards = searchResponse.getTotalShards();
+                int successfulShards = searchResponse.getSuccessfulShards();
+
+                logger.info("total shard {}, successuful: {}", totalShards, successfulShards);
+
+                int failedShards = searchResponse.getFailedShards();
+                for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
+                    // failures should be handled here
+                    logger.error("failed {}", failure);
+                }
+                if (failedShards > 0) {
+                    throw new RuntimeException("failed shard in search");
+                }
+
+                SearchHit[] searchHits = hits.getHits();
+                //here only one record
+                for (SearchHit hit : searchHits) {
+                    // do something with the SearchHit
+                    return hit.getSourceAsMap().get(incrementingField).toString();
+
+                }
+
+            } catch (Exception e) {
+                logger.error("error fetching min value", e);
+                return null;
+            }
+        }
         return null;
+
     }
 
     private void executeScroll(String index, String lastValue, List<SourceRecord> results) {
-        final Scroll scroll = new Scroll(TimeValue.timeValueMinutes(1L));
         SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.scroll(TimeValue.timeValueMinutes(1L));
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(
-                rangeQuery(config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG))
+                rangeQuery(incrementingField)
                         .from(lastValue)
-        ); //TODO configure custom query
-        searchSourceBuilder.size(config.getInt(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG));
+        ).sort(incrementingField, SortOrder.ASC); //TODO configure custom query
+        searchSourceBuilder.size(1000);
         searchRequest.source(searchSourceBuilder);
         SearchResponse searchResponse = null;
         String scrollId = null;
@@ -161,49 +239,21 @@ public class ElasticSourceTask extends SourceTask {
                     Thread.sleep(connectionRetryBackoff);
                 }
             }
+            if (searchResponse == null) {
+                throw new RuntimeException("connection failed");
+            }
             scrollId = searchResponse.getScrollId();
-            SearchHits hits = searchResponse.getHits();
-            int totalShards = searchResponse.getTotalShards();
-            int successfulShards = searchResponse.getSuccessfulShards();
+            SearchHit[] searchHits = parseSearchResult(index, lastValue, results, searchResponse, scrollId);
 
-            logger.info("total shard {}, successuful: {}", totalShards, successfulShards);
-            logger.info("retrived {}, scroll id : {}", hits, scrollId);
-
-            int failedShards = searchResponse.getFailedShards();
-            for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
-                // failures should be handled here
-                logger.error("failed {}", failure);
-            }
-            if (failedShards > 0) {
-                throw new RuntimeException("failed shard in search");
-            }
-
-            SearchHit[] searchHits = hits.getHits();
-            for (SearchHit hit : searchHits) {
-                // do something with the SearchHit
-                Map sourcePartition = Collections.singletonMap("index", index);
-                Map sourceOffset = Collections.singletonMap("position", lastValue);
-                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-                SourceRecord sourceRecord = new SourceRecord(
-                        sourcePartition,
-                        sourceOffset,
-                        "",
-                        SchemaConverter.convertElasticMapping2AvroSchema(sourceAsMap,index),
-""
-
-                );
-            }
-
-            while (searchHits != null && searchHits.length > 0) {
+            while (!stopping.get() && searchHits != null && searchHits.length > 0 && results.size() < size) {
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
-                scrollRequest.scroll(scroll);
+                scrollRequest.scroll(TimeValue.timeValueMinutes(1L));
                 searchResponse = es.getClient().searchScroll(scrollRequest);
                 scrollId = searchResponse.getScrollId();
-                searchHits = searchResponse.getHits().getHits();
-
+                searchHits = parseSearchResult(index, lastValue, results, searchResponse, scrollId);
             }
         } catch (Throwable t) {
-            logger.error("error",t);
+            logger.error("error", t);
         } finally {
             closeScrollQuietly(scrollId);
         }
@@ -211,17 +261,61 @@ public class ElasticSourceTask extends SourceTask {
 
     }
 
-    private void closeScrollQuietly(String scrollId)  {
+    private SearchHit[] parseSearchResult(String index, String lastValue, List<SourceRecord> results, SearchResponse searchResponse, Object scrollId) {
+        SearchHits hits = searchResponse.getHits();
+        int totalShards = searchResponse.getTotalShards();
+        int successfulShards = searchResponse.getSuccessfulShards();
+
+        logger.info("total shard {}, successuful: {}", totalShards, successfulShards);
+        logger.info("retrived {}, scroll id : {}", hits, scrollId);
+
+        int failedShards = searchResponse.getFailedShards();
+        for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
+            // failures should be handled here
+            logger.error("failed {}", failure);
+        }
+        if (failedShards > 0) {
+            throw new RuntimeException("failed shard in search");
+        }
+
+        SearchHit[] searchHits = hits.getHits();
+        for (SearchHit hit : searchHits) {
+            // do something with the SearchHit
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            Map sourcePartition = Collections.singletonMap(INDEX, index);
+            Map sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(incrementingField).toString());
+            Schema schema = SchemaConverter.convertElasticMapping2AvroSchema(sourceAsMap, index);
+            Struct struct = StructConverter.convertElasticDocument2AvroStruct(sourceAsMap, schema);
+
+            //document key
+            String key = String.join("_", hit.getIndex(), hit.getType(), hit.getId());
+
+            SourceRecord sourceRecord = new SourceRecord(
+                    sourcePartition,
+                    sourceOffset,
+                    topic + index,
+                    //KEY
+                    Schema.STRING_SCHEMA,
+                    key,
+                    //VALUE
+                    schema,
+                    struct);
+            results.add(sourceRecord);
+        }
+        return searchHits;
+    }
+
+    private void closeScrollQuietly(String scrollId) {
         ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
         clearScrollRequest.addScrollId(scrollId);
         ClearScrollResponse clearScrollResponse = null;
         try {
             clearScrollResponse = es.getClient().clearScroll(clearScrollRequest);
         } catch (IOException e) {
-            logger.error("error in clear scroll",e);
+            logger.error("error in clear scroll", e);
         }
-        boolean succeeded = clearScrollResponse.isSucceeded();
-        logger.info("scroll {} cleared: {}",scrollId,succeeded);
+        boolean succeeded = clearScrollResponse != null && clearScrollResponse.isSucceeded();
+        logger.info("scroll {} cleared: {}", scrollId, succeeded);
     }
 
     //will be called by connect with a different thread than poll thread
@@ -237,4 +331,30 @@ public class ElasticSourceTask extends SourceTask {
 
     }
 
+    //utility method for testing
+    public void setupTest(String index) {
+
+        final String esHost = "localhost";
+        final int esPort = 9200;
+
+        maxConnectionAttempts = 3;
+        connectionRetryBackoff = 1000;
+        es = new ElasticConnection(
+                esHost,
+                esPort,
+                maxConnectionAttempts,
+                connectionRetryBackoff
+        );
+
+        indices = Collections.singletonList(index);
+        if (indices.isEmpty()) {
+            throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
+                    + "least one index assigned to it");
+        }
+
+        topic = "connect_";
+        incrementingField = "@timestamp";
+        size = 10000;
+        pollingMs = 1000;
+    }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,15 +21,11 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.Width;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 public class ElasticSourceConnectorConfig extends AbstractConfig {
-
-    private static final Logger logger = LoggerFactory.getLogger(ElasticSourceConnectorConfig.class);
 
     //TODO add the possibility to specify multiple hosts
     public final static String ES_HOST_CONF = "es.host";
@@ -53,80 +49,65 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String CONNECTION_ATTEMPTS_DOC
             = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
     private static final String CONNECTION_ATTEMPTS_DISPLAY = "Elasticsearch connection attempts";
-    public static final int CONNECTION_ATTEMPTS_DEFAULT = 3;
+    private static final int CONNECTION_ATTEMPTS_DEFAULT = 3;
 
     public static final String CONNECTION_BACKOFF_CONFIG = "connection.backoff.ms";
     private static final String CONNECTION_BACKOFF_DOC
             = "Backoff time in milliseconds between connection attempts.";
     private static final String CONNECTION_BACKOFF_DISPLAY
             = "Elastic connection backoff in milliseconds";
-    public static final long CONNECTION_BACKOFF_DEFAULT = 10000L;
+    private static final long CONNECTION_BACKOFF_DEFAULT = 10000L;
 
     public static final String POLL_INTERVAL_MS_CONFIG = "poll.interval.ms";
     private static final String POLL_INTERVAL_MS_DOC = "Frequency in ms to poll for new data in "
             + "each index.";
-    public static final int POLL_INTERVAL_MS_DEFAULT = 5000;
+    private static final int POLL_INTERVAL_MS_DEFAULT = 5000;
     private static final String POLL_INTERVAL_MS_DISPLAY = "Poll Interval (ms)";
 
     public static final String BATCH_MAX_ROWS_CONFIG = "batch.max.rows";
     private static final String BATCH_MAX_ROWS_DOC =
-            "Maximum number of record to include in a single batch when polling for new data.";
-    public static final int BATCH_MAX_ROWS_DEFAULT = 100;
-    private static final String BATCH_MAX_ROWS_DISPLAY = "Max Rows Per Batch";
+            "Maximum number of document to include in a single batch when polling for new data.";
+    private static final int BATCH_MAX_ROWS_DEFAULT = 10000;
+    private static final String BATCH_MAX_ROWS_DISPLAY = "Max Document Per Batch";
 
-    public static final String MODE_UNSPECIFIED = "";
-    public static final String MODE_BULK = "bulk";
-    public static final String MODE_TIMESTAMP = "timestamp";
-    public static final String MODE_INCREMENTING = "incrementing";
-    public static final String MODE_TIMESTAMP_INCREMENTING = "timestamp+incrementing";
+    private static final String MODE_UNSPECIFIED = "";
+    private static final String MODE_BULK = "bulk";
+    private static final String MODE_TIMESTAMP = "timestamp";
+    private static final String MODE_INCREMENTING = "incrementing";
+    private static final String MODE_TIMESTAMP_INCREMENTING = "timestamp+incrementing";
 
     public static final String INCREMENTING_FIELD_NAME_CONFIG = "incrementing.field.name";
     private static final String INCREMENTING_FIELD_NAME_DOC =
             "The name of the strictly incrementing field to use to detect new records.";
-    public static final String INCREMENTING_FIELD_NAME_DEFAULT = "";
+    private static final String INCREMENTING_FIELD_NAME_DEFAULT = "";
     private static final String INCREMENTING_FIELD_NAME_DISPLAY = "Incrementing Field Name";
-
-    public static final String TIMESTAMP_FIELD_NAME_CONFIG = "timestamp.field.name";
-    private static final String TIMESTAMP_FIELD_NAME_DOC =
-            "The name of the timestamp field to use to detect new or modified rows. This field may "
-                    + "not be nullable.";
-    public static final String TIMESTAMP_FIELD_NAME_DEFAULT = "";
-    private static final String TIMESTAMP_FIELD_NAME_DISPLAY = "Timestamp Column Name";
 
     public static final String INDEX_PREFIX_CONFIG = "index.prefix";
     private static final String INDEX_PREFIX_DOC = "List of indices to include in copying.";
-    public static final String INDEX_PREFIX_DEFAULT = "";
+    private static final String INDEX_PREFIX_DEFAULT = "";
     private static final String INDEX_PREFIX_DISPLAY = "Indices prefix Whitelist";
 
-    public static final String SCHEMA_PATTERN_CONFIG = "schema.pattern";
-    private static final String SCHEMA_PATTERN_DOC =
-            "Schema pattern to fetch indexs mapping from:\n"
-                    + "  * \"\" retrieves those without a schema,"
-                    + "  * null (default) means that the schema name should not be used to narrow the search, "
-                    + "all indexs "
-                    + "metadata would be fetched, regardless their schema.";
-    private static final String SCHEMA_PATTERN_DISPLAY = "Schema pattern";
 
     public static final String TOPIC_PREFIX_CONFIG = "topic.prefix";
     private static final String TOPIC_PREFIX_DOC =
             "Prefix to prepend to index names to generate the name of the Kafka topic to publish data";
     private static final String TOPIC_PREFIX_DISPLAY = "Topic Prefix";
 
-    public static final String DATABASE_GROUP = "Database";
-    public static final String MODE_GROUP = "Mode";
-    public static final String CONNECTOR_GROUP = "Connector";
+    private static final String DATABASE_GROUP = "Database";
+    private static final String MODE_GROUP = "Mode";
+    private static final String CONNECTOR_GROUP = "Connector";
 
-    public static final String MODE_CONFIG = "mode";
+    private static final String MODE_CONFIG = "mode";
     private static final String MODE_DOC = "";
     private static final String MODE_DISPLAY = "Index Loading Mode";
 
     public static final String INDICES_CONFIG = "es.indices";
-    private static final String INDICES_DOC = "List of indices for this task to watch for changes.";
+
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
 
 
-    public static ConfigDef baseConfigDef() {
+    protected static ConfigDef baseConfigDef() {
         ConfigDef config = new ConfigDef();
         addDatabaseOptions(config);
         addModeOptions(config);
@@ -134,7 +115,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         return config;
     }
 
-    private static final void addDatabaseOptions(ConfigDef config) {
+    private static void addDatabaseOptions(ConfigDef config) {
         int orderInGroup = 0;
         config.define(
                 ES_HOST_CONF,
@@ -145,7 +126,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.LONG,
                 ES_HOST_DISPLAY,
-                Arrays.asList(INDEX_PREFIX_CONFIG)
+                Collections.singletonList(INDEX_PREFIX_CONFIG)
         ).define(
                 ES_PORT_CONF,
                 Type.STRING,
@@ -154,8 +135,8 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 DATABASE_GROUP,
                 ++orderInGroup,
                 Width.LONG,
-                ES_PORT_CONF,
-                Arrays.asList(INDEX_PREFIX_CONFIG)
+                ES_PORT_DISPLAY,
+                Collections.singletonList(INDEX_PREFIX_CONFIG)
         ).define(
                 ES_USER_CONF,
                 Type.STRING,
@@ -199,27 +180,17 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         ).define(
                 INDEX_PREFIX_CONFIG,
                 Type.LIST,
-                INDEX_PREFIX_CONFIG,
+                INDEX_PREFIX_DEFAULT,
                 Importance.MEDIUM,
-                INDEX_PREFIX_CONFIG,
+                INDEX_PREFIX_DOC,
                 DATABASE_GROUP,
                 ++orderInGroup,
                 Width.LONG,
-                INDEX_PREFIX_CONFIG
-        ).define(
-                SCHEMA_PATTERN_CONFIG,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                SCHEMA_PATTERN_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                SCHEMA_PATTERN_DISPLAY
+                INDEX_PREFIX_DISPLAY
         );
     }
 
-    private static final void addModeOptions(ConfigDef config) {
+    private static void addModeOptions(ConfigDef config) {
         int orderInGroup = 0;
         config.define(
                 MODE_CONFIG,
@@ -238,9 +209,8 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 MODE_DISPLAY,
-                Arrays.asList(
-                        INCREMENTING_FIELD_NAME_CONFIG,
-                        TIMESTAMP_FIELD_NAME_CONFIG
+                Collections.singletonList(
+                        INCREMENTING_FIELD_NAME_CONFIG
                 )
         ).define(
                 INCREMENTING_FIELD_NAME_CONFIG,
@@ -252,20 +222,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 INCREMENTING_FIELD_NAME_DISPLAY
-        ).define(
-                TIMESTAMP_FIELD_NAME_CONFIG,
-                Type.STRING,
-                TIMESTAMP_FIELD_NAME_DEFAULT,
-                Importance.MEDIUM,
-                TIMESTAMP_FIELD_NAME_DOC,
-                MODE_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                TIMESTAMP_FIELD_NAME_DISPLAY
         );
     }
 
-    private static final void addConnectorOptions(ConfigDef config) {
+    private static void addConnectorOptions(ConfigDef config) {
         int orderInGroup = 0;
         config.define(
                 POLL_INTERVAL_MS_CONFIG,

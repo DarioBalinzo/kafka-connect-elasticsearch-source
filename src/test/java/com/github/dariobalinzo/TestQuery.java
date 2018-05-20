@@ -19,6 +19,7 @@ package com.github.dariobalinzo;
 
 import com.github.dariobalinzo.schema.SchemaConverter;
 import com.github.dariobalinzo.schema.StructConverter;
+import com.github.dariobalinzo.task.ElasticSourceTask;
 import com.github.dariobalinzo.utils.ElasticConnection;
 import junit.framework.TestCase;
 import org.apache.http.util.EntityUtils;
@@ -35,42 +36,29 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import java.io.IOException;
 import java.util.Map;
 
-public class TestSchema extends TestCase {
+public class TestQuery extends TestCase {
 
-    private ElasticConnection es;
+    private ElasticSourceTask task;
 
     public void setUp() throws Exception {
-        es = new ElasticConnection("localhost", 9200, 10, 100);
 
+        task = new ElasticSourceTask();
 
     }
 
 
-    public void testSearch() throws Exception {
-        SearchRequest searchRequest = new SearchRequest();
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-        searchRequest.source(searchSourceBuilder);
-        searchRequest.indices("metricbeat-6.2.4-2018.05.20");
-        SearchResponse searchResponse = es.getClient().search(searchRequest);
-        SearchHits hits = searchResponse.getHits();
-        SearchHit[] searchHits = hits.getHits();
-        for (SearchHit hit : searchHits) {
-            // do something with the SearchHit
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
-            System.out.println(sourceAsMap);
-            Schema schema = SchemaConverter.convertElasticMapping2AvroSchema(sourceAsMap, "test");
-            schema.toString();
-            Struct struct = StructConverter.convertElasticDocument2AvroStruct(sourceAsMap,schema);
-            struct.toString();
-        }
+
+    public void testTask() throws Exception {
+
+        task.setupTest("metricbeat-6.2.4-2018.05.20");
+        task.poll();
 
     }
 
 
     public void tearDown() throws Exception {
 
-        es.closeQuietly();
+        task.stop();
     }
 
 }

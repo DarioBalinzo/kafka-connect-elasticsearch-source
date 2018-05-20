@@ -103,10 +103,6 @@ public class ElasticSourceConnector extends SourceConnector {
         return ElasticSourceTask.class;
     }
 
-    public static void main(String[] args) throws Exception {
-
-
-    }
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
