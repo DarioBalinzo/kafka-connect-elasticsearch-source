@@ -60,17 +60,19 @@ public class ElasticSourceConnector extends SourceConnector {
         }
 
         final String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
-        final int esPort = config.getInt(ElasticSourceConnectorConfig.ES_PORT_CONF);
+
+        //using rest config all the parameters are strings
+        final int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
 
         final String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
-        final Password esPwd = config.getPassword(ElasticSourceConnectorConfig.ES_PWD_CONF);
+        final String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
 
-        final int maxConnectionAttempts = config.getInt(
+        final int maxConnectionAttempts = Integer.parseInt(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG
-        );
-        final long connectionRetryBackoff = config.getLong(
+        ));
+        final long connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
-        );
+        ));
         if (esUser == null || esUser.isEmpty()) {
             elasticConnection = new ElasticConnection(
                     esHost,
@@ -83,7 +85,7 @@ public class ElasticSourceConnector extends SourceConnector {
                     esHost,
                     esPort,
                     esUser,
-                    esPwd.value(),
+                    esPwd,
                     maxConnectionAttempts,
                     connectionRetryBackoff
             );

@@ -90,24 +90,24 @@ public class ElasticSourceTask extends SourceTask {
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
         incrementingField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
-        size = config.getInt(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG);
-        pollingMs = config.getInt(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG);
+        size = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG));
+        pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
     }
 
     private void initEsConnection() {
 
         final String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
-        final int esPort = config.getInt(ElasticSourceConnectorConfig.ES_PORT_CONF);
+        final int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
 
         final String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
-        final Password esPwd = config.getPassword(ElasticSourceConnectorConfig.ES_PWD_CONF);
+        final String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
 
-        maxConnectionAttempts = config.getInt(
+        maxConnectionAttempts = Integer.parseInt(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG
-        );
-        connectionRetryBackoff = config.getLong(
+        ));
+        connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
-        );
+        ));
         if (esUser == null || esUser.isEmpty()) {
             es = new ElasticConnection(
                     esHost,
@@ -120,7 +120,7 @@ public class ElasticSourceTask extends SourceTask {
                     esHost,
                     esPort,
                     esUser,
-                    esPwd.value(),
+                    esPwd,
                     maxConnectionAttempts,
                     connectionRetryBackoff
             );
@@ -148,6 +148,7 @@ public class ElasticSourceTask extends SourceTask {
                 }
         );
         if (results.isEmpty()) {
+            logger.info("no data found, sleeping for {} ms",pollingMs);
             Thread.sleep(pollingMs);
         }
         return results;
@@ -156,7 +157,7 @@ public class ElasticSourceTask extends SourceTask {
     private String fetchLastOffset(String index) {
 
 
-        Map<String, Object> offset = null; // context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
+        Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
         if (offset != null) {
             return (String) offset.get(POSITION);
         } else {
@@ -220,7 +221,7 @@ public class ElasticSourceTask extends SourceTask {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(
                 rangeQuery(incrementingField)
-                        .from(lastValue)
+                        .from(lastValue, false)
         ).sort(incrementingField, SortOrder.ASC); //TODO configure custom query
         searchSourceBuilder.size(1000);
         searchRequest.source(searchSourceBuilder);

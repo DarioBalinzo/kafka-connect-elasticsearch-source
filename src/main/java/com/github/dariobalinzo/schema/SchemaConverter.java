@@ -26,7 +26,8 @@ public class SchemaConverter {
 
     public static Schema convertElasticMapping2AvroSchema(Map<String, Object> doc, String name) {
 
-        SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(name);
+        SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(
+                name.replace(".", "").replace("-", "")); //characters not valid for avro schema name
         convertDocumentSchema(doc,schemaBuilder);
         return schemaBuilder.build();
 

@@ -31,7 +31,7 @@ import java.util.Map;
 public class ElasticSourceTaskConfig extends ElasticSourceConnectorConfig {
 
     static ConfigDef config = baseConfigDef()
-            .define(INDICES_CONFIG, Type.LIST, Importance.HIGH, INDICES_CONFIG);
+            .define(INDICES_CONFIG, Type.STRING, Importance.HIGH, INDICES_CONFIG);
 
     public ElasticSourceTaskConfig(Map<String, String> props) {
         super(config, props);

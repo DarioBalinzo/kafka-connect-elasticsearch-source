@@ -51,7 +51,7 @@ public class TestQuery extends TestCase {
     public void testTask() throws Exception {
 
         task.setupTest("metricbeat-6.2.4-2018.05.20");
-        task.poll();
+        //task.poll();
 
     }
 

@@ -49,25 +49,25 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String CONNECTION_ATTEMPTS_DOC
             = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
     private static final String CONNECTION_ATTEMPTS_DISPLAY = "Elasticsearch connection attempts";
-    private static final int CONNECTION_ATTEMPTS_DEFAULT = 3;
+    private static final String CONNECTION_ATTEMPTS_DEFAULT = "3";
 
     public static final String CONNECTION_BACKOFF_CONFIG = "connection.backoff.ms";
     private static final String CONNECTION_BACKOFF_DOC
             = "Backoff time in milliseconds between connection attempts.";
     private static final String CONNECTION_BACKOFF_DISPLAY
             = "Elastic connection backoff in milliseconds";
-    private static final long CONNECTION_BACKOFF_DEFAULT = 10000L;
+    private static final String CONNECTION_BACKOFF_DEFAULT = "10000";
 
     public static final String POLL_INTERVAL_MS_CONFIG = "poll.interval.ms";
     private static final String POLL_INTERVAL_MS_DOC = "Frequency in ms to poll for new data in "
             + "each index.";
-    private static final int POLL_INTERVAL_MS_DEFAULT = 5000;
+    private static final String POLL_INTERVAL_MS_DEFAULT = "5000";
     private static final String POLL_INTERVAL_MS_DISPLAY = "Poll Interval (ms)";
 
     public static final String BATCH_MAX_ROWS_CONFIG = "batch.max.rows";
     private static final String BATCH_MAX_ROWS_DOC =
             "Maximum number of documents to include in a single batch when polling for new data.";
-    private static final int BATCH_MAX_ROWS_DEFAULT = 10000;
+    private static final String BATCH_MAX_ROWS_DEFAULT = "10000";
     private static final String BATCH_MAX_ROWS_DISPLAY = "Max Documents Per Batch";
 
     private static final String MODE_UNSPECIFIED = "";
@@ -93,13 +93,13 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
             "Prefix to prepend to index names to generate the name of the Kafka topic to publish data";
     private static final String TOPIC_PREFIX_DISPLAY = "Topic Prefix";
 
-    private static final String DATABASE_GROUP = "Database";
+    private static final String DATABASE_GROUP = "Elasticsearch";
     private static final String MODE_GROUP = "Mode";
     private static final String CONNECTOR_GROUP = "Connector";
 
     private static final String MODE_CONFIG = "mode";
     private static final String MODE_DOC = "";
-    private static final String MODE_DISPLAY = "Index Loading Mode";
+    private static final String MODE_DISPLAY = "Index Incrementing field";
 
     public static final String INDICES_CONFIG = "es.indices";
 
@@ -149,7 +149,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ES_USER_DISPLAY
         ).define(
                 ES_PWD_CONF,
-                Type.PASSWORD,
+                Type.STRING,
                 null,
                 Importance.HIGH,
                 ES_PWD_DOC,
@@ -159,7 +159,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ES_PWD_DISPLAY
         ).define(
                 CONNECTION_ATTEMPTS_CONFIG,
-                Type.INT,
+                Type.STRING,
                 CONNECTION_ATTEMPTS_DEFAULT,
                 Importance.LOW,
                 CONNECTION_ATTEMPTS_DOC,
@@ -169,7 +169,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 CONNECTION_ATTEMPTS_DISPLAY
         ).define(
                 CONNECTION_BACKOFF_CONFIG,
-                Type.LONG,
+                Type.STRING,
                 CONNECTION_BACKOFF_DEFAULT,
                 Importance.LOW,
                 CONNECTION_BACKOFF_DOC,
@@ -179,7 +179,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 CONNECTION_BACKOFF_DISPLAY
         ).define(
                 INDEX_PREFIX_CONFIG,
-                Type.LIST,
+                Type.STRING,
                 INDEX_PREFIX_DEFAULT,
                 Importance.MEDIUM,
                 INDEX_PREFIX_DOC,
@@ -229,7 +229,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         int orderInGroup = 0;
         config.define(
                 POLL_INTERVAL_MS_CONFIG,
-                Type.INT,
+                Type.STRING,
                 POLL_INTERVAL_MS_DEFAULT,
                 Importance.HIGH,
                 POLL_INTERVAL_MS_DOC,
@@ -239,7 +239,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 POLL_INTERVAL_MS_DISPLAY
         ).define(
                 BATCH_MAX_ROWS_CONFIG,
-                Type.INT,
+                Type.STRING,
                 BATCH_MAX_ROWS_DEFAULT,
                 Importance.LOW,
                 BATCH_MAX_ROWS_DOC,
