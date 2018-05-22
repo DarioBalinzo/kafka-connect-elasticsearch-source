@@ -16,6 +16,7 @@
 
 package com.github.dariobalinzo.schema;
 
+import com.github.dariobalinzo.utils.Utils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -27,50 +28,67 @@ public class SchemaConverter {
     public static Schema convertElasticMapping2AvroSchema(Map<String, Object> doc, String name) {
 
         SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(
-                name.replace(".", "").replace("-", "")); //characters not valid for avro schema name
-        convertDocumentSchema(doc,schemaBuilder);
+                Utils.filterAvroName("", name)); //characters not valid for avro schema name
+        convertDocumentSchema("", doc, schemaBuilder);
         return schemaBuilder.build();
 
     }
 
 
-    private static void convertDocumentSchema(Map<String, Object> doc, SchemaBuilder schemaBuilder) {
+    private static void convertDocumentSchema(String prefixName, Map<String, Object> doc, SchemaBuilder schemaBuilder) {
 
         doc.keySet().forEach(
                 k -> {
                     Object v = doc.get(k);
                     if (v instanceof String) {
-                        schemaBuilder.field(k, Schema.OPTIONAL_STRING_SCHEMA);
-                    } else if (v instanceof Integer ) {
-                        schemaBuilder.field(k, Schema.OPTIONAL_INT32_SCHEMA);
+                        schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_STRING_SCHEMA);
+                    } else if (v instanceof Integer) {
+                        schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_INT32_SCHEMA);
                     } else if (v instanceof Long) {
-                        schemaBuilder.field(k, Schema.OPTIONAL_INT64_SCHEMA);
-                    } else if ( v instanceof Float) {
-                        schemaBuilder.field(k, Schema.OPTIONAL_FLOAT32_SCHEMA);
+                        schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_INT64_SCHEMA);
+                    } else if (v instanceof Float) {
+                        schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_FLOAT32_SCHEMA);
                     } else if (v instanceof Double) {
-                        schemaBuilder.field(k, Schema.OPTIONAL_FLOAT64_SCHEMA);
+                        schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_FLOAT64_SCHEMA);
                     } else if (v instanceof List) {
 
                         if (!((List) v).isEmpty()) {
                             //assuming that every item of the list has the same schema
                             Object item = ((List) v).get(0);
                             if (item instanceof String) {
-                                schemaBuilder.field(k, SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+                                schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_STRING_SCHEMA)
+                                        .optional()
                                         .build()
                                 ).build();
-                            } else if (item instanceof Integer || item instanceof Long) {
-                                schemaBuilder.field(k, SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+                            } else  if (item instanceof Integer) {
+                                schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA)
+                                        .optional()
                                         .build()
                                 ).build();
-                            } else if (item instanceof Double || item instanceof Float) {
-                                schemaBuilder.field(k, SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+                            } else if ( item instanceof Long) {
+                                schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+                                        .optional()
+                                        .build()
+                                ).build();
+                            } else if (item instanceof Float) {
+                                schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT32_SCHEMA)
+                                        .optional()
+                                        .build()
+                                ).build();
+                            } if (item instanceof Double ) {
+                                schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+                                        .optional()
                                         .build()
                                 ).build();
                             } else if (item instanceof Map) {
 
-                                SchemaBuilder nestedSchema = SchemaBuilder.struct().name(k);
-                                convertDocumentSchema((Map<String, Object>) item, nestedSchema);
-                                schemaBuilder.field(k, SchemaBuilder.array(nestedSchema.build()));
+                                SchemaBuilder nestedSchema = SchemaBuilder.struct()
+                                        .name(Utils.filterAvroName(prefixName, k))
+                                        .optional();
+                                        convertDocumentSchema(Utils.filterAvroName(prefixName, k) + ".",
+                                        (Map<String, Object>) item,
+                                        nestedSchema);
+                                schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(nestedSchema.build()));
                             } else {
                                 throw new RuntimeException("error in converting list: type not supported");
                             }
@@ -79,12 +97,15 @@ public class SchemaConverter {
 
                     } else if (v instanceof Map) {
 
-                        SchemaBuilder nestedSchema = SchemaBuilder.struct().name(k);
-                        convertDocumentSchema((Map<String, Object>) v, nestedSchema);
-                        schemaBuilder.field(k, nestedSchema.build());
+                        SchemaBuilder nestedSchema = SchemaBuilder.struct().name(Utils.filterAvroName(prefixName, k)).optional();
+                        convertDocumentSchema(Utils.filterAvroName(prefixName, k) + ".",
+                                (Map<String, Object>) v,
+                                        nestedSchema
+                                );
+                        schemaBuilder.field(Utils.filterAvroName(k), nestedSchema.build());
 
                     } else {
-                        throw new RuntimeException("type not supported "+k);
+                        throw new RuntimeException("type not supported " + k);
                     }
                 }
         );

@@ -62,6 +62,8 @@ public class ElasticSourceTask extends SourceTask {
     private String incrementingField;
     private int size;
     private int pollingMs;
+    private Map<String,String> last = new HashMap<>();
+    private Map<String,Integer> sent = new HashMap<>();
 
     public ElasticSourceTask() {
 
@@ -144,6 +146,7 @@ public class ElasticSourceTask extends SourceTask {
                         if (lastValue != null) {
                             executeScroll(index, lastValue, results);
                         }
+                        logger.info("index {} total messages: {} ",index,sent.get(index));
                     }
                 }
         );
@@ -157,10 +160,17 @@ public class ElasticSourceTask extends SourceTask {
     private String fetchLastOffset(String index) {
 
 
+        //first we check in cache memory the last value
+        if (last.get(index)!= null) {
+            return last.get(index);
+        }
+
+        //if cache is empty we check the framework
         Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
         if (offset != null) {
             return (String) offset.get(POSITION);
         } else {
+            //first execution, no last value
             //fetching the lower level directly to the elastic index (if it is not empty)
             SearchRequest searchRequest = new SearchRequest(index);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -221,7 +231,7 @@ public class ElasticSourceTask extends SourceTask {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(
                 rangeQuery(incrementingField)
-                        .from(lastValue, false)
+                        .from(lastValue, last.get(index)== null)
         ).sort(incrementingField, SortOrder.ASC); //TODO configure custom query
         searchSourceBuilder.size(1000);
         searchRequest.source(searchSourceBuilder);
@@ -260,6 +270,11 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private SearchHit[] parseSearchResult(String index, String lastValue, List<SourceRecord> results, SearchResponse searchResponse, Object scrollId) {
+
+        if (results.size() > size) {
+            return null; //nothing to do: limit reached
+        }
+
         SearchHits hits = searchResponse.getHits();
         int totalShards = searchResponse.getTotalShards();
         int successfulShards = searchResponse.getSuccessfulShards();
@@ -299,6 +314,9 @@ public class ElasticSourceTask extends SourceTask {
                     schema,
                     struct);
             results.add(sourceRecord);
+
+            last.put(index,sourceAsMap.get(incrementingField).toString());
+            sent.merge(index, 1, Integer::sum);
         }
         return searchHits;
     }
@@ -330,7 +348,7 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     //utility method for testing
-    public void setupTest(String index) {
+    public void setupTest(List<String> index) {
 
         final String esHost = "localhost";
         final int esPort = 9200;
@@ -344,7 +362,7 @@ public class ElasticSourceTask extends SourceTask {
                 connectionRetryBackoff
         );
 
-        indices = Collections.singletonList(index);
+        indices = index;
         if (indices.isEmpty()) {
             throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
                     + "least one index assigned to it");

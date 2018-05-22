@@ -34,6 +34,9 @@ import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class TestQuery extends TestCase {
@@ -50,8 +53,14 @@ public class TestQuery extends TestCase {
 
     public void testTask() throws Exception {
 
-        task.setupTest("metricbeat-6.2.4-2018.05.20");
-        //task.poll();
+        task.setupTest(Arrays.asList("metricbeat-6.2.4-2018.05.20", "metricbeat-6.2.4-2018.05.21", "metricbeat-6.2.4-2018.05.22"));
+        //while (true) {
+        //    task.poll();
+        //}
+        //List list = new ArrayList<>();
+        //task.executeScroll("metricbeat-6.2.4-2018.05.20",
+        //        "2018-05-20T10:26:07.747Z",list);
+        //list.size();
 
     }
 
