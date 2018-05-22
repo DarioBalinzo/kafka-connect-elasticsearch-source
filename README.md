@@ -1,7 +1,41 @@
 # kafka-connect-elasticsearch-source
-Kafka Connect Elasticsearch Source: fetch data from elasting indices using scroll API, fetch only new data using an incremental / temporal field, dynamic schema generation with support of nested objects/ arrays.
+Kafka Connect Elasticsearch Source: fetch data from elasting indices using scroll API. Fetch only new data using a strictly incremental / temporal field.
+ It supports dynamic schema and nested objects/ arrays.
 
-## Elasticsearch Configuration
+## Installation:
+
+  Download (https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/raw/master/target/kafka-connect-elastic-source-connect-0.1.jar) the jar and put into the connect classpath (e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
+
+## Example
+Using kafka connect in distributed way, a sample config file to fetch ``metric*`` indices and to produce output topics with ``es_`` prefix:
+
+
+```json
+{       "name": "elastic-source",
+    "config": {"connector.class":"com.github.dariobalinzo.ElasticSourceConnector",
+                                "tasks.max": "1",
+                                "es.host" : "localhost",
+                                "es.port" : "9200",
+                                "index.prefix" : "metric",
+                                "topic.prefix" : "es_",
+                                "incrementing.field.name" : "@timestamp"
+        }
+}
+```
+To start the connector we send the json config with post:
+```bash
+curl -X POST -H "Content-Type: application/json" --data @config.json http://localhost:8083/connectors | jq
+  ```
+
+To check the status:
+```bash
+curl localhost:8083/connectors/elastic-source/status | jq
+  ```
+
+
+## Documentation
+
+### Elasticsearch Configuration
 
 ``es.host``
   ElasticSearch host
@@ -46,14 +80,14 @@ Kafka Connect Elasticsearch Source: fetch data from elasting indices using scrol
   * Importance: low
 
 ``index.prefix``
-  List of indices to include in copying.
+  Indices prefix to include in copying.
 
-  * Type: list
+  * Type: string
   * Default: ""
   * Importance: medium
 
 
-## Connector Configuration
+### Connector Configuration
 
 ``poll.interval.ms``
   Frequency in ms to poll for new data in each index.
@@ -74,3 +108,4 @@ Kafka Connect Elasticsearch Source: fetch data from elasting indices using scrol
 
   * Type: string
   * Importance: high
+  
