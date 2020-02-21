@@ -2,24 +2,32 @@
 Kafka Connect Elasticsearch Source: fetch data from elasting indices using scroll API. Fetch only new data using a strictly incremental / temporal field.
  It supports dynamic schema and nested objects/ arrays.
 
-## Installation:
+## Development Guidelines (Confluent)
+(Good read)[https://www.confluent.io/blog/create-dynamic-kafka-connect-source-connectors/]
 
-  Download (https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/raw/master/target/kafka-connect-elastic-source-connect-0.1.jar) the jar and put into the connect classpath (e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
+## Installation:
+Download (https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/raw/master/target/kafka-connect-elastic-source-connect-0.1.jar) the jar and put into the connect classpath (e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
 
 ## Example
 Using kafka connect in distributed way, a sample config file to fetch ``metric*`` indices and to produce output topics with ``es_`` prefix:
 
-
 ```json
-{       "name": "elastic-source",
-    "config": {"connector.class":"com.github.dariobalinzo.ElasticSourceConnector",
-                                "tasks.max": "1",
-                                "es.host" : "localhost",
-                                "es.port" : "9200",
-                                "index.prefix" : "metric",
-                                "topic.prefix" : "es_",
-                                "incrementing.field.name" : "@timestamp"
-        }
+{
+  "name": "elastic-source",
+  "config": {
+    "connector.class":"com.github.dariobalinzo.ElasticSourceConnector",
+    "tasks.max": "1",
+    "es.host" : "localhost",
+    "es.port" : "9200",
+    "es.query": "tag:messages AND ident:\"health-monitor\" AND message:\"all tests succeeded\"",
+    "index.prefix" : "logstash",
+    "topic" : "health",
+    "incrementing.field.name" : "@timestamp",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "label.key": "foo",
+    "label.value": "bar"
+  }
 }
 ```
 To start the connector we send the json config with post:

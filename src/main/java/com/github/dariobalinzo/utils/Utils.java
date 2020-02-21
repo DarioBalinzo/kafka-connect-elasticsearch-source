@@ -16,6 +16,8 @@
 
 package com.github.dariobalinzo.utils;
 
+import com.github.dariobalinzo.ElasticSourceConnectorConfig;
+import org.apache.kafka.connect.data.Struct;
 import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class Utils {
 
@@ -71,5 +74,20 @@ public class Utils {
 
     public static String filterAvroName(String prefix, String elasticName) {
         return elasticName == null ? prefix:prefix+elasticName.replaceAll("[^a-zA-Z0-9]", "");
+    }
+
+    /**
+     * Adds the label (key, value) to the record
+     *
+     * @param sourceAsMap The ElasticSearch result as a Map
+     * @param config The configuration where the label is defined
+     * @return The labeled struct
+     */
+    public static Map<String, Object> addLabel(Map<String, Object> sourceAsMap, ElasticSourceConnectorConfig config) {
+        sourceAsMap.put(
+                config.getString(ElasticSourceConnectorConfig.LABEL_KEY),
+                config.getString(ElasticSourceConnectorConfig.LABEL_VALUE));
+
+        return sourceAsMap;
     }
 }

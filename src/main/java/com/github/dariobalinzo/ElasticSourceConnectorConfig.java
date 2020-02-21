@@ -32,10 +32,13 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private final static String ES_HOST_DOC = "ElasticSearch host";
     private final static String ES_HOST_DISPLAY = "Elastic host";
 
-
     public final static String ES_PORT_CONF = "es.port";
     private final static String ES_PORT_DOC = "ElasticSearch port";
     private final static String ES_PORT_DISPLAY = "ElasticSearch port";
+
+    public final static String ES_QUERY = "es.query";
+    private final static String ES_QUERY_DOC = "ElasticSearch string query";
+    private final static String ES_QUERY_DISPLAY = "ElasticSearch string query";
 
     public final static String ES_USER_CONF = "es.user";
     private final static String ES_USER_DOC = "Elasticsearch username";
@@ -88,14 +91,22 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INDEX_PREFIX_DISPLAY = "Indices prefix Whitelist";
 
 
-    public static final String TOPIC_PREFIX_CONFIG = "topic.prefix";
-    private static final String TOPIC_PREFIX_DOC =
-            "Prefix to prepend to index names to generate the name of the Kafka topic to publish data";
-    private static final String TOPIC_PREFIX_DISPLAY = "Topic Prefix";
+    public static final String TOPIC_CONFIG = "topic";
+    private static final String TOPIC_DOC = "The Kafka topic to publish data";
+    private static final String TOPIC_DISPLAY = "Kafka topic";
+
+    public static final String LABEL_KEY = "label.key";
+    private static final String LABEL_KEY_DOC = "The key of the label to add to each record";
+    private static final String LABEL_KEY_DISPLAY = "Label key";
+
+    public static final String LABEL_VALUE = "label.value";
+    private static final String LABEL_VALUE_DOC = "The value of the label to add to each record";
+    private static final String LABEL_VALUE_DISPLAY = "Label value";
 
     private static final String DATABASE_GROUP = "Elasticsearch";
     private static final String MODE_GROUP = "Mode";
     private static final String CONNECTOR_GROUP = "Connector";
+    private static final String LABELING_GROUP = "Labeling";
 
     private static final String MODE_CONFIG = "mode";
     private static final String MODE_DOC = "";
@@ -112,6 +123,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         addDatabaseOptions(config);
         addModeOptions(config);
         addConnectorOptions(config);
+        addLabelOptions(config);
         return config;
     }
 
@@ -137,6 +149,15 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.LONG,
                 ES_PORT_DISPLAY,
                 Collections.singletonList(INDEX_PREFIX_CONFIG)
+        ).define(
+                ES_QUERY,
+                Type.STRING,
+                Importance.HIGH,
+                ES_QUERY_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                ES_QUERY_DISPLAY
         ).define(
                 ES_USER_CONF,
                 Type.STRING,
@@ -248,21 +269,42 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.SHORT,
                 BATCH_MAX_ROWS_DISPLAY
         ).define(
-                TOPIC_PREFIX_CONFIG,
+                TOPIC_CONFIG,
                 Type.STRING,
                 Importance.HIGH,
-                TOPIC_PREFIX_DOC,
+                TOPIC_DOC,
                 CONNECTOR_GROUP,
                 ++orderInGroup,
                 Width.MEDIUM,
-                TOPIC_PREFIX_DISPLAY
+                TOPIC_DISPLAY
+        );
+    }
+
+    private static void addLabelOptions(ConfigDef config) {
+        int orderInGroup = 0;
+        config.define(
+                LABEL_KEY,
+                Type.STRING,
+                Importance.HIGH,
+                LABEL_KEY_DOC,
+                LABELING_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                LABEL_KEY_DISPLAY
+        ).define(
+                LABEL_VALUE,
+                Type.STRING,
+                Importance.HIGH,
+                LABEL_VALUE_DOC,
+                LABELING_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                LABEL_VALUE_DISPLAY
         );
     }
 
     public ElasticSourceConnectorConfig(Map<String, String> properties) {
-
         super(CONFIG_DEF, properties);
-
     }
 
     protected ElasticSourceConnectorConfig(ConfigDef subclassConfigDef, Map<String, String> props) {

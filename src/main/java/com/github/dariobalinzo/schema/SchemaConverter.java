@@ -26,14 +26,11 @@ import java.util.Map;
 public class SchemaConverter {
 
     public static Schema convertElasticMapping2AvroSchema(Map<String, Object> doc, String name) {
-
         SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(
                 Utils.filterAvroName("", name)); //characters not valid for avro schema name
         convertDocumentSchema("", doc, schemaBuilder);
         return schemaBuilder.build();
-
     }
-
 
     private static void convertDocumentSchema(String prefixName, Map<String, Object> doc, SchemaBuilder schemaBuilder) {
 
@@ -60,12 +57,12 @@ public class SchemaConverter {
                                         .optional()
                                         .build()
                                 ).build();
-                            } else  if (item instanceof Integer) {
+                            } else if (item instanceof Integer) {
                                 schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA)
                                         .optional()
                                         .build()
                                 ).build();
-                            } else if ( item instanceof Long) {
+                            } else if (item instanceof Long) {
                                 schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
                                         .optional()
                                         .build()
@@ -75,7 +72,8 @@ public class SchemaConverter {
                                         .optional()
                                         .build()
                                 ).build();
-                            } if (item instanceof Double ) {
+                            }
+                            if (item instanceof Double) {
                                 schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
                                         .optional()
                                         .build()
@@ -85,14 +83,13 @@ public class SchemaConverter {
                                 SchemaBuilder nestedSchema = SchemaBuilder.struct()
                                         .name(Utils.filterAvroName(prefixName, k))
                                         .optional();
-                                        convertDocumentSchema(Utils.filterAvroName(prefixName, k) + ".",
+                                convertDocumentSchema(Utils.filterAvroName(prefixName, k) + ".",
                                         (Map<String, Object>) item,
                                         nestedSchema);
                                 schemaBuilder.field(Utils.filterAvroName(k), SchemaBuilder.array(nestedSchema.build()));
                             } else {
                                 throw new RuntimeException("error in converting list: type not supported");
                             }
-
                         }
 
                     } else if (v instanceof Map) {
@@ -100,8 +97,8 @@ public class SchemaConverter {
                         SchemaBuilder nestedSchema = SchemaBuilder.struct().name(Utils.filterAvroName(prefixName, k)).optional();
                         convertDocumentSchema(Utils.filterAvroName(prefixName, k) + ".",
                                 (Map<String, Object>) v,
-                                        nestedSchema
-                                );
+                                nestedSchema
+                        );
                         schemaBuilder.field(Utils.filterAvroName(k), nestedSchema.build());
 
                     } else {
@@ -109,8 +106,5 @@ public class SchemaConverter {
                     }
                 }
         );
-
     }
-
-
 }

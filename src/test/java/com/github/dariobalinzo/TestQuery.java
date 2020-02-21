@@ -16,58 +16,36 @@
 
 package com.github.dariobalinzo;
 
-
-import com.github.dariobalinzo.schema.SchemaConverter;
-import com.github.dariobalinzo.schema.StructConverter;
 import com.github.dariobalinzo.task.ElasticSourceTask;
-import com.github.dariobalinzo.utils.ElasticConnection;
 import junit.framework.TestCase;
-import org.apache.http.util.EntityUtils;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.apache.kafka.connect.source.SourceRecord;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class TestQuery extends TestCase {
+
+    private static final String testEsHost = "localhost";
+    private static final int testEsPort = 9200;
+    private static final String query = "true";
 
     private ElasticSourceTask task;
 
     public void setUp() throws Exception {
-
         task = new ElasticSourceTask();
-
     }
-
-
 
     public void testTask() throws Exception {
+        task.setupTest(
+                Arrays.asList("logstash-2020.02.20", "logstash-2020.02.21"),
+                testEsHost, testEsPort, query);
 
-        task.setupTest(Arrays.asList("metricbeat-6.2.4-2018.05.20", "metricbeat-6.2.4-2018.05.21", "metricbeat-6.2.4-2018.05.22"));
-        //while (true) {
-        //    task.poll();
-        //}
-        //List list = new ArrayList<>();
-        //task.executeScroll("metricbeat-6.2.4-2018.05.20",
-        //        "2018-05-20T10:26:07.747Z",list);
-        //list.size();
-
+        List<SourceRecord> results = task.poll();
+        results.forEach(System.out::println);
+        System.out.println("\nHits: " + results.size());
     }
-
 
     public void tearDown() throws Exception {
-
         task.stop();
     }
-
 }
