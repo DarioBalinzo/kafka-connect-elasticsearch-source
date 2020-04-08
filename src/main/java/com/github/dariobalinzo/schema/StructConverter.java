@@ -47,6 +47,8 @@ public class StructConverter {
                         struct.put(Utils.filterAvroName(k), v);
                     } else if (v instanceof Double || v instanceof Float) {
                         struct.put(Utils.filterAvroName(k), v);
+                    } else if (v instanceof Boolean) {
+                        struct.put(Utils.filterAvroName(k), v);
                     } else if (v instanceof List) {
 
                         if (!((List) v).isEmpty()) {
@@ -58,6 +60,8 @@ public class StructConverter {
                             } else if (item instanceof Integer || item instanceof Long) {
                                 struct.getArray(Utils.filterAvroName(k)).addAll((List) v);
                             } else if (item instanceof Double || item instanceof Float) {
+                                struct.getArray(Utils.filterAvroName(k)).addAll((List) v);
+                            } else if (item instanceof Boolean) {
                                 struct.getArray(Utils.filterAvroName(k)).addAll((List) v);
                             } else if (item instanceof Map) {
 

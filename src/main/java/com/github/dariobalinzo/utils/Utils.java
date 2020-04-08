@@ -84,9 +84,12 @@ public class Utils {
      * @return The labeled struct
      */
     public static Map<String, Object> addLabel(Map<String, Object> sourceAsMap, ElasticSourceConnectorConfig config) {
-        sourceAsMap.put(
-                config.getString(ElasticSourceConnectorConfig.LABEL_KEY),
-                config.getString(ElasticSourceConnectorConfig.LABEL_VALUE));
+        String keyString = config.getString(ElasticSourceConnectorConfig.LABEL_KEY);
+        String valueString = config.getString(ElasticSourceConnectorConfig.LABEL_VALUE);
+
+        if (!keyString.isEmpty() && !valueString.isEmpty()) {
+            sourceAsMap.put(keyString, valueString);
+        }
 
         return sourceAsMap;
     }

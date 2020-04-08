@@ -285,7 +285,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         config.define(
                 LABEL_KEY,
                 Type.STRING,
-                Importance.HIGH,
+                Importance.LOW,
                 LABEL_KEY_DOC,
                 LABELING_GROUP,
                 ++orderInGroup,
@@ -294,7 +294,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         ).define(
                 LABEL_VALUE,
                 Type.STRING,
-                Importance.HIGH,
+                Importance.LOW,
                 LABEL_VALUE_DOC,
                 LABELING_GROUP,
                 ++orderInGroup,

@@ -47,7 +47,10 @@ public class SchemaConverter {
                         schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_FLOAT32_SCHEMA);
                     } else if (v instanceof Double) {
                         schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_FLOAT64_SCHEMA);
-                    } else if (v instanceof List) {
+                    } else if (v instanceof Boolean) {
+                        schemaBuilder.field(Utils.filterAvroName(k), Schema.OPTIONAL_BOOLEAN_SCHEMA);
+                    }
+                    else if (v instanceof List) {
 
                         if (!((List) v).isEmpty()) {
                             //assuming that every item of the list has the same schema

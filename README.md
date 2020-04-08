@@ -24,7 +24,8 @@ Using kafka connect in distributed way, a sample config file to fetch ``metric*`
     "topic" : "health",
     "incrementing.field.name" : "@timestamp",
     "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-    "value.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://kafka-connect-cp-schema-registry.queue:8081",
     "label.key": "foo",
     "label.value": "bar"
   }
