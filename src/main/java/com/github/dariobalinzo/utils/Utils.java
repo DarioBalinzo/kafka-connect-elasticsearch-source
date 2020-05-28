@@ -80,17 +80,14 @@ public class Utils {
      * Adds the label (key, value) to the record
      *
      * @param sourceAsMap The ElasticSearch result as a Map
-     * @param config The configuration where the label is defined
+     * @param labelKey The key of the label to add
+     * @param labelValue The value of the label to add
      * @return The labeled struct
      */
-    public static Map<String, Object> addLabel(Map<String, Object> sourceAsMap, ElasticSourceConnectorConfig config) {
-        String keyString = config.getString(ElasticSourceConnectorConfig.LABEL_KEY);
-        String valueString = config.getString(ElasticSourceConnectorConfig.LABEL_VALUE);
-
-        if (!keyString.isEmpty() && !valueString.isEmpty()) {
-            sourceAsMap.put(keyString, valueString);
+    public static Map<String, Object> addLabel(Map<String, Object> sourceAsMap, String labelKey, String labelValue) {
+        if (!labelKey.isEmpty() && !labelValue.isEmpty()) {
+            sourceAsMap.put(labelKey, labelValue);
         }
-
         return sourceAsMap;
     }
 }

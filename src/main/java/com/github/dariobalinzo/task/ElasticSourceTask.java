@@ -303,12 +303,30 @@ public class ElasticSourceTask extends SourceTask {
         }
 
         SearchHit[] searchHits = hits.getHits();
+        logger.info("parsing {} hits from index {}", searchHits.length, index);
+
+        // Fetch the fixed values of label.key and label.value from configuration
+        String labelKey = null;
+        String labelValue = null;
+        if (config == null) {
+            logger.warn("null instance of ElasticSourceConnectorConfig, skipping labels");
+        } else {
+            labelKey = config.getString(ElasticSourceConnectorConfig.LABEL_KEY);
+            labelValue = config.getString(ElasticSourceConnectorConfig.LABEL_VALUE);
+
+            if (labelKey == null) {
+                logger.warn("label.key is null, skipping labels");
+            }
+        }
+
         for (SearchHit hit : searchHits) {
             // do something with the SearchHit
             Map<String, Object> sourceAsMap = hit.getSourceAsMap();
 
-            // Add the label in the configuration
-            Utils.addLabel(sourceAsMap, config);
+            // Add the label to hits
+            if (labelKey != null) {
+                Utils.addLabel(sourceAsMap, labelKey, labelValue);
+            }
 
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
             Map<String, String> sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(incrementingField).toString());
