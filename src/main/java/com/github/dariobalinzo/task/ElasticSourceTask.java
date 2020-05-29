@@ -365,7 +365,7 @@ public class ElasticSourceTask extends SourceTask {
             logger.error("error in clear scroll", e);
         }
         boolean succeeded = clearScrollResponse != null && clearScrollResponse.isSucceeded();
-        logger.info("scroll {} cleared: {}", scrollId, succeeded);
+        logger.debug("scroll {} cleared: {}", scrollId, succeeded);
     }
 
     //will be called by connect with a different thread than poll thread
