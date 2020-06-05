@@ -42,8 +42,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
 
@@ -200,7 +204,7 @@ public class ElasticSourceTask extends SourceTask {
             int totalShards = searchResponse.getTotalShards();
             int successfulShards = searchResponse.getSuccessfulShards();
 
-            logger.info("total shard {}, successuful: {}", totalShards, successfulShards);
+            logger.debug("total shard {}, successuful: {}", totalShards, successfulShards);
 
             int failedShards = searchResponse.getFailedShards();
             for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
@@ -233,7 +237,7 @@ public class ElasticSourceTask extends SourceTask {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
         QueryBuilder rangeQuery = rangeQuery(incrementingField)
-                .from(lastValue, last.get(index) == null);
+                .from(lastValue, true);
 
         BoolQueryBuilder queryBuilder = QueryBuilders
                 .boolQuery()
@@ -262,25 +266,23 @@ public class ElasticSourceTask extends SourceTask {
                 throw new RuntimeException("connection failed");
             }
             scrollId = searchResponse.getScrollId();
-            SearchHit[] searchHits = parseSearchResult(index, lastValue, results, searchResponse, scrollId);
+            SearchHit[] searchHits = parseSearchResult(index, results, searchResponse, scrollId);
 
             while (!stopping.get() && searchHits != null && searchHits.length > 0 && results.size() < size) {
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
                 scrollRequest.scroll(TimeValue.timeValueMinutes(1L));
                 searchResponse = es.getClient().searchScroll(scrollRequest);
                 scrollId = searchResponse.getScrollId();
-                searchHits = parseSearchResult(index, lastValue, results, searchResponse, scrollId);
+                searchHits = parseSearchResult(index, results, searchResponse, scrollId);
             }
         } catch (Throwable t) {
             logger.error("error", t);
         } finally {
             closeScrollQuietly(scrollId);
         }
-
-
     }
 
-    private SearchHit[] parseSearchResult(String index, String lastValue, List<SourceRecord> results, SearchResponse searchResponse, Object scrollId) {
+    private SearchHit[] parseSearchResult(String index, List<SourceRecord> results, SearchResponse searchResponse, Object scrollId) {
 
         if (results.size() > size) {
             return null; //nothing to do: limit reached
@@ -290,8 +292,8 @@ public class ElasticSourceTask extends SourceTask {
         int totalShards = searchResponse.getTotalShards();
         int successfulShards = searchResponse.getSuccessfulShards();
 
-        logger.info("total shard {}, successful: {}", totalShards, successfulShards);
-        logger.info("retrieved {}, scroll id : {}", hits, scrollId);
+        logger.debug("total shard {}, successful: {}", totalShards, successfulShards);
+        logger.debug("retrieved {}, scroll id : {}", hits, scrollId);
 
         int failedShards = searchResponse.getFailedShards();
         for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
@@ -349,10 +351,31 @@ public class ElasticSourceTask extends SourceTask {
 
             results.add(sourceRecord);
 
-            last.put(index, sourceAsMap.get(incrementingField).toString());
             sent.merge(index, 1, Integer::sum);
         }
+
+        // Mark the last value
+        String lastValue = markLastValue(index, searchHits);
+        logger.info("Mark last value for of {} = {}", index, lastValue);
+        last.put(index, lastValue);
         return searchHits;
+    }
+
+    private String markLastValue(String index, SearchHit[] searchHits) {
+        final int GUARD = 5;
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSXXX");
+
+        List<ZonedDateTime> collect = Stream.of(searchHits)
+                .map(hit -> hit.getSourceAsMap().get(incrementingField).toString())
+                .distinct()
+                .map(s -> ZonedDateTime.parse(s, formatter))
+                .sorted()
+                .collect(Collectors.toList());
+
+        return collect.size() < GUARD ?
+                last.get(index) :
+                formatter.format(collect.get(collect.size() - GUARD));
     }
 
     private void closeScrollQuietly(String scrollId) {
