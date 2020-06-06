@@ -25,9 +25,9 @@ import java.util.List;
 
 public class TestQuery extends TestCase {
 
-    private static final String testEsHost = "westmalle.acht.athena.zone";
+    private static final String testEsHost = "affligem.acht.athena.zone";
     private static final int testEsPort = 30010;
-    private static final String query = "category: \"diagnostics\"";
+    private static final String query = "tag:messages AND ident:\"health-monitor\" AND message:\"all tests succeeded\"";
 
     private ElasticSourceTask task;
 
@@ -37,11 +37,11 @@ public class TestQuery extends TestCase {
 
     public void testTask() throws Exception {
         task.setupTest(
-                Arrays.asList("logstash"),
+                Arrays.asList("logstash-2020.06.03"),
                 testEsHost, testEsPort, query);
 
         List<SourceRecord> results = task.poll();
-        results.forEach(System.out::println);
+//        results.forEach(System.out::println);
         System.out.println("\nHits: " + results.size());
     }
 

@@ -237,7 +237,7 @@ public class ElasticSourceTask extends SourceTask {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
         QueryBuilder rangeQuery = rangeQuery(incrementingField)
-                .from(lastValue, true);
+                .from(lastValue, last.get(index) == null);
 
         BoolQueryBuilder queryBuilder = QueryBuilders
                 .boolQuery()
@@ -321,9 +321,18 @@ public class ElasticSourceTask extends SourceTask {
             }
         }
 
+        // Mark the last value
+        String lastValue = markLastValue(index, searchHits);
+        logger.info("Mark last value for of {} = {}", index, lastValue);
+        last.put(index, lastValue);
+
         for (SearchHit hit : searchHits) {
             // do something with the SearchHit
             Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+
+            if (!checkGuard(hit, lastValue)) {
+                break;
+            }
 
             // Add the label to hits
             if (labelKey != null) {
@@ -354,11 +363,23 @@ public class ElasticSourceTask extends SourceTask {
             sent.merge(index, 1, Integer::sum);
         }
 
-        // Mark the last value
-        String lastValue = markLastValue(index, searchHits);
-        logger.info("Mark last value for of {} = {}", index, lastValue);
-        last.put(index, lastValue);
         return searchHits;
+    }
+
+    private boolean checkGuard(SearchHit hit, String lastValue) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSXXX");
+
+        ZonedDateTime guardDateTime = ZonedDateTime.parse(lastValue, formatter);
+        String timestamp = hit.getSourceAsMap().get(incrementingField).toString();
+        ZonedDateTime hitDateTime = ZonedDateTime.parse(timestamp, formatter);
+
+        int cmp = hitDateTime.compareTo(guardDateTime);
+        if (cmp > 0) {
+            logger.info("Guard check failed. {} goes beyond {}", hitDateTime, guardDateTime);
+        }
+
+        return cmp < 0;
     }
 
     private String markLastValue(String index, SearchHit[] searchHits) {
@@ -375,7 +396,7 @@ public class ElasticSourceTask extends SourceTask {
 
         return collect.size() < GUARD ?
                 last.get(index) :
-                formatter.format(collect.get(collect.size() - GUARD));
+                formatter.format(collect.get(collect.size() - 1 - GUARD));
     }
 
     private void closeScrollQuietly(String scrollId) {
