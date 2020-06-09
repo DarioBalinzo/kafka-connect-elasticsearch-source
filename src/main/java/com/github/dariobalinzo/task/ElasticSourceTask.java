@@ -237,7 +237,7 @@ public class ElasticSourceTask extends SourceTask {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
         QueryBuilder rangeQuery = rangeQuery(incrementingField)
-                .from(lastValue, last.get(index) == null);
+                .from(lastValue, true);
 
         BoolQueryBuilder queryBuilder = QueryBuilders
                 .boolQuery()
@@ -323,16 +323,16 @@ public class ElasticSourceTask extends SourceTask {
 
         // Mark the last value
         String lastValue = markLastValue(index, searchHits);
-        logger.info("Mark last value for of {} = {}", index, lastValue);
+        logger.info("mark last value for of {} = {}", index, lastValue);
         last.put(index, lastValue);
 
         for (SearchHit hit : searchHits) {
             // do something with the SearchHit
             Map<String, Object> sourceAsMap = hit.getSourceAsMap();
 
-            if (!checkGuard(hit, lastValue)) {
-                break;
-            }
+//            if (!checkGuard(hit, lastValue)) {
+//                break;
+//            }
 
             // Add the label to hits
             if (labelKey != null) {
@@ -376,27 +376,44 @@ public class ElasticSourceTask extends SourceTask {
 
         int cmp = hitDateTime.compareTo(guardDateTime);
         if (cmp > 0) {
-            logger.info("Guard check failed. {} goes beyond {}", hitDateTime, guardDateTime);
+            logger.info("guard check failed. {} goes beyond {}", hitDateTime, guardDateTime);
         }
 
         return cmp < 0;
     }
 
     private String markLastValue(String index, SearchHit[] searchHits) {
-        final int GUARD = 5;
+
+        if (searchHits.length == 0) {
+            return last.get(index);
+        }
+
+        final int GUARD = 1;
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSXXX");
 
-        List<ZonedDateTime> collect = Stream.of(searchHits)
+        List<ZonedDateTime> timestamps = Stream.of(searchHits)
                 .map(hit -> hit.getSourceAsMap().get(incrementingField).toString())
                 .distinct()
                 .map(s -> ZonedDateTime.parse(s, formatter))
                 .sorted()
                 .collect(Collectors.toList());
 
-        return collect.size() < GUARD ?
-                last.get(index) :
-                formatter.format(collect.get(collect.size() - 1 - GUARD));
+        ZonedDateTime realLastValue = timestamps.get(timestamps.size() - 1);
+
+        ZonedDateTime returnValue;
+        if (timestamps.size() < GUARD + 1) {
+            // not enough values to apply the guard
+            logger.info("found last value {}, using it", realLastValue);
+            returnValue = realLastValue;
+        } else {
+            // apply guard
+            ZonedDateTime guardedLastValue = timestamps.get(timestamps.size() - 1 - GUARD);
+            logger.info("found last value {}, slided back to {}", realLastValue, guardedLastValue);
+            returnValue = guardedLastValue;
+        }
+
+        return formatter.format(returnValue);
     }
 
     private void closeScrollQuietly(String scrollId) {
