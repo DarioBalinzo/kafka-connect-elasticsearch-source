@@ -21,6 +21,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.slf4j.Logger;
@@ -69,26 +70,6 @@ public class ElasticConnection {
 
         this.maxConnectionAttempts = maxConnectionAttempts;
         this.connectionRetryBackoff = connectionRetryBackoff;
-
-    }
-
-    public boolean testConnection() {
-
-        for (int i=0; i<maxConnectionAttempts; ++i) {
-            try {
-                client.ping();
-                return true;
-            } catch (IOException e) {
-                logger.warn("cannot connect", e);
-            }
-            try {
-                Thread.sleep(connectionRetryBackoff);
-            } catch (InterruptedException ignored) {
-                //we should not be interrupted here..
-            }
-        }
-        logger.error("failed {} connection trials",maxConnectionAttempts);
-        return false;
 
     }
 

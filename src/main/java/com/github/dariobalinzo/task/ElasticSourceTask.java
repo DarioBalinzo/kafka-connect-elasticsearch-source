@@ -22,7 +22,6 @@ import com.github.dariobalinzo.schema.StructConverter;
 import com.github.dariobalinzo.utils.ElasticConnection;
 import com.github.dariobalinzo.utils.Version;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -30,7 +29,6 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.search.Scroll;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -50,6 +48,9 @@ public class ElasticSourceTask extends SourceTask {
     private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTask.class);
     private static final String INDEX = "index";
     private static final String POSITION = "position";
+
+    private final SchemaConverter schemaConverter = new SchemaConverter();
+    private final StructConverter structConverter = new StructConverter();
 
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
@@ -158,8 +159,6 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private String fetchLastOffset(String index) {
-
-
         //first we check in cache memory the last value
         if (last.get(index)!= null) {
             return last.get(index);
@@ -182,13 +181,14 @@ public class ElasticSourceTask extends SourceTask {
             SearchResponse searchResponse = null;
             try {
                 for (int i = 0; i < maxConnectionAttempts; ++i) {
-                    try {
-                        searchResponse = es.getClient().search(searchRequest);
-                        break;
-                    } catch (IOException e) {
-                        logger.error("error in scroll");
-                        Thread.sleep(connectionRetryBackoff);
-                    }
+                    //TODO update deprecated api
+//                    try {
+//                        searchResponse = es.getClient().search(searchRequest);
+//                        break;
+//                    } catch (IOException e) {
+//                        logger.error("error in scroll");
+//                        Thread.sleep(connectionRetryBackoff);
+//                    }
                 }
                 if (searchResponse == null) {
                     throw new RuntimeException("connection failed");
@@ -238,15 +238,16 @@ public class ElasticSourceTask extends SourceTask {
         SearchResponse searchResponse = null;
         String scrollId = null;
         try {
-            for (int i = 0; i < maxConnectionAttempts; ++i) {
-                try {
-                    searchResponse = es.getClient().search(searchRequest);
-                    break;
-                } catch (IOException e) {
-                    logger.error("error in scroll");
-                    Thread.sleep(connectionRetryBackoff);
-                }
-            }
+            //TODO update deprecated api
+//            for (int i = 0; i < maxConnectionAttempts; ++i) {
+//                try {
+//                    searchResponse = es.getClient().search(searchRequest);
+//                    break;
+//                } catch (IOException e) {
+//                    logger.error("error in scroll");
+//                    Thread.sleep(connectionRetryBackoff);
+//                }
+//            }
             if (searchResponse == null) {
                 throw new RuntimeException("connection failed");
             }
@@ -256,7 +257,8 @@ public class ElasticSourceTask extends SourceTask {
             while (!stopping.get() && searchHits != null && searchHits.length > 0 && results.size() < size) {
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
                 scrollRequest.scroll(TimeValue.timeValueMinutes(1L));
-                searchResponse = es.getClient().searchScroll(scrollRequest);
+                //TODO replace deprecated api
+                //searchResponse = es.getClient().searchScroll(scrollRequest);
                 scrollId = searchResponse.getScrollId();
                 searchHits = parseSearchResult(index, lastValue, results, searchResponse, scrollId);
             }
@@ -297,8 +299,8 @@ public class ElasticSourceTask extends SourceTask {
             Map<String, Object> sourceAsMap = hit.getSourceAsMap();
             Map sourcePartition = Collections.singletonMap(INDEX, index);
             Map sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(incrementingField).toString());
-            Schema schema = SchemaConverter.convertElasticMapping2AvroSchema(sourceAsMap, index);
-            Struct struct = StructConverter.convertElasticDocument2AvroStruct(sourceAsMap, schema);
+            Schema schema = schemaConverter.convertToAvro(sourceAsMap, index);
+            Struct struct = structConverter.convertToAvro(sourceAsMap, schema);
 
             //document key
             String key = String.join("_", hit.getIndex(), hit.getType(), hit.getId());
@@ -325,11 +327,12 @@ public class ElasticSourceTask extends SourceTask {
         ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
         clearScrollRequest.addScrollId(scrollId);
         ClearScrollResponse clearScrollResponse = null;
-        try {
-            clearScrollResponse = es.getClient().clearScroll(clearScrollRequest);
-        } catch (IOException e) {
-            logger.error("error in clear scroll", e);
-        }
+        //TODO replace deprecated api
+//        try {
+//            clearScrollResponse = es.getClient().clearScroll(clearScrollRequest);
+//        } catch (IOException e) {
+//            logger.error("error in clear scroll", e);
+//        }
         boolean succeeded = clearScrollResponse != null && clearScrollResponse.isSucceeded();
         logger.info("scroll {} cleared: {}", scrollId, succeeded);
     }

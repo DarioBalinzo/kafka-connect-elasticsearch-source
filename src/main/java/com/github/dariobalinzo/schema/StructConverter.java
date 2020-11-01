@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package com.github.dariobalinzo.schema;
 
-import com.github.dariobalinzo.utils.Utils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
@@ -26,74 +25,91 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class StructConverter {
-
-    public static Struct convertElasticDocument2AvroStruct(Map<String, Object> doc, Schema schema) {
-
+    public Struct convertToAvro(Map<String, Object> doc, Schema schema) {
         Struct struct = new Struct(schema);
-        convertDocumentStruct("",doc, struct,schema);
+        convertDocumentStruct("", doc, struct, schema);
         return struct;
-
     }
 
+    private void convertDocumentStruct(String prefixName, Map<String, Object> doc, Struct struct, Schema schema) {
+        for (Map.Entry<String, Object> entry : doc.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
 
-    private static void convertDocumentStruct(String prefixName, Map<String, Object> doc, Struct struct, Schema schema) {
+            if (isScalar(value)) {
+                struct.put(AvroName.from(key), value);
+            } else if (value instanceof List) {
+                convertListToAvroArray(prefixName, struct, schema, entry);
+            } else if (value instanceof Map) {
+                covertMapToAvroStruct(prefixName, struct, schema, entry);
+            } else {
+                throw new RuntimeException("type not supported " + key);
+            }
+        }
+    }
 
-        doc.keySet().forEach(
-                k -> {
-                    Object v = doc.get(k);
-                    if (v instanceof String) {
-                        struct.put(Utils.filterAvroName(k), v);
-                    } else if (v instanceof Integer || v instanceof Long) {
-                        struct.put(Utils.filterAvroName(k), v);
-                    } else if (v instanceof Double || v instanceof Float) {
-                        struct.put(Utils.filterAvroName(k), v);
-                    } else if (v instanceof List) {
+    private boolean isScalar(Object value) {
+        return value instanceof String
+                || value instanceof Integer
+                || value instanceof Long
+                || value instanceof Double
+                || value instanceof Float;
+    }
 
-                        if (!((List) v).isEmpty()) {
-                            //assuming that every item of the list has the same schema
-                            Object item = ((List) v).get(0);
-                            struct.put(Utils.filterAvroName(k),new ArrayList<>());
-                            if (item instanceof String) {
-                                struct.getArray(Utils.filterAvroName(k)).addAll((List) v);
-                            } else if (item instanceof Integer || item instanceof Long) {
-                                struct.getArray(Utils.filterAvroName(k)).addAll((List) v);
-                            } else if (item instanceof Double || item instanceof Float) {
-                                struct.getArray(Utils.filterAvroName(k)).addAll((List) v);
-                            } else if (item instanceof Map) {
+    @SuppressWarnings("unchecked")
+    private void convertListToAvroArray(String prefixName, Struct struct, Schema schema, Map.Entry<String, Object> entry) {
+        String key = entry.getKey();
+        List<?> value = (List<?>) entry.getValue();
 
-                                List<Struct> array = (List<Struct>) ((List) v)
-                                        .stream()
-                                        .map(i -> {
-                                            Struct nestedStruct = new Struct(schema.field(Utils.filterAvroName(prefixName,k)).schema().valueSchema());
-                                            convertDocumentStruct(
-                                                    Utils.filterAvroName(prefixName,k)+".",
-                                                    (Map<String, Object>) i, nestedStruct, schema.field(Utils.filterAvroName(k)).schema().valueSchema());
-                                            return nestedStruct;
-                                        }).collect(Collectors.toCollection(ArrayList::new));
-                                struct.put(Utils.filterAvroName(k),array );
-                            } else {
-                                throw new RuntimeException("error in converting list: type not supported");
-                            }
+        if (!value.isEmpty()) {
+            //assuming that every item of the list has the same schema
+            Object head = value.get(0);
+            struct.put(AvroName.from(key), new ArrayList<>());
+            if (isScalar(head)) {
+                struct.getArray(AvroName.from(key)).addAll(value);
+            } else if (head instanceof Map) {
+                List<Struct> array = value
+                        .stream()
+                        .map(doc -> convertListOfObject(prefixName, schema, key, (Map<String, Object>) doc))
+                        .collect(Collectors.toCollection(ArrayList::new));
+                struct.put(AvroName.from(key), array);
+            } else {
+                throw new RuntimeException("error in converting list: type not supported");
+            }
 
-                        }
+        }
+    }
 
-                    } else if (v instanceof Map) {
+    @SuppressWarnings("unchecked")
+    private void covertMapToAvroStruct(String prefixName, Struct struct, Schema schema, Map.Entry<String, Object> entry) {
+        String k = entry.getKey();
+        Map<String, Object> value = (Map<String, Object>) entry.getValue();
+        Struct nestedStruct = new Struct(schema.field(AvroName.from(k)).schema());
+        convertDocumentStruct(
+                AvroName.from(prefixName, k) + ".",
+                value,
+                nestedStruct,
+                schema.field(AvroName.from(k)).schema()
+        );
+        struct.put(AvroName.from(k), nestedStruct);
+    }
 
-                        Struct nestedStruct = new Struct(schema.field(Utils.filterAvroName(k)).schema());
-                        convertDocumentStruct(
-                                Utils.filterAvroName(prefixName,k)+".",
-                                (Map<String, Object>) v,
-                                nestedStruct,
-                                schema.field(Utils.filterAvroName(k)).schema()
-                        );
-                        struct.put(Utils.filterAvroName(k),nestedStruct);
-
-                    } else {
-                        throw new RuntimeException("type not supported " + k);
-                    }
-                }
+    private Struct convertListOfObject(String prefixName, Schema schema, String key, Map<String, Object> doc) {
+        Struct nestedStruct = new Struct(
+                schema.field(AvroName.from(prefixName, key))
+                        .schema()
+                        .valueSchema()
         );
 
+        convertDocumentStruct(
+                AvroName.from(prefixName, key) + ".",
+                doc,
+                nestedStruct,
+                schema.field(AvroName.from(key))
+                        .schema()
+                        .valueSchema()
+        );
+        return nestedStruct;
     }
 
 
