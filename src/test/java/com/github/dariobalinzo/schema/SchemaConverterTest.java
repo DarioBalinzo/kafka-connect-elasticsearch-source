@@ -18,57 +18,62 @@ package com.github.dariobalinzo.schema;
 
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SchemaConverterTest {
 
     private final SchemaConverter schemaConverter = new SchemaConverter();
+    private final StructConverter structConverter = new StructConverter();
 
     @Test
     public void shouldConvertSimpleSchema() {
         //given
-        Map<String, Object> elasticDocument = new HashMap<>();
+        Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
-        elasticDocument.put( "surname", "search");
+        elasticDocument.put("surname", "search");
         elasticDocument.put("version", 7);
 
         //when
-        Schema schema = schemaConverter.convertToAvro(elasticDocument, "test");
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
 
         //then
         Assert.assertEquals("[" +
-                    "Field{name=versione, index=0, schema=Schema{INT32}}," +
-                    " Field{name=surname, index=1, schema=Schema{STRING}}," +
-                    " Field{name=name, index=2, schema=Schema{STRING}}" +
-                "]",
+                        "Field{name=name, index=0, schema=Schema{STRING}}," +
+                        " Field{name=surname, index=1, schema=Schema{STRING}}, " +
+                        "Field{name=version, index=2, schema=Schema{INT32}}" +
+                        "]",
                 schema.fields().toString()
         );
+        Assert.assertEquals("Struct{name=elastic,surname=search,version=7}", struct.toString());
     }
 
     @Test
     public void shouldConvertNestedObject() {
         //given
-        Map<String, Object> nested = new HashMap<>();
+        Map<String, Object> nested = new LinkedHashMap<>();
         nested.put("foo", "bar");
 
-        Map<String, Object> elasticDocument = new HashMap<>();
+        Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
         elasticDocument.put("version", 7);
         elasticDocument.put("detail", nested);
 
         //when
-        Schema schema = schemaConverter.convertToAvro(elasticDocument, "test");
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
 
         //then
         Assert.assertEquals("[" +
-                            "Field{name=name, index=0, schema=Schema{STRING}}, " +
-                            "Field{name=detail, index=1, schema=Schema{detail:STRUCT}}, " +
-                            "Field{name=version, index=2, schema=Schema{INT32}}" +
+                        "Field{name=name, index=0, schema=Schema{STRING}}," +
+                        " Field{name=version, index=1, schema=Schema{INT32}}," +
+                        " Field{name=detail, index=2, schema=Schema{detail:STRUCT}}" +
                         "]",
                 schema.fields().toString()
         );
@@ -79,22 +84,24 @@ public class SchemaConverterTest {
                         .fields()
                         .toString()
         );
+        Assert.assertEquals("Struct{name=elastic,version=7,detail=Struct{foo=bar}}", struct.toString());
     }
 
     @Test
     public void shouldConvertLists() {
         //given
-        Map<String, Object> elasticDocument = new HashMap<>();
+        Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
         elasticDocument.put("details", Arrays.asList(1, 2, 3));
 
         //when
-        Schema schema = schemaConverter.convertToAvro(elasticDocument, "test");
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
 
         //then
         Assert.assertEquals("[" +
-                            "Field{name=name, index=0, schema=Schema{STRING}}, " +
-                            "Field{name=details, index=1, schema=Schema{ARRAY}}" +
+                        "Field{name=name, index=0, schema=Schema{STRING}}, " +
+                        "Field{name=details, index=1, schema=Schema{ARRAY}}" +
                         "]",
                 schema.fields().toString()
         );
@@ -105,25 +112,27 @@ public class SchemaConverterTest {
                         .valueSchema()
                         .toString()
         );
+        Assert.assertEquals("Struct{name=elastic,details=[1, 2, 3]}", struct.toString());
     }
 
     @Test
     public void shouldConvertListsOfObject() {
         //given
-        Map<String, Object> nested = new HashMap<>();
+        Map<String, Object> nested = new LinkedHashMap<>();
         nested.put("foo", "bar");
 
-        Map<String, Object> elasticDocument = new HashMap<>();
+        Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
         elasticDocument.put("details", nested);
 
         //when
-        Schema schema = schemaConverter.convertToAvro(elasticDocument, "test");
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
 
         //then
         Assert.assertEquals("[" +
-                            "Field{name=name, index=0, schema=Schema{STRING}}, " +
-                            "Field{name=details, index=1, schema=Schema{details:STRUCT}}" +
+                        "Field{name=name, index=0, schema=Schema{STRING}}, " +
+                        "Field{name=details, index=1, schema=Schema{details:STRUCT}}" +
                         "]",
                 schema.fields().toString()
         );
@@ -134,6 +143,7 @@ public class SchemaConverterTest {
                         .fields()
                         .toString()
         );
+        Assert.assertEquals("Struct{name=elastic,details=Struct{foo=bar}}", struct.toString());
     }
 
 

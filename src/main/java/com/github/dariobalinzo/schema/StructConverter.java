@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class StructConverter {
-    public Struct convertToAvro(Map<String, Object> doc, Schema schema) {
+    public Struct convert(Map<String, Object> doc, Schema schema) {
         Struct struct = new Struct(schema);
         convertDocumentStruct("", doc, struct, schema);
         return struct;

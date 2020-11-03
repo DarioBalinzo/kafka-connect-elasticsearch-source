@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class SchemaConverter {
 
-    public Schema convertToAvro(Map<String, Object> elasticDocument, String schemaName) {
+    public Schema convert(Map<String, Object> elasticDocument, String schemaName) {
         SchemaBuilder schemaBuilder = SchemaBuilder.struct()
                 .name(
                         AvroName.from("", schemaName)

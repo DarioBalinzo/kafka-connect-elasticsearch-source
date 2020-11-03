@@ -36,7 +36,6 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -299,8 +298,8 @@ public class ElasticSourceTask extends SourceTask {
             Map<String, Object> sourceAsMap = hit.getSourceAsMap();
             Map sourcePartition = Collections.singletonMap(INDEX, index);
             Map sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(incrementingField).toString());
-            Schema schema = schemaConverter.convertToAvro(sourceAsMap, index);
-            Struct struct = structConverter.convertToAvro(sourceAsMap, schema);
+            Schema schema = schemaConverter.convert(sourceAsMap, index);
+            Struct struct = structConverter.convert(sourceAsMap, schema);
 
             //document key
             String key = String.join("_", hit.getIndex(), hit.getType(), hit.getId());
