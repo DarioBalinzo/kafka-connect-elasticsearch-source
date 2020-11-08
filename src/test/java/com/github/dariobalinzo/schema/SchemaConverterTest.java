@@ -18,13 +18,12 @@ package com.github.dariobalinzo.schema;
 
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class SchemaConverterTest {
 
@@ -52,6 +51,20 @@ public class SchemaConverterTest {
                 schema.fields().toString()
         );
         Assert.assertEquals("Struct{name=elastic,surname=search,version=7}", struct.toString());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectInvalidDocuments() {
+        Map<String, Object> invalidDoc = new HashMap<>();
+        invalidDoc.put("not_supported", new NotSupported());
+        schemaConverter.convert(invalidDoc, "test");
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldRejectInvalidDocumentsInStructs() {
+        Map<String, Object> invalidDoc = new HashMap<>();
+        invalidDoc.put("not_supported", new NotSupported());
+        structConverter.convert(invalidDoc, new SchemaBuilder(Schema.Type.STRUCT).schema());
     }
 
     @Test
@@ -123,28 +136,15 @@ public class SchemaConverterTest {
 
         Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
-        elasticDocument.put("details", nested);
+        elasticDocument.put("details", Collections.singletonList(nested));
 
         //when
         Schema schema = schemaConverter.convert(elasticDocument, "test");
         Struct struct = structConverter.convert(elasticDocument, schema);
 
         //then
-        Assert.assertEquals("[" +
-                        "Field{name=name, index=0, schema=Schema{STRING}}, " +
-                        "Field{name=details, index=1, schema=Schema{details:STRUCT}}" +
-                        "]",
-                schema.fields().toString()
-        );
-
-        Assert.assertEquals("[Field{name=foo, index=0, schema=Schema{STRING}}]",
-                schema.field("details")
-                        .schema()
-                        .fields()
-                        .toString()
-        );
-        Assert.assertEquals("Struct{name=elastic,details=Struct{foo=bar}}", struct.toString());
+        Assert.assertEquals("Struct{name=elastic,details=[Struct{foo=bar}]}", struct.toString());
     }
 
-
+    private static class NotSupported {}
 }
