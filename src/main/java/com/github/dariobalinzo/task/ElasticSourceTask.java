@@ -54,7 +54,7 @@ public class ElasticSourceTask extends SourceTask {
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
 
-    private AtomicBoolean stopping = new AtomicBoolean(false);
+    private final AtomicBoolean stopping = new AtomicBoolean(false);
     private List<String> indices;
     private long connectionRetryBackoff;
     private int maxConnectionAttempts;
@@ -62,8 +62,8 @@ public class ElasticSourceTask extends SourceTask {
     private String incrementingField;
     private int size;
     private int pollingMs;
-    private Map<String,String> last = new HashMap<>();
-    private Map<String,Integer> sent = new HashMap<>();
+    private final Map<String,String> last = new HashMap<>();
+    private final Map<String,Integer> sent = new HashMap<>();
 
     public ElasticSourceTask() {
 
