@@ -1,17 +1,12 @@
 package com.github.dariobalinzo.elastic;
 
-import com.github.dariobalinzo.utils.ElasticConnection;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.AfterClass;
@@ -22,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -56,7 +52,7 @@ public class ElasticRepositoryTest {
                 RETRY_WAIT_MS
         );
 
-        repository = new ElasticRepository(connection, TEST_INDEX, CURSOR_FIELD);
+        repository = new ElasticRepository(connection, CURSOR_FIELD);
         repository.setPageSize(TEST_PAGE_SIZE);
     }
 
@@ -71,15 +67,18 @@ public class ElasticRepositoryTest {
         insertMockData(114);
         refreshIndex();
 
-        PageResult firstPage = repository.searchAfter(null);
+        PageResult firstPage = repository.searchAfter(TEST_INDEX, null);
         assertEquals(3, firstPage.getDocuments().size());
 
-        PageResult secondPage = repository.searchAfter(firstPage.getLastCursor());
+        PageResult secondPage = repository.searchAfter(TEST_INDEX, firstPage.getLastCursor());
         assertEquals(1, secondPage.getDocuments().size());
 
-        PageResult emptyPage = repository.searchAfter(secondPage.getLastCursor());
+        PageResult emptyPage = repository.searchAfter(TEST_INDEX, secondPage.getLastCursor());
         assertEquals(0, emptyPage.getDocuments().size());
         assertNull(emptyPage.getLastCursor());
+
+        assertEquals(Collections.singletonList(TEST_INDEX), repository.catIndices("source"));
+        assertEquals(Collections.emptyList(), repository.catIndices("non-existing"));
     }
 
     private void deleteTestIndex() {

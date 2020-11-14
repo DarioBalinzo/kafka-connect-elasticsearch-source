@@ -37,6 +37,7 @@ public class SchemaConverterTest {
         elasticDocument.put("name", "elastic");
         elasticDocument.put("surname", "search");
         elasticDocument.put("version", 7);
+        elasticDocument.put("enabled", true);
 
         //when
         Schema schema = schemaConverter.convert(elasticDocument, "test");
@@ -46,11 +47,12 @@ public class SchemaConverterTest {
         Assert.assertEquals("[" +
                         "Field{name=name, index=0, schema=Schema{STRING}}," +
                         " Field{name=surname, index=1, schema=Schema{STRING}}, " +
-                        "Field{name=version, index=2, schema=Schema{INT32}}" +
+                        "Field{name=version, index=2, schema=Schema{INT32}}, " +
+                        "Field{name=enabled, index=3, schema=Schema{BOOLEAN}}" +
                         "]",
                 schema.fields().toString()
         );
-        Assert.assertEquals("Struct{name=elastic,surname=search,version=7}", struct.toString());
+        Assert.assertEquals("Struct{name=elastic,surname=search,version=7,enabled=true}", struct.toString());
     }
 
     @Test(expected = RuntimeException.class)
@@ -146,5 +148,6 @@ public class SchemaConverterTest {
         Assert.assertEquals("Struct{name=elastic,details=[Struct{foo=bar}]}", struct.toString());
     }
 
-    private static class NotSupported {}
+    private static class NotSupported {
+    }
 }

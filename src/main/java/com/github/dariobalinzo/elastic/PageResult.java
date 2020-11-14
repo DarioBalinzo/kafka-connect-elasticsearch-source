@@ -1,12 +1,15 @@
 package com.github.dariobalinzo.elastic;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 public class PageResult {
+    private final String index;
     private final List<Map<String, Object>> documents;
     private final String lastCursor;
 
-    public PageResult(List<Map<String, Object>> documents, String cursorField) {
+    public PageResult(String index, List<Map<String, Object>> documents, String cursorField) {
+        this.index = index;
         this.documents = documents;
         if (documents.isEmpty()) {
             this.lastCursor = null;
@@ -22,5 +25,9 @@ public class PageResult {
 
     public String getLastCursor() {
         return lastCursor;
+    }
+
+    public String getIndex() {
+        return index;
     }
 }

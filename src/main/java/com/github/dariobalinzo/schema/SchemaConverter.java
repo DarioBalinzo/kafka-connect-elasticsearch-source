@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.kafka.connect.data.Schema.*;
-import static org.apache.kafka.connect.data.SchemaBuilder.*;
+import static org.apache.kafka.connect.data.SchemaBuilder.array;
+import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
 public class SchemaConverter {
 
@@ -41,6 +42,8 @@ public class SchemaConverter {
             String validKeyName = AvroName.from(key);
             if (value instanceof String) {
                 schemaBuilder.field(validKeyName, OPTIONAL_STRING_SCHEMA);
+            } else if (value instanceof Boolean) {
+                schemaBuilder.field(validKeyName, OPTIONAL_BOOLEAN_SCHEMA);
             } else if (value instanceof Integer) {
                 schemaBuilder.field(validKeyName, OPTIONAL_INT32_SCHEMA);
             } else if (value instanceof Long) {
@@ -80,6 +83,11 @@ public class SchemaConverter {
             schemaBuilder.field(
                     validKeyName,
                     array(OPTIONAL_STRING_SCHEMA).optional().build()
+            ).build();
+        } else if (item instanceof Boolean) {
+            schemaBuilder.field(
+                    validKeyName,
+                    array(OPTIONAL_INT32_SCHEMA).optional().build()
             ).build();
         } else if (item instanceof Integer) {
             schemaBuilder.field(

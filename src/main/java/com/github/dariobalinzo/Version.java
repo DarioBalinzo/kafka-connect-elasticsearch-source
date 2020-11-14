@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.dariobalinzo.utils;
+package com.github.dariobalinzo;
 
 public class Version {
     public static final String VERSION = "1.0";

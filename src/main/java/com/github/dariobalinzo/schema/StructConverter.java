@@ -50,6 +50,7 @@ public class StructConverter {
 
     private boolean isScalar(Object value) {
         return value instanceof String
+                || value instanceof Boolean
                 || value instanceof Integer
                 || value instanceof Long
                 || value instanceof Double
