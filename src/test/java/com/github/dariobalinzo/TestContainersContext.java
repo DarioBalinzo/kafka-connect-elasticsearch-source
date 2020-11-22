@@ -1,0 +1,111 @@
+package com.github.dariobalinzo;
+
+import com.github.dariobalinzo.elastic.ElasticConnection;
+import com.github.dariobalinzo.elastic.ElasticRepository;
+import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
+import org.apache.http.HttpHost;
+import org.elasticsearch.action.DocWriteResponse;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+
+public class TestContainersContext {
+    protected static final int TEST_PAGE_SIZE = 3;
+    protected static final int MAX_TRIALS = 2;
+    protected static final int RETRY_WAIT_MS = 1_000;
+
+    protected static final String TEST_INDEX = "source_index";
+    protected static final String CURSOR_FIELD = "ts";
+
+    protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.9.3";
+
+    protected static ElasticsearchContainer container;
+    protected static ElasticConnection connection;
+    protected static ElasticRepository repository;
+
+    @BeforeClass
+    public static void setupElastic() {
+        // Create the elasticsearch container.
+        container = new ElasticsearchContainer(ELASTICSEARCH_IMAGE);
+        container.start();
+
+        HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
+        connection = new ElasticConnection(
+                httpHost.getHostName(),
+                httpHost.getPort(),
+                MAX_TRIALS,
+                RETRY_WAIT_MS
+        );
+
+        repository = new ElasticRepository(connection, CURSOR_FIELD);
+        repository.setPageSize(TEST_PAGE_SIZE);
+    }
+
+
+    protected void deleteTestIndex() {
+        try {
+            connection.getClient().indices().delete(new DeleteIndexRequest(TEST_INDEX));
+        } catch (Exception ignored) {
+
+        }
+    }
+
+    protected void refreshIndex() throws IOException, InterruptedException {
+        repository.refreshIndex(TEST_INDEX);
+    }
+
+    protected void insertMockData(int tsStart) throws IOException {
+        insertMockData(tsStart, TEST_INDEX);
+    }
+
+    protected void insertMockData(int tsStart, String index) throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .field("fullName", "Test")
+                .field(CURSOR_FIELD, tsStart)
+                .field("age", 10)
+                .endObject();
+
+        IndexRequest indexRequest = new IndexRequest(index);
+        indexRequest.type("_doc");
+        indexRequest.source(builder);
+
+        IndexResponse response = connection.getClient().index(indexRequest);
+        assertEquals(DocWriteResponse.Result.CREATED, response.getResult());
+    }
+
+    protected Map<String, String> getConf() {
+        HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
+        Map<String, String> conf = new HashMap<>();
+        conf.put(ElasticSourceTaskConfig.INDICES_CONFIG, TEST_INDEX);
+        conf.put(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG, "topic");
+        conf.put(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG, CURSOR_FIELD);
+        conf.put(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG, String.valueOf(10));
+        conf.put(ElasticSourceConnectorConfig.ES_HOST_CONF, httpHost.getHostName());
+        conf.put(ElasticSourceConnectorConfig.ES_PORT_CONF, String.valueOf(httpHost.getPort()));
+        conf.put(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG, String.valueOf(2));
+        conf.put(ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG, String.valueOf(MAX_TRIALS));
+        conf.put(ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG, String.valueOf(RETRY_WAIT_MS));
+        return conf;
+    }
+
+
+    @AfterClass
+    public static void stopElastic() {
+        if (container != null) {
+            container.close();
+        }
+    }
+
+}

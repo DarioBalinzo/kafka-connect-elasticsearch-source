@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ElasticSourceConnector extends SourceConnector {
+    private static Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
     private ElasticSourceConnectorConfig config;
     private ElasticConnection elasticConnection;
     private ElasticRepository elasticRepository;
@@ -47,7 +47,6 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public void start(Map<String, String> props) {
-
         try {
             configProperties = props;
             config = new ElasticSourceConnectorConfig(props);
@@ -56,18 +55,18 @@ public class ElasticSourceConnector extends SourceConnector {
                     + "error", e);
         }
 
-        final String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
+        String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
 
         //using rest config all the parameters are strings
-        final int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
+        int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
 
-        final String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
-        final String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
+        String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
+        String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
 
-        final int maxConnectionAttempts = Integer.parseInt(config.getString(
+        int maxConnectionAttempts = Integer.parseInt(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG
         ));
-        final long connectionRetryBackoff = Long.parseLong(config.getString(
+        long connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
         ));
         if (esUser == null || esUser.isEmpty()) {
@@ -117,10 +116,8 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public void stop() {
-
         logger.info("stopping elastic source");
         elasticConnection.closeQuietly();
-
     }
 
     @Override

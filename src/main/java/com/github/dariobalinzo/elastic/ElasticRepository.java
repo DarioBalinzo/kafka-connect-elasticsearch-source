@@ -2,7 +2,6 @@ package com.github.dariobalinzo.elastic;
 
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
@@ -112,7 +111,7 @@ public final class ElasticRepository {
         try {
             elasticConnection.getClient()
                     .getLowLevelClient()
-                    .performRequest("POST", "/"+ index +"/_refresh");
+                    .performRequest("POST", "/" + index + "/_refresh");
         } catch (IOException e) {
             logger.error("error in refreshing index " + index);
             throw new RuntimeException(e);
