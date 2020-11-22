@@ -260,16 +260,11 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     }
 
     public ElasticSourceConnectorConfig(Map<String, String> properties) {
-
         super(CONFIG_DEF, properties);
-
     }
 
     protected ElasticSourceConnectorConfig(ConfigDef subclassConfigDef, Map<String, String> props) {
         super(subclassConfigDef, props);
     }
 
-    public static void main(String[] args) {
-        System.out.println(CONFIG_DEF.toEnrichedRst());
-    }
 }
