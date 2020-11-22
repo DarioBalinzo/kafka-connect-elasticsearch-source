@@ -175,7 +175,7 @@ public class ElasticSourceTask extends SourceTask {
             Schema schema = schemaConverter.convert(sourceAsMap, index);
             Struct struct = structConverter.convert(sourceAsMap, schema);
 
-            String key = String.join("_", index, sourceAsMap.get("_id").toString());
+            String key = String.join("_", index, sourceAsMap.get(cursorField).toString());
             SourceRecord sourceRecord = new SourceRecord(
                     sourcePartition,
                     sourceOffset,

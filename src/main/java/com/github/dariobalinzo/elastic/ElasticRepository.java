@@ -3,7 +3,6 @@ package com.github.dariobalinzo.elastic;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
@@ -72,7 +71,7 @@ public final class ElasticRepository {
         for (int i = 0; i < maxTrials; ++i) {
             try {
                 return elasticConnection.getClient()
-                        .search(searchRequest, RequestOptions.DEFAULT);
+                        .search(searchRequest);
             } catch (IOException e) {
                 lastError = e;
                 Thread.sleep(elasticConnection.getConnectionRetryBackoff());
@@ -86,7 +85,7 @@ public final class ElasticRepository {
         try {
             resp = elasticConnection.getClient()
                     .getLowLevelClient()
-                    .performRequest(new Request("GET", "_cat/indices"));
+                    .performRequest("GET", "_cat/indices");
         } catch (IOException e) {
             logger.error("error in searching index names");
             throw new RuntimeException(e);

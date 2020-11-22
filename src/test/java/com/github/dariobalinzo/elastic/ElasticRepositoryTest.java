@@ -6,7 +6,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.AfterClass;
@@ -83,14 +82,15 @@ public class ElasticRepositoryTest {
 
     private void deleteTestIndex() {
         try {
-            connection.getClient().indices().delete(new DeleteIndexRequest(TEST_INDEX), RequestOptions.DEFAULT);
+            connection.getClient().indices().delete(new DeleteIndexRequest(TEST_INDEX));
         } catch (Exception ignored) {
 
         }
     }
 
-    private void refreshIndex() throws IOException {
-        connection.getClient().indices().refresh(new RefreshRequest(TEST_INDEX), RequestOptions.DEFAULT);
+    private void refreshIndex() throws IOException, InterruptedException {
+        //connection.getClient().indices().refresh(new RefreshRequest(TEST_INDEX), RequestOptions.DEFAULT);
+        Thread.sleep(5_000);
     }
 
     private void insertMockData(int tsStart) throws IOException {
@@ -102,9 +102,10 @@ public class ElasticRepositoryTest {
                 .endObject();
 
         IndexRequest indexRequest = new IndexRequest(TEST_INDEX);
+        indexRequest.type("_doc");
         indexRequest.source(builder);
 
-        IndexResponse response = connection.getClient().index(indexRequest, RequestOptions.DEFAULT);
+        IndexResponse response = connection.getClient().index(indexRequest);
         assertEquals(DocWriteResponse.Result.CREATED, response.getResult());
     }
 
