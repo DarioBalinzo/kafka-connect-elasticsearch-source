@@ -27,6 +27,10 @@ public class AvroName {
     }
 
     private static String filterInvalidCharacters(String elasticName) {
+        boolean alphabetic = Character.isLetter(elasticName.charAt(0));
+        if (!alphabetic) {
+            elasticName = "avro" + elasticName;
+        }
         return elasticName.replaceAll("[^a-zA-Z0-9]", "");
     }
 }

@@ -1,28 +1,50 @@
-# kafka-connect-elasticsearch-source
-Kafka Connect Elasticsearch Source: fetch data from elasting indices using scroll API. Fetch only new data using a strictly incremental / temporal field.
- It supports dynamic schema and nested objects/ arrays.
+# Kafka-connect-elasticsearch-source
+Kafka Connect Elasticsearch Source: fetch data from elastic-search. The connector fetches only new data using a strictly incremental / temporal field (like a timestamp or an incrementing id).
+It supports dynamic schema and nested objects/ arrays.
+
+## Requirements:
+- Elasticsearch 6.x and 7.x
+- Java >= 8
+- Maven
+
+## Bugs or new Ideas?
+- Issues tracker: https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/issues
+- Feel free to open an issue to discuss new ideas (or propose new solutions with a PR)
+- Do you use this project in production? Would you like new features? This connector will be always free and open source, 
+but if you want to support me in the development please consider offering me a coffee (https://www.paypal.me/coffeeDarioBalinzo).
 
 ## Installation:
+Compile the project with:
+```bash
+mvn clean package -DskipTests
+```
 
-  Download (https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/raw/master/target/kafka-connect-elastic-source-connect-0.1.jar) the jar and put into the connect classpath (e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
+You can also compile and running both unit and integration tests (docker is mandatory) with:
+```bash
+mvn clean package
+```
+
+Copy the jar with dependencies from the target folder into connect classpath (e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
 
 ## Example
 Using kafka connect in distributed way, a sample config file to fetch ``metric*`` indices and to produce output topics with ``es_`` prefix:
 
 
 ```json
-{       "name": "elastic-source",
-    "config": {"connector.class":"com.github.dariobalinzo.ElasticSourceConnector",
-                                "tasks.max": "1",
-                                "es.host" : "localhost",
-                                "es.port" : "9200",
-                                "index.prefix" : "metric",
-                                "topic.prefix" : "es_",
-                                "incrementing.field.name" : "@timestamp"
+{       
+  "name": "elastic-source",
+   "config": {
+      "connector.class":"com.github.dariobalinzo.ElasticSourceConnector",
+             "tasks.max": "1",
+             "es.host" : "localhost",
+             "es.port" : "9200",
+             "index.prefix" : "metric",
+             "topic.prefix" : "es_",
+             "incrementing.field.name" : "@timestamp"
         }
 }
 ```
-To start the connector we send the json config with post:
+To start the connector with curl:
 ```bash
 curl -X POST -H "Content-Type: application/json" --data @config.json http://localhost:8083/connectors | jq
   ```
@@ -31,6 +53,11 @@ To check the status:
 ```bash
 curl localhost:8083/connectors/elastic-source/status | jq
   ```
+
+To stop the connector:
+```bash
+curl -X DELETE localhost:8083/connectors/elastic-source | jq
+```
 
 
 ## Documentation

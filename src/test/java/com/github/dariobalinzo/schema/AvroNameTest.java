@@ -30,10 +30,12 @@ public class AvroNameTest {
         //when
         String validName = AvroName.from(invalidName);
         String validNamePrefix = AvroName.from("prefix", invalidName);
+        String startByNumber = AvroName.from("1invalid");
 
         //then
         Assert.assertEquals("foobar", validName);
         Assert.assertEquals("prefixfoobar", validNamePrefix);
+        Assert.assertEquals("avro1invalid", startByNumber);
     }
 
 }
