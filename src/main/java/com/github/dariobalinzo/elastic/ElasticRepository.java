@@ -108,6 +108,16 @@ public final class ElasticRepository {
         return result;
     }
 
+    public void refreshIndex(String index) {
+        try {
+            elasticConnection.getClient()
+                    .getLowLevelClient()
+                    .performRequest("POST", "/"+ index +"/_refresh");
+        } catch (IOException e) {
+            logger.error("error in refreshing index " + index);
+            throw new RuntimeException(e);
+        }
+    }
 
     public void setPageSize(int pageSize) {
         this.pageSize = pageSize;

@@ -33,8 +33,6 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 public class ElasticSourceTaskTest {
-    private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTaskTest.class);
-
     private static final int TEST_PAGE_SIZE = 3;
     private static final int MAX_TRIALS = 2;
     private static final int RETRY_WAIT_MS = 1_000;
@@ -72,26 +70,12 @@ public class ElasticSourceTaskTest {
     @Before
     public void init() {
         MockitoAnnotations.initMocks(this);
-
-        OffsetStorageReader emptyOffset = new OffsetStorageReader() {
-            @Override
-            public <T> Map<String, Object> offset(Map<String, T> map) {
-                return new HashMap<>();
-            }
-
-            @Override
-            public <T> Map<Map<String, T>, Map<String, Object>> offsets(Collection<Map<String, T>> collection) {
-                return new HashMap<>();
-            }
-        };
-
-        Mockito.when(context.offsetStorageReader()).thenReturn(emptyOffset);
     }
 
 
 
     @Test
-    public void shouldRunSourceTask() throws IOException, InterruptedException {
+    public void shouldRunSourceTaskWithoutInitialOffeset() throws IOException, InterruptedException {
         //given
         deleteTestIndex();
 
@@ -102,23 +86,11 @@ public class ElasticSourceTaskTest {
         refreshIndex();
 
         ElasticSourceTask task = new ElasticSourceTask();
-        HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
-
-        Map<String, String> conf = new HashMap<>();
-        conf.put(ElasticSourceTaskConfig.INDICES_CONFIG, TEST_INDEX);
-        conf.put(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG, "topic");
-        conf.put(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG, CURSOR_FIELD);
-        conf.put(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG, String.valueOf(10));
-        conf.put(ElasticSourceConnectorConfig.ES_HOST_CONF, httpHost.getHostName());
-        conf.put(ElasticSourceConnectorConfig.ES_PORT_CONF, String.valueOf(httpHost.getPort()));
-        conf.put(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG, String.valueOf(2));
-        conf.put(ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG, String.valueOf(MAX_TRIALS));
-        conf.put(ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG, String.valueOf(RETRY_WAIT_MS));
-
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
         task.initialize(context);
 
         //when (fetching first page)
-        task.start(conf);
+        task.start(getConf());
         List<SourceRecord> poll1 = task.poll();
         assertEquals(2, poll1.size());
 
@@ -133,6 +105,53 @@ public class ElasticSourceTaskTest {
         task.stop();
     }
 
+    @Test
+    public void shouldRunSourceTaskWithInitialOffeset() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.from(String.valueOf(111)));
+        task.initialize(context);
+
+        //when (fetching first page)
+        task.start(getConf());
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals(2, poll1.size());
+
+        //when fetching (second page)
+        List<SourceRecord> poll2 = task.poll();
+        assertEquals(1, poll2.size());
+
+        //then
+        List<SourceRecord> empty = task.poll();
+        assertTrue(empty.isEmpty());
+
+        task.stop();
+    }
+
+
+    private Map<String, String> getConf() {
+        HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
+        Map<String, String> conf = new HashMap<>();
+        conf.put(ElasticSourceTaskConfig.INDICES_CONFIG, TEST_INDEX);
+        conf.put(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG, "topic");
+        conf.put(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG, CURSOR_FIELD);
+        conf.put(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG, String.valueOf(10));
+        conf.put(ElasticSourceConnectorConfig.ES_HOST_CONF, httpHost.getHostName());
+        conf.put(ElasticSourceConnectorConfig.ES_PORT_CONF, String.valueOf(httpHost.getPort()));
+        conf.put(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG, String.valueOf(2));
+        conf.put(ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG, String.valueOf(MAX_TRIALS));
+        conf.put(ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG, String.valueOf(RETRY_WAIT_MS));
+        return conf;
+    }
+
     private void deleteTestIndex() {
         try {
             connection.getClient().indices().delete(new DeleteIndexRequest(TEST_INDEX));
@@ -142,8 +161,7 @@ public class ElasticSourceTaskTest {
     }
 
     private void refreshIndex() throws IOException, InterruptedException {
-        //connection.getClient().indices().refresh(new RefreshRequest(TEST_INDEX), RequestOptions.DEFAULT);
-        Thread.sleep(5_000);
+        repository.refreshIndex(TEST_INDEX);
     }
 
     private void insertMockData(int tsStart) throws IOException {

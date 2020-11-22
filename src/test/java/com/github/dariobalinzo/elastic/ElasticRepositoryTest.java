@@ -89,8 +89,7 @@ public class ElasticRepositoryTest {
     }
 
     private void refreshIndex() throws IOException, InterruptedException {
-        //connection.getClient().indices().refresh(new RefreshRequest(TEST_INDEX), RequestOptions.DEFAULT);
-        Thread.sleep(5_000);
+        repository.refreshIndex(TEST_INDEX);
     }
 
     private void insertMockData(int tsStart) throws IOException {

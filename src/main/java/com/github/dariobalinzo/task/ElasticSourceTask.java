@@ -39,7 +39,7 @@ public class ElasticSourceTask extends SourceTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTask.class);
     private static final String INDEX = "index";
-    private static final String POSITION = "position";
+    static final String POSITION = "position";
 
     private final SchemaConverter schemaConverter = new SchemaConverter();
     private final StructConverter structConverter = new StructConverter();
