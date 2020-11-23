@@ -16,31 +16,28 @@
 
 package com.github.dariobalinzo;
 
+import com.github.dariobalinzo.elastic.ElasticConnection;
+import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.task.ElasticSourceTask;
-import com.github.dariobalinzo.utils.ElasticConnection;
-import com.github.dariobalinzo.utils.Utils;
-import com.github.dariobalinzo.utils.Version;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceConnector;
-import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ElasticSourceConnector extends SourceConnector {
+    private static Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
 
-    private static final Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
     private ElasticSourceConnectorConfig config;
     private ElasticConnection elasticConnection;
+    private ElasticRepository elasticRepository;
     private Map<String, String> configProperties;
 
     @Override
@@ -50,7 +47,6 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public void start(Map<String, String> props) {
-
         try {
             configProperties = props;
             config = new ElasticSourceConnectorConfig(props);
@@ -59,23 +55,25 @@ public class ElasticSourceConnector extends SourceConnector {
                     + "error", e);
         }
 
-        final String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
+        String esScheme = config.getString(ElasticSourceConnectorConfig.ES_SCHEME_CONF);
+        String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
 
         //using rest config all the parameters are strings
-        final int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
+        int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
 
-        final String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
-        final String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
+        String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
+        String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
 
-        final int maxConnectionAttempts = Integer.parseInt(config.getString(
+        int maxConnectionAttempts = Integer.parseInt(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG
         ));
-        final long connectionRetryBackoff = Long.parseLong(config.getString(
+        long connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
         ));
         if (esUser == null || esUser.isEmpty()) {
             elasticConnection = new ElasticConnection(
                     esHost,
+                    esScheme,
                     esPort,
                     maxConnectionAttempts,
                     connectionRetryBackoff
@@ -83,6 +81,7 @@ public class ElasticSourceConnector extends SourceConnector {
         } else {
             elasticConnection = new ElasticConnection(
                     esHost,
+                    esScheme,
                     esPort,
                     esUser,
                     esPwd,
@@ -92,11 +91,7 @@ public class ElasticSourceConnector extends SourceConnector {
 
         }
 
-        // Initial connection attempt
-        if (!elasticConnection.testConnection()) {
-            throw new ConfigException("cannot connect to es");
-        }
-
+        elasticRepository = new ElasticRepository(elasticConnection);
     }
 
     @Override
@@ -107,28 +102,16 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
-
-        Response resp;
-        try {
-            resp = elasticConnection.getClient()
-                    .getLowLevelClient()
-                    .performRequest("GET", "_cat/indices");
-        } catch (IOException e) {
-            logger.error("error in searching index names");
-            throw new RuntimeException(e);
-        }
-
-
-        List<String> currentIndexes = Utils.getIndexList(resp,
+        List<String> currentIndexes = elasticRepository.catIndices(
                 config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)
         );
         int numGroups = Math.min(currentIndexes.size(), maxTasks);
-        List<List<String>> tablesGrouped = Utils.groupPartitions(currentIndexes, numGroups);
-        List<Map<String, String>> taskConfigs = new ArrayList<>(tablesGrouped.size());
-        for (List<String> taskIndices : tablesGrouped) {
+        List<List<String>> indexGrouped = groupPartitions(currentIndexes, numGroups);
+        List<Map<String, String>> taskConfigs = new ArrayList<>(indexGrouped.size());
+        for (List<String> taskIndices : indexGrouped) {
             Map<String, String> taskProps = new HashMap<>(configProperties);
             taskProps.put(ElasticSourceConnectorConfig.INDICES_CONFIG,
-                    String.join(",",taskIndices));
+                    String.join(",", taskIndices));
             taskConfigs.add(taskProps);
         }
         return taskConfigs;
@@ -136,14 +119,26 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public void stop() {
-
         logger.info("stopping elastic source");
         elasticConnection.closeQuietly();
-
     }
 
     @Override
     public ConfigDef config() {
         return ElasticSourceConnectorConfig.CONFIG_DEF;
+    }
+
+
+    private List<List<String>> groupPartitions(List<String> currentIndices, int numGroups) {
+        List<List<String>> result = new ArrayList<>(numGroups);
+        for (int i = 0; i < numGroups; ++i) {
+            result.add(new ArrayList<>());
+        }
+
+        for (int i = 0; i < currentIndices.size(); ++i) {
+            result.get(i % numGroups).add(currentIndices.get(i));
+        }
+
+        return result;
     }
 }
