@@ -27,7 +27,7 @@ mvn clean package
 Copy the jar with dependencies from the target folder into connect classpath (e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
 
 ## Example
-Using kafka connect in distributed way, a sample config file to fetch ``metric*`` indices and to produce output topics with ``es_`` prefix:
+Using kafka connect in distributed way, a sample config file to fetch ``my_awesome_index*`` indices and to produce output topics with ``es_`` prefix:
 
 
 ```json
