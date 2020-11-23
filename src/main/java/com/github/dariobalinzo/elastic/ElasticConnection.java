@@ -35,7 +35,7 @@ public class ElasticConnection {
     private final long connectionRetryBackoff;
     private final int maxConnectionAttempts;
 
-    public ElasticConnection(String host, int port, int maxConnectionAttempts,
+    public ElasticConnection(String host, String scheme, int port, int maxConnectionAttempts,
                              long connectionRetryBackoff) {
         logger.info("elastic auth disabled");
 
@@ -46,10 +46,9 @@ public class ElasticConnection {
 
         this.maxConnectionAttempts = maxConnectionAttempts;
         this.connectionRetryBackoff = connectionRetryBackoff;
-
     }
 
-    public ElasticConnection(String host, int port, String user, String pwd,
+    public ElasticConnection(String host, String protocol, int port, String user, String pwd,
                              int maxConnectionAttempts, long connectionRetryBackoff) {
 
         logger.info("elastic auth enabled");
@@ -61,7 +60,7 @@ public class ElasticConnection {
         //TODO add configuration for https also, and many nodes instead of only one
         client = new RestHighLevelClient(
                 RestClient.builder(
-                        new HttpHost(host, port)).setHttpClientConfigCallback(
+                        new HttpHost(host, port, protocol)).setHttpClientConfigCallback(
                         httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
                 )
         );

@@ -59,6 +59,7 @@ public class TestContainersContext {
         HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
         connection = new ElasticConnection(
                 httpHost.getHostName(),
+                "http",
                 httpHost.getPort(),
                 MAX_TRIALS,
                 RETRY_WAIT_MS

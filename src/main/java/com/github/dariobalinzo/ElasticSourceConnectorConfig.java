@@ -32,6 +32,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private final static String ES_HOST_DOC = "ElasticSearch host";
     private final static String ES_HOST_DISPLAY = "Elastic host";
 
+    public final static String ES_SCHEME_CONF = "es.scheme";
+    private final static String ES_SCHEME_DOC = "Elasticsearch scheme (default: http)";
+    private final static String ES_SCHEME_DISPLAY = "Elasticsearch scheme";
+    private static final String ES_SCHEME_DEFAULT = "http";
 
     public final static String ES_PORT_CONF = "es.port";
     private final static String ES_PORT_DOC = "ElasticSearch port";
@@ -127,6 +131,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.LONG,
                 ES_HOST_DISPLAY,
                 Collections.singletonList(INDEX_PREFIX_CONFIG)
+        ).define(
+                ES_SCHEME_CONF,
+                Type.STRING,
+                ES_SCHEME_DEFAULT,
+                Importance.MEDIUM,
+                ES_SCHEME_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                ES_SCHEME_DISPLAY
         ).define(
                 ES_PORT_CONF,
                 Type.STRING,

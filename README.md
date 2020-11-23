@@ -1,5 +1,5 @@
 # Kafka-connect-elasticsearch-source
-Kafka Connect Elasticsearch Source: fetch data from elastic-search. The connector fetches only new data using a strictly incremental / temporal field (like a timestamp or an incrementing id).
+Kafka Connect Elasticsearch Source: fetch data from elastic-search and sends it to kafka. The connector fetches only new data using a strictly incremental / temporal field (like a timestamp or an incrementing id).
 It supports dynamic schema and nested objects/ arrays.
 
 ## Requirements:
@@ -38,7 +38,7 @@ Using kafka connect in distributed way, a sample config file to fetch ``metric*`
              "tasks.max": "1",
              "es.host" : "localhost",
              "es.port" : "9200",
-             "index.prefix" : "metric",
+             "index.prefix" : "my_awesome_index",
              "topic.prefix" : "es_",
              "incrementing.field.name" : "@timestamp"
         }
@@ -77,6 +77,13 @@ curl -X DELETE localhost:8083/connectors/elastic-source | jq
   * Type: string
   * Importance: high
   * Dependents: ``index.prefix``
+  
+``es.scheme``
+ElasticSearch scheme (http/https)
+
+* Type: string
+* Importance: medium
+* Default: ``http``
 
 ``es.user``
   Elasticsearch username

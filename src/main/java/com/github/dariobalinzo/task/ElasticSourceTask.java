@@ -87,6 +87,7 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initEsConnection() {
+        String esScheme = config.getString(ElasticSourceConnectorConfig.ES_SCHEME_CONF);
         String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
         int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
 
@@ -104,6 +105,7 @@ public class ElasticSourceTask extends SourceTask {
         if (esUser == null || esUser.isEmpty()) {
             es = new ElasticConnection(
                     esHost,
+                    esScheme,
                     esPort,
                     maxConnectionAttempts,
                     connectionRetryBackoff
@@ -111,6 +113,7 @@ public class ElasticSourceTask extends SourceTask {
         } else {
             es = new ElasticConnection(
                     esHost,
+                    esScheme,
                     esPort,
                     esUser,
                     esPwd,
