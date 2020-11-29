@@ -34,7 +34,7 @@ public class WhitelistFilterTest {
 
     @Test
     public void shouldConvertSimpleSchema() {
-        //given    //this is the SourceAsMap to input the filter
+        //given  
         Map<String, Object> elasticDocument = new LinkedHashMap<>();  //this is a FIFO queue, the order is maintained
         elasticDocument.put("name", "elastic");
         elasticDocument.put("surname", "search");
@@ -42,106 +42,16 @@ public class WhitelistFilterTest {
         elasticDocument.put("enabled", true);
 
         //when
-        //Instance the new filter
-        //TODO
+        List<String> filterValues = new ArrayList<>(Arrays.asList(
+                "name",
+                "surname",
+                "version"
+        ));
+        WhitelistFilter whitelistFilter = new WhitelistFilter(filterValues);
+        Map<String, Object> filteredElasticDocument = whitelistFilter.filter(elasticDocument);
 
         //then
-        //Assert the filteredObject.toString is consistent with my expectation
-
-
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void shouldRejectInvalidDocuments() {
-        Map<String, Object> invalidDoc = new HashMap<>();
-        invalidDoc.put("not_supported", new NotSupported());
-        schemaConverter.convert(invalidDoc, "test");
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void shouldRejectInvalidDocumentsInStructs() {
-        Map<String, Object> invalidDoc = new HashMap<>();
-        invalidDoc.put("not_supported", new NotSupported());
-        structConverter.convert(invalidDoc, new SchemaBuilder(Schema.Type.STRUCT).schema());
-    }
-
-    @Test
-    public void shouldConvertNestedObject() {
-        //given
-        Map<String, Object> nested = new LinkedHashMap<>();
-        nested.put("foo", "bar");
-
-        Map<String, Object> elasticDocument = new LinkedHashMap<>();
-        elasticDocument.put("name", "elastic");
-        elasticDocument.put("version", 7);
-        elasticDocument.put("detail", nested);
-
-        //when
-        Schema schema = schemaConverter.convert(elasticDocument, "test");
-        Struct struct = structConverter.convert(elasticDocument, schema);
-
-        //then
-        Assert.assertEquals("[" +
-                        "Field{name=name, index=0, schema=Schema{STRING}}," +
-                        " Field{name=version, index=1, schema=Schema{INT32}}," +
-                        " Field{name=detail, index=2, schema=Schema{detail:STRUCT}}" +
-                        "]",
-                schema.fields().toString()
-        );
-
-        Assert.assertEquals("[Field{name=foo, index=0, schema=Schema{STRING}}]",
-                schema.field("detail")
-                        .schema()
-                        .fields()
-                        .toString()
-        );
-        Assert.assertEquals("Struct{name=elastic,version=7,detail=Struct{foo=bar}}", struct.toString());
-    }
-
-    @Test
-    public void shouldConvertLists() {
-        //given
-        Map<String, Object> elasticDocument = new LinkedHashMap<>();
-        elasticDocument.put("name", "elastic");
-        elasticDocument.put("details", Arrays.asList(1, 2, 3));
-
-        //when
-        Schema schema = schemaConverter.convert(elasticDocument, "test");
-        Struct struct = structConverter.convert(elasticDocument, schema);
-
-        //then
-        Assert.assertEquals("[" +
-                        "Field{name=name, index=0, schema=Schema{STRING}}, " +
-                        "Field{name=details, index=1, schema=Schema{ARRAY}}" +
-                        "]",
-                schema.fields().toString()
-        );
-
-        Assert.assertEquals("Schema{INT32}",
-                schema.field("details")
-                        .schema()
-                        .valueSchema()
-                        .toString()
-        );
-        Assert.assertEquals("Struct{name=elastic,details=[1, 2, 3]}", struct.toString());
-    }
-
-    @Test
-    public void shouldConvertListsOfObject() {
-        //given
-        Map<String, Object> nested = new LinkedHashMap<>();
-        nested.put("foo", "bar");
-
-        Map<String, Object> elasticDocument = new LinkedHashMap<>();
-        elasticDocument.put("name", "elastic");
-        elasticDocument.put("details", Collections.singletonList(nested));
-
-        //when
-        Schema schema = schemaConverter.convert(elasticDocument, "test");
-        Struct struct = structConverter.convert(elasticDocument, schema);
-
-        //then
-        Assert.assertEquals("Struct{name=elastic,details=[Struct{foo=bar}]}", struct.toString());
+        assert (filteredElasticDocument.toString()).equals("{surname=search, name=elastic, version=7}");
     }
 
     private static class NotSupported {
