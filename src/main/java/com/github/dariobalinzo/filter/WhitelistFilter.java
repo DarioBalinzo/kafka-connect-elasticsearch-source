@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 public class WhitelistFilter implements DocumentFilter {
 
-    List<String> allowedValues;
+    private final List<String> allowedValues;
 
     public WhitelistFilter(List<String> allowedValues) {
         this.allowedValues = allowedValues;
@@ -14,10 +14,6 @@ public class WhitelistFilter implements DocumentFilter {
 
     public List<String> getAllowedValues() {
         return allowedValues;
-    }
-
-    public void setAllowedValues(List<String> allowedValues) {
-        this.allowedValues = allowedValues;
     }
 
     @Override
