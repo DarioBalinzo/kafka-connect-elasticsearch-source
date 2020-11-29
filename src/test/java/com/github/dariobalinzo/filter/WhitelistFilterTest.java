@@ -26,6 +26,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WhitelistFilterTest {
 
@@ -42,11 +44,11 @@ public class WhitelistFilterTest {
         elasticDocument.put("enabled", true);
 
         //when
-        List<String> filterValues = new ArrayList<>(Arrays.asList(
+        Set<String> filterValues = Stream.of(
                 "name",
                 "surname",
                 "version"
-        ));
+        ).collect(Collectors.toCollection(HashSet::new));
         WhitelistFilter whitelistFilter = new WhitelistFilter(filterValues);
         Map<String, Object> filteredElasticDocument = whitelistFilter.filter(elasticDocument);
 

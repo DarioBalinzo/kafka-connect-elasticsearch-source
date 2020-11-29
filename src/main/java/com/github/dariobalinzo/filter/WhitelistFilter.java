@@ -2,17 +2,18 @@ package com.github.dariobalinzo.filter;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class WhitelistFilter implements DocumentFilter {
 
-    private final List<String> allowedValues;
+    private final Set<String> allowedValues;
 
-    public WhitelistFilter(List<String> allowedValues) {
+    public WhitelistFilter(Set<String> allowedValues) {
         this.allowedValues = allowedValues;
     }
 
-    public List<String> getAllowedValues() {
+    public Set<String> getAllowedValues() {
         return allowedValues;
     }
 
