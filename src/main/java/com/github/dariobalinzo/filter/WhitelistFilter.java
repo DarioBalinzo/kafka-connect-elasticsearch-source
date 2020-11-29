@@ -2,10 +2,9 @@ package com.github.dariobalinzo.filter;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-public class WhitelistFilter implements Filter {
+public class WhitelistFilter implements DocumentFilter {
 
     List<String> allowedValues;
 

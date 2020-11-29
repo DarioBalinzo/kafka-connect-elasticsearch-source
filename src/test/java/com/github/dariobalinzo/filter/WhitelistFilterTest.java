@@ -34,7 +34,7 @@ public class WhitelistFilterTest {
 
     @Test
     public void shouldConvertSimpleSchema() {
-        //given  
+        //given
         Map<String, Object> elasticDocument = new LinkedHashMap<>();  //this is a FIFO queue, the order is maintained
         elasticDocument.put("name", "elastic");
         elasticDocument.put("surname", "search");
