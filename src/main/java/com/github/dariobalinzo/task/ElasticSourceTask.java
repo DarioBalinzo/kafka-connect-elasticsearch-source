@@ -175,6 +175,26 @@ public class ElasticSourceTask extends SourceTask {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
             Map<String, String> sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(cursorField).toString());
 
+
+            //sourceAsMap is the Elastic document, and it represents my input
+
+            //we should here implement a filter and here do something like
+
+            /**
+             * the configuration is passed to the constructor, it will be like a json (key, value)
+             * it can be flat or NESTED (like orders in the example), ie:
+             * {
+             *   user,
+             *   age,
+             *   orders.price
+             * }
+             *
+             * our user will write a json (simple string) just to indicate the fields he wants to filter
+             *
+            **/
+            //myFilter = new Filter(config)
+            //myFilter.filter(sourcAsMap)
+
             Schema schema = schemaConverter.convert(sourceAsMap, index);
             Struct struct = structConverter.convert(sourceAsMap, schema);
 
