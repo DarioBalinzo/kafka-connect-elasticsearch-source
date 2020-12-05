@@ -16,11 +16,14 @@
 
 package com.github.dariobalinzo.task;
 
+import com.github.dariobalinzo.ElasticSourceConnector;
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.PageResult;
+import com.github.dariobalinzo.filter.DocumentFilter;
+import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.SchemaConverter;
 import com.github.dariobalinzo.schema.StructConverter;
 import org.apache.kafka.common.config.ConfigException;
@@ -56,6 +59,8 @@ public class ElasticSourceTask extends SourceTask {
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
 
+    private final List<DocumentFilter> documentFilters = new ArrayList<>();
+
     public ElasticSourceTask() {
 
     }
@@ -83,7 +88,20 @@ public class ElasticSourceTask extends SourceTask {
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
+        initConnectorFilter();
+
+
         initEsConnection();
+    }
+
+    private void initConnectorFilter() {
+        String whiteFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG);
+
+        if (whiteFilters != null) {
+            String[] whiteFiltersArray = whiteFilters.split(";");
+            Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
+            documentFilters.add(new WhitelistFilter(whiteFiltersSet));
+        }
     }
 
     private void initEsConnection() {
@@ -171,34 +189,19 @@ public class ElasticSourceTask extends SourceTask {
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
         String index = pageResult.getIndex();
-        for (Map<String, Object> sourceAsMap : pageResult.getDocuments()) {
+        for (Map<String, Object> originalDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(cursorField).toString());
+            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, originalDocument.get(cursorField).toString());
 
+            Map<String, Object> filteredDocument = originalDocument;
+            for (DocumentFilter documentFilter : documentFilters) {
+                filteredDocument = documentFilter.filter(filteredDocument);
+            }
 
-            //sourceAsMap is the Elastic document, and it represents my input
+            Schema schema = schemaConverter.convert(filteredDocument, index);
+            Struct struct = structConverter.convert(filteredDocument, schema);
 
-            //we should here implement a filter and here do something like
-
-            /**
-             * the configuration is passed to the constructor, it will be like a json (key, value)
-             * it can be flat or NESTED (like orders in the example), ie:
-             * {
-             *   user,
-             *   age,
-             *   orders.price
-             * }
-             *
-             * our user will write a json (simple string) just to indicate the fields he wants to filter
-             *
-            **/
-            //myFilter = new Filter(config)
-            //myFilter.filter(sourcAsMap)
-
-            Schema schema = schemaConverter.convert(sourceAsMap, index);
-            Struct struct = structConverter.convert(sourceAsMap, schema);
-
-            String key = String.join("_", index, sourceAsMap.get(cursorField).toString());
+            String key = String.join("_", index, originalDocument.get(cursorField).toString());
             SourceRecord sourceRecord = new SourceRecord(
                     sourcePartition,
                     sourceOffset,
@@ -211,7 +214,7 @@ public class ElasticSourceTask extends SourceTask {
                     struct);
             results.add(sourceRecord);
 
-            last.put(index, sourceAsMap.get(cursorField).toString());
+            last.put(index, originalDocument.get(cursorField).toString());
             sent.merge(index, 1, Integer::sum);
         }
     }

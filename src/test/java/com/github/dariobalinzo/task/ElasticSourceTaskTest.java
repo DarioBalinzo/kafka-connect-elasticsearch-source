@@ -16,6 +16,7 @@
 
 package com.github.dariobalinzo.task;
 
+import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.TestContainersContext;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTaskContext;
@@ -27,6 +28,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -99,6 +101,33 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //then
         List<SourceRecord> empty = task.poll();
         assertTrue(empty.isEmpty());
+
+        task.stop();
+    }
+
+    @Test
+    public void shouldRunSourceTaskWhitelistSingleFilter() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.from(String.valueOf(111)));
+        task.initialize(context);
+
+        //when (fetching first page)
+        Map<String, String> conf = getConf();
+
+        conf.put(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG, "fullName");
+
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals("Struct{fullName=Test}", poll1.get(0).value().toString());
 
         task.stop();
     }

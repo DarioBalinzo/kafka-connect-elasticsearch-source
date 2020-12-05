@@ -107,6 +107,11 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
     public static final String INDICES_CONFIG = "es.indices";
 
+    public static final String FIELDS_WHITELIST_CONFIG = "fields.whitelist.filter";
+    private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields";
+    private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
+
+
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
 
@@ -201,6 +206,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.LONG,
                 INDEX_PREFIX_DISPLAY
+        ).define(
+                FIELDS_WHITELIST_CONFIG,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                FIELDS_WHITELIST_DOC,
+                CONNECTOR_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                FIELDS_WHITELIST_DISPLAY
         );
     }
 
