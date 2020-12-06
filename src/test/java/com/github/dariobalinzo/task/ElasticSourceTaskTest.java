@@ -132,4 +132,31 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         task.stop();
     }
 
+    @Test
+    public void shouldRunSourceTaskWhitelistMultiFilter() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+
+        //when (fetching first page)
+        Map<String, String> conf = getConf();
+
+        conf.put(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG, "fullName;age");
+
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals("Struct{fullName=Test,age=10}", poll1.get(0).value().toString());
+
+        task.stop();
+    }
+
 }
