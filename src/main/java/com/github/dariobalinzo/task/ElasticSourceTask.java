@@ -16,10 +16,10 @@
 
 package com.github.dariobalinzo.task;
 
-import com.github.dariobalinzo.ElasticSourceConnector;
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ElasticConnection;
+import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.PageResult;
 import com.github.dariobalinzo.filter.DocumentFilter;
@@ -120,25 +120,17 @@ public class ElasticSourceTask extends SourceTask {
         long connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
         ));
-        if (esUser == null || esUser.isEmpty()) {
-            es = new ElasticConnection(
-                    esHost,
-                    esScheme,
-                    esPort,
-                    maxConnectionAttempts,
-                    connectionRetryBackoff
-            );
-        } else {
-            es = new ElasticConnection(
-                    esHost,
-                    esScheme,
-                    esPort,
-                    esUser,
-                    esPwd,
-                    maxConnectionAttempts,
-                    connectionRetryBackoff
-            );
+        ElasticConnectionBuilder connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
+                .withProtocol(esScheme)
+                .withMaxAttempts(maxConnectionAttempts)
+                .withBackoff(connectionRetryBackoff);
 
+        if (esUser == null || esUser.isEmpty()) {
+            es = connectionBuilder.build();
+        } else {
+            es = connectionBuilder.withUser(esUser)
+                    .withPassword(esPwd)
+                    .build();
         }
 
         elasticRepository = new ElasticRepository(es, cursorField);

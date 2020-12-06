@@ -19,13 +19,12 @@ package com.github.dariobalinzo.filter;
 
 import com.github.dariobalinzo.schema.SchemaConverter;
 import com.github.dariobalinzo.schema.StructConverter;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

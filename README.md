@@ -68,7 +68,7 @@ curl -X DELETE localhost:8083/connectors/elastic-source | jq
 ### Elasticsearch Configuration
 
 ``es.host``
-  ElasticSearch host
+  ElasticSearch host. Optionally it is possible to specify many hosts using ``;`` as separator (``host1;host2;host3``) 
 
   * Type: string
   * Importance: high

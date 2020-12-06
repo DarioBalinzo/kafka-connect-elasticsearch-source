@@ -27,9 +27,10 @@ import java.util.Map;
 
 public class ElasticSourceConnectorConfig extends AbstractConfig {
 
-    //TODO add the possibility to specify multiple hosts
     public final static String ES_HOST_CONF = "es.host";
-    private final static String ES_HOST_DOC = "ElasticSearch host";
+    private final static String ES_HOST_DOC = "ElasticSearch host. " +
+            "Optionally it is possible to specify many hosts " +
+            "using ; as separator (host1;host2;host3)";
     private final static String ES_HOST_DISPLAY = "Elastic host";
 
     public final static String ES_SCHEME_CONF = "es.scheme";
@@ -110,7 +111,6 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public static final String FIELDS_WHITELIST_CONFIG = "fields.whitelist.filter";
     private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields";
     private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
-
 
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
