@@ -189,19 +189,22 @@ public class ElasticSourceTask extends SourceTask {
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
         String index = pageResult.getIndex();
-        for (Map<String, Object> originalDocument : pageResult.getDocuments()) {
+        for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, originalDocument.get(cursorField).toString());
+            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, elasticDocument.get(cursorField).toString());
 
-            Map<String, Object> filteredDocument = originalDocument;
+            String key = String.join("_", index, elasticDocument.get(cursorField).toString());
+
+            last.put(index, elasticDocument.get(cursorField).toString());
+            sent.merge(index, 1, Integer::sum);
+
             for (DocumentFilter documentFilter : documentFilters) {
-                filteredDocument = documentFilter.filter(filteredDocument);
+                elasticDocument = documentFilter.filter(elasticDocument);
             }
 
-            Schema schema = schemaConverter.convert(filteredDocument, index);
-            Struct struct = structConverter.convert(filteredDocument, schema);
+            Schema schema = schemaConverter.convert(elasticDocument, index);
+            Struct struct = structConverter.convert(elasticDocument, schema);
 
-            String key = String.join("_", index, originalDocument.get(cursorField).toString());
             SourceRecord sourceRecord = new SourceRecord(
                     sourcePartition,
                     sourceOffset,
@@ -213,9 +216,6 @@ public class ElasticSourceTask extends SourceTask {
                     schema,
                     struct);
             results.add(sourceRecord);
-
-            last.put(index, originalDocument.get(cursorField).toString());
-            sent.merge(index, 1, Integer::sum);
         }
     }
 
