@@ -113,7 +113,6 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
 
 
-
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
 
 

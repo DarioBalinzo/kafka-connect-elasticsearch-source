@@ -17,6 +17,7 @@
 package com.github.dariobalinzo;
 
 import com.github.dariobalinzo.elastic.ElasticConnection;
+import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
 import org.apache.http.HttpHost;
@@ -57,13 +58,10 @@ public class TestContainersContext {
         container.start();
 
         HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
-        connection = new ElasticConnection(
-                httpHost.getHostName(),
-                "http",
-                httpHost.getPort(),
-                MAX_TRIALS,
-                RETRY_WAIT_MS
-        );
+        connection = new ElasticConnectionBuilder(httpHost.getHostName(), httpHost.getPort())
+                .withMaxAttempts(MAX_TRIALS)
+                .withBackoff(RETRY_WAIT_MS)
+                .build();
 
         repository = new ElasticRepository(connection, CURSOR_FIELD);
         repository.setPageSize(TEST_PAGE_SIZE);

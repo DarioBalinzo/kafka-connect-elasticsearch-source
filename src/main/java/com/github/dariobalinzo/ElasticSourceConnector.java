@@ -17,6 +17,7 @@
 package com.github.dariobalinzo;
 
 import com.github.dariobalinzo.elastic.ElasticConnection;
+import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.task.ElasticSourceTask;
 import org.apache.kafka.common.config.ConfigDef;
@@ -70,27 +71,19 @@ public class ElasticSourceConnector extends SourceConnector {
         long connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
         ));
+
+        ElasticConnectionBuilder connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
+                .withProtocol(esScheme)
+                .withMaxAttempts(maxConnectionAttempts)
+                .withBackoff(connectionRetryBackoff);
+
         if (esUser == null || esUser.isEmpty()) {
-            elasticConnection = new ElasticConnection(
-                    esHost,
-                    esScheme,
-                    esPort,
-                    maxConnectionAttempts,
-                    connectionRetryBackoff
-            );
+            elasticConnection = connectionBuilder.build();
         } else {
-            elasticConnection = new ElasticConnection(
-                    esHost,
-                    esScheme,
-                    esPort,
-                    esUser,
-                    esPwd,
-                    maxConnectionAttempts,
-                    connectionRetryBackoff
-            );
-
+            elasticConnection = connectionBuilder.withUser(esUser)
+                    .withPassword(esPwd)
+                    .build();
         }
-
         elasticRepository = new ElasticRepository(elasticConnection);
     }
 

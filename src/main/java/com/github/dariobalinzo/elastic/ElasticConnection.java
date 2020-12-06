@@ -32,27 +32,36 @@ import java.util.Arrays;
 public class ElasticConnection {
     public final static Logger logger = LoggerFactory.getLogger(ElasticConnection.class);
 
-    final RestHighLevelClient client;
+    private RestHighLevelClient client;
     private final long connectionRetryBackoff;
     private final int maxConnectionAttempts;
 
-    public ElasticConnection(String hosts, String protocol, int port, int maxConnectionAttempts,
-                             long connectionRetryBackoff) {
-        logger.info("elastic auth disabled");
+    ElasticConnection(ElasticConnectionBuilder builder) {
+        String hosts = builder.hosts;
+        String user = builder.user;
+        String pwd = builder.pwd;
+        String protocol = builder.protocol;
+        int port = builder.port;
 
-        HttpHost[] hostList = parseHosts(hosts, protocol, port);
-        client = new RestHighLevelClient(RestClient.builder(hostList));
+        if (user == null) {
+            createConnectionWithNoAuth(hosts, protocol, port);
+        } else {
+            createConnectionUsingAuth(hosts, protocol, port, user, pwd);
+        }
 
-        this.maxConnectionAttempts = maxConnectionAttempts;
-        this.connectionRetryBackoff = connectionRetryBackoff;
+        this.maxConnectionAttempts = builder.maxConnectionAttempts;
+        this.connectionRetryBackoff = builder.connectionRetryBackoff;
     }
 
-    public ElasticConnection(String hosts, String protocol, int port, String user, String pwd,
-                             int maxConnectionAttempts, long connectionRetryBackoff) {
+    private void createConnectionWithNoAuth(String hosts, String protocol, int port) {
+        logger.info("elastic auth disabled");
+        HttpHost[] hostList = parseHosts(hosts, protocol, port);
+        client = new RestHighLevelClient(RestClient.builder(hostList));
+    }
 
+    private void createConnectionUsingAuth(String hosts, String protocol, int port, String user, String pwd) {
         logger.info("elastic auth enabled");
-
-        final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
         credentialsProvider.setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(user, pwd));
 
@@ -65,10 +74,6 @@ public class ElasticConnection {
                                 httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
                         )
         );
-
-        this.maxConnectionAttempts = maxConnectionAttempts;
-        this.connectionRetryBackoff = connectionRetryBackoff;
-
     }
 
     private HttpHost[] parseHosts(String hosts, String protocol, int port) {
