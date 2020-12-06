@@ -117,7 +117,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         refreshIndex();
 
         ElasticSourceTask task = new ElasticSourceTask();
-        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.from(String.valueOf(111)));
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
         task.initialize(context);
 
         //when (fetching first page)
