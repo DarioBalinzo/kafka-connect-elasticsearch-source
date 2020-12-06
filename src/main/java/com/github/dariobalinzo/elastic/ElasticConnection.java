@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class ElasticConnection {
     public final static Logger logger = LoggerFactory.getLogger(ElasticConnection.class);
@@ -35,20 +36,18 @@ public class ElasticConnection {
     private final long connectionRetryBackoff;
     private final int maxConnectionAttempts;
 
-    public ElasticConnection(String host, String scheme, int port, int maxConnectionAttempts,
+    public ElasticConnection(String hosts, String protocol, int port, int maxConnectionAttempts,
                              long connectionRetryBackoff) {
         logger.info("elastic auth disabled");
 
-        //TODO add configuration for https also, and many nodes instead of only one
-        client = new RestHighLevelClient(
-                RestClient.builder(
-                        new HttpHost(host, port)));
+        HttpHost[] hostList = parseHosts(hosts, protocol, port);
+        client = new RestHighLevelClient(RestClient.builder(hostList));
 
         this.maxConnectionAttempts = maxConnectionAttempts;
         this.connectionRetryBackoff = connectionRetryBackoff;
     }
 
-    public ElasticConnection(String host, String protocol, int port, String user, String pwd,
+    public ElasticConnection(String hosts, String protocol, int port, String user, String pwd,
                              int maxConnectionAttempts, long connectionRetryBackoff) {
 
         logger.info("elastic auth enabled");
@@ -57,17 +56,25 @@ public class ElasticConnection {
         credentialsProvider.setCredentials(AuthScope.ANY,
                 new UsernamePasswordCredentials(user, pwd));
 
-        //TODO add configuration for https also, and many nodes instead of only one
+
+        HttpHost[] hostList = parseHosts(hosts, protocol, port);
+
         client = new RestHighLevelClient(
-                RestClient.builder(
-                        new HttpHost(host, port, protocol)).setHttpClientConfigCallback(
-                        httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
-                )
+                RestClient.builder(hostList)
+                        .setHttpClientConfigCallback(
+                                httpClientBuilder -> httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
+                        )
         );
 
         this.maxConnectionAttempts = maxConnectionAttempts;
         this.connectionRetryBackoff = connectionRetryBackoff;
 
+    }
+
+    private HttpHost[] parseHosts(String hosts, String protocol, int port) {
+        return Arrays.stream(hosts.split(";"))
+                .map(host -> new HttpHost(host, port, protocol))
+                .toArray(HttpHost[]::new);
     }
 
     public RestHighLevelClient getClient() {
