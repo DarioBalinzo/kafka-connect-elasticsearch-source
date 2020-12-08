@@ -5,15 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class JsonCastFilter implements DocumentFilter {
-    private final Set<String> allowedValues;
+    private final Set<String> fieldsToCast;
     private final JsonFilterVisitor visitor;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public JsonCastFilter(Set<String> fieldsToCast) {
-        this.allowedValues = fieldsToCast;
+        this.fieldsToCast = fieldsToCast;
         visitor = new JsonFilterVisitor(this::checkIfJsonCastNeeded);
     }
 
@@ -24,7 +23,7 @@ public class JsonCastFilter implements DocumentFilter {
     }
 
     private Object checkIfJsonCastNeeded(String key, Object value) {
-        if (allowedValues.contains(key)) {
+        if (fieldsToCast.contains(key)) {
             return castToJson(value);
         } else {
             return value;

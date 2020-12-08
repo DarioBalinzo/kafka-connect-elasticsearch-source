@@ -21,7 +21,8 @@ public class JsonFilterVisitor {
         Iterator<Map.Entry<String, Object>> iterator = document.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, Object> entry = iterator.next();
-            Object element = businessLogic.filterElement(entry.getKey(), entry.getValue());
+            String fullPathKey = prefixPathName + entry.getKey();
+            Object element = businessLogic.filterElement(fullPathKey, entry.getValue());
             if (element == null) {
                 iterator.remove();
             } else {
@@ -30,9 +31,9 @@ public class JsonFilterVisitor {
 
             if (entry.getValue() instanceof List) {
                 List<Object> nestedList = (List<Object>) entry.getValue();
-                visitNestedList(prefixPathName + ".", nestedList);
+                visitNestedList(prefixPathName, nestedList);
             } else if (entry.getValue() instanceof Map) {
-                String nestedObjectPath = prefixPathName + "." + entry.getKey() + ".";
+                String nestedObjectPath = prefixPathName + entry.getKey() + ".";
                 visitJsonDocument(nestedObjectPath, (Map<String, Object>) entry.getValue());
             }
         }

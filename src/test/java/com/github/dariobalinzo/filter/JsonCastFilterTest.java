@@ -17,9 +17,14 @@
 package com.github.dariobalinzo.filter;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,41 +33,40 @@ import static junit.framework.TestCase.assertEquals;
 
 public class JsonCastFilterTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @SuppressWarnings("unchecked")
     @Test
-    public void shouldConvertSimpleDocument() {
+    public void shouldConvertSimpleDocument() throws IOException {
         //given
-        Map<String, Object> nestedDoc1 = new LinkedHashMap<>();
-        nestedDoc1.put("price", 1);
-        nestedDoc1.put("value", "first_element");
+        String file = this.getClass().getClassLoader()
+                .getResource("com/github/dariobalinzo/filter/document.json")
+                .getFile();
+        String jsonDocument = new String(Files.readAllBytes(Paths.get(file)));
 
-        Map<String, Object> nestedDoc2 = new LinkedHashMap<>();
-        nestedDoc2.put("price", 2);
-        nestedDoc2.put("value", "second_element");
-
-        List<?> nestedList = Collections.singletonList(nestedDoc1);
-
-        Map<String, Object> elasticDocument = new LinkedHashMap<>();
-        elasticDocument.put("name", "elastic");
-        elasticDocument.put("surname", "search");
-        elasticDocument.put("version", 7);
-        elasticDocument.put("order_list", nestedList);
-        elasticDocument.put("order", nestedDoc2);
+        Map<String, Object> elasticDocument = objectMapper.readValue(jsonDocument, Map.class);
 
         //when
         Set<String> toCast = Stream.of(
                 "name",
-                "order",
-                "order_list"
+                "obj.details",
+                "order_list.details"
         ).collect(Collectors.toSet());
         JsonCastFilter jsonCastFilter = new JsonCastFilter(toCast);
         jsonCastFilter.filter(elasticDocument);
 
         //then
-        assertEquals(5, elasticDocument.keySet().size());
+        assertEquals(4, elasticDocument.keySet().size());
         assertEquals( "\"elastic\"", elasticDocument.get("name"));
-        assertEquals( "{\"price\":2,\"value\":\"second_element\"}", elasticDocument.get("order"));
-        assertEquals( "[{\"price\":1,\"value\":\"first_element\"}]", elasticDocument.get("order_list"));
+        Map<String, Object> obj = (Map<String, Object>) elasticDocument.get("obj");
+        assertEquals( "{\"nested_det\":\"test nested inside list\",\"qty\":2}", obj.get("details"));
+
+        List<Object> nestedList = (List<Object>) elasticDocument.get("order_list");
+        Map<String, Object> nestedInsideList1 = (Map<String, Object>) nestedList.get(0);
+        Map<String, Object> nestedInsideList2 = (Map<String, Object>) nestedList.get(1);
+
+        assertEquals( "", nestedInsideList1.get("details"));
+        assertEquals( "", nestedInsideList2.get("details"));
     }
 
 }
