@@ -1,0 +1,391 @@
+{
+  "current-time": "2020-12-11T07:24:44Z",
+  "ip": "192.168.1.111",
+  "xxx-api-endpoint": "https://192.168.1.111:5001/api",
+  "parent": "xxx/d0cee1fb-8fc8-427a-88de-ab4f7b2f8b8b",
+  "architecture": "armv7l",
+  "updated": "2020-12-11T07:24:45.198Z",
+  "last-boot": "2020-12-09T21:45:27Z",
+  "xxx-engine-version": "1.13.0",
+  "docker-server-version": "19.03.14",
+  "created": "2020-12-10T08:06:38.652Z",
+  "hostname": "xyz",
+  "updated-by": "xxx/d0cee1fb-8fc8-427a-88de-ab4f7b2f8b8b",
+  "gpio-pins": [
+    {
+      "pin": 1,
+      "name": "3.3v"
+    },
+    {
+      "pin": 2,
+      "name": "5v"
+    },
+    {
+      "pin": 3,
+      "bcm": 2,
+      "name": "SDA.1",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 4,
+      "name": "5v"
+    },
+    {
+      "pin": 5,
+      "bcm": 3,
+      "name": "SCL.1",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 6,
+      "name": "0v"
+    },
+    {
+      "pin": 7,
+      "bcm": 4,
+      "name": "GPIO. 7",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 8,
+      "name": "TxD",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 9,
+      "name": "0v"
+    },
+    {
+      "pin": 10,
+      "name": "RxD",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 11,
+      "bcm": 17,
+      "name": "GPIO. 0",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 12,
+      "name": "GPIO. 1",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 13,
+      "bcm": 27,
+      "name": "GPIO. 2",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 14,
+      "name": "0v"
+    },
+    {
+      "pin": 15,
+      "bcm": 22,
+      "name": "GPIO. 3",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 16,
+      "name": "GPIO. 4",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 17,
+      "name": "3.3v"
+    },
+    {
+      "pin": 18,
+      "name": "GPIO. 5",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 19,
+      "bcm": 10,
+      "name": "MOSI",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 20,
+      "name": "0v"
+    },
+    {
+      "pin": 21,
+      "bcm": 9,
+      "name": "MISO",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 22,
+      "name": "GPIO. 6",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 23,
+      "bcm": 11,
+      "name": "SCLK",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 24,
+      "name": "CE0",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 25,
+      "name": "0v"
+    },
+    {
+      "pin": 26,
+      "name": "CE1",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 27,
+      "bcm": 0,
+      "name": "SDA.0",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 28,
+      "name": "SCL.0",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 29,
+      "bcm": 5,
+      "name": "GPIO.21",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 30,
+      "name": "0v"
+    },
+    {
+      "pin": 31,
+      "bcm": 6,
+      "name": "GPIO.22",
+      "mode": "IN",
+      "voltage": 1
+    },
+    {
+      "pin": 32,
+      "name": "GPIO.26",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 33,
+      "bcm": 13,
+      "name": "GPIO.23",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 34,
+      "name": "0v"
+    },
+    {
+      "pin": 35,
+      "bcm": 19,
+      "name": "GPIO.24",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 36,
+      "name": "GPIO.27",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 37,
+      "bcm": 26,
+      "name": "GPIO.25",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 38,
+      "name": "GPIO.28",
+      "mode": "IN",
+      "voltage": 0
+    },
+    {
+      "pin": 39,
+      "name": "0v"
+    },
+    {
+      "pin": 40,
+      "name": "GPIO.29",
+      "mode": "IN",
+      "voltage": 0
+    }
+  ],
+  "created-by": "internal",
+  "status": "OPERATIONAL",
+  "id": "xxx-status/b5054ecf-9f18-4b86-bc95-30933fe05581",
+  "operating-system": "Raspbian GNU/Linux 10 (buster)",
+  "resource-type": "xxx-status",
+  "acl": {
+    "view-acl": [
+      "user/80454ed0-65eb-4b77-864e-2dc525627e38"
+    ],
+    "view-meta": [
+      "xxx/d0cee1fb-8fc8-427a-88de-ab4f7b2f8b8b",
+      "user/80454ed0-65eb-4b77-864e-2dc525627e38"
+    ],
+    "view-data": [
+      "xxx/d0cee1fb-8fc8-427a-88de-ab4f7b2f8b8b",
+      "user/80454ed0-65eb-4b77-864e-2dc525627e38"
+    ],
+    "edit-data": [
+      "xxx/d0cee1fb-8fc8-427a-88de-ab4f7b2f8b8b"
+    ],
+    "edit-meta": [
+      "xxx/d0cee1fb-8fc8-427a-88de-ab4f7b2f8b8b"
+    ],
+    "owners": [
+      "group/nuvla-admin"
+    ]
+  },
+  "next-heartbeat": "2020-12-11T07:25:15.209Z",
+  "version": 1,
+  "resources": {
+    "cpu": {
+      "topic": "cpu",
+      "raw-sample": "{\"capacity\": 4, \"load\": 0.64}",
+      "capacity": 4,
+      "load": 0.64
+    },
+    "ram": {
+      "topic": "ram",
+      "raw-sample": "{\"capacity\": 3828, \"used\": 1235}",
+      "capacity": 3828,
+      "used": 1235
+    },
+    "disks": [
+      {
+        "device": "overlay",
+        "capacity": 28,
+        "used": 4,
+        "topic": "disks",
+        "raw-sample": "{\"device\": \"overlay\", \"capacity\": 28, \"used\": 4}"
+      }
+    ],
+    "net-stats": [
+      {
+        "interface": "docker_gwbridge",
+        "bytes-transmitted": 1810018,
+        "bytes-received": 633
+      },
+      {
+        "interface": "lo",
+        "bytes-transmitted": 153116745,
+        "bytes-received": 153116745
+      },
+      {
+        "interface": "veth53b9858",
+        "bytes-transmitted": 3865916,
+        "bytes-received": 1275
+      },
+      {
+        "interface": "vetha95aba6",
+        "bytes-transmitted": 4349209,
+        "bytes-received": 0
+      },
+      {
+        "interface": "docker0",
+        "bytes-transmitted": 58162393,
+        "bytes-received": 1347447
+      },
+      {
+        "interface": "veth2d9e5be",
+        "bytes-transmitted": 20942074,
+        "bytes-received": 12350057
+      },
+      {
+        "interface": "vethe4e283e",
+        "bytes-transmitted": 723871,
+        "bytes-received": 352184
+      },
+      {
+        "interface": "veth5207da0",
+        "bytes-transmitted": 23136462,
+        "bytes-received": 61398287
+      },
+      {
+        "interface": "vethef962b3",
+        "bytes-transmitted": 3858289,
+        "bytes-received": 689
+      },
+      {
+        "interface": "vetha49fdcb",
+        "bytes-transmitted": 3936275,
+        "bytes-received": 7957
+      },
+      {
+        "interface": "br-193effb5470e",
+        "bytes-transmitted": 145658655,
+        "bytes-received": 147435494
+      },
+      {
+        "interface": "wlan0",
+        "bytes-transmitted": 91616660,
+        "bytes-received": 307622918
+      },
+      {
+        "interface": "veth3d6d8ed",
+        "bytes-transmitted": 25273385,
+        "bytes-received": 66929714
+      },
+      {
+        "interface": "eth0",
+        "bytes-transmitted": 0,
+        "bytes-received": 0
+      }
+    ]
+  },
+  "inferred-location": [
+    6.0826,
+    46.1443
+  ],
+  "vulnerabilities": {
+    "summary": {
+      "total": 1,
+      "affected-products": [
+        "OpenSSH 7.9p1 Raspbian 10+deb10u2"
+      ],
+      "average-score": 8.1
+    },
+    "items": [
+      {
+        "product": "OpenSSH 7.9p1 Raspbian 10+deb10u2",
+        "vulnerability-id": "CVE-2019-7639",
+        "vulnerability-score": 8.1
+      }
+    ]
+  }
+}
