@@ -96,17 +96,19 @@ public class StructConverter {
     }
 
     private Struct convertListOfObject(String prefixName, Schema schema, String key, Map<String, Object> doc) {
+        String validKey = AvroName.from(key);
+        String validKeyPrefix = AvroName.from(prefixName, key) + ".";
         Struct nestedStruct = new Struct(
-                schema.field(AvroName.from(prefixName, key))
+                schema.field(validKey)
                         .schema()
                         .valueSchema()
         );
 
         convertDocumentStruct(
-                AvroName.from(prefixName, key) + ".",
+                validKeyPrefix,
                 doc,
                 nestedStruct,
-                schema.field(AvroName.from(key))
+                schema.field(validKey)
                         .schema()
                         .valueSchema()
         );

@@ -16,11 +16,11 @@
 
 package com.github.dariobalinzo.schema;
 
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.apache.kafka.connect.data.Schema.*;
 import static org.apache.kafka.connect.data.SchemaBuilder.array;
@@ -35,6 +35,7 @@ public class SchemaConverter {
         return schemaBuilder.build();
     }
 
+    @SuppressWarnings("unchecked")
     private void convertDocumentSchema(String prefixName, Map<String, Object> doc, SchemaBuilder schemaBuilder) {
         for (Map.Entry<String, Object> entry : doc.entrySet()) {
             String key = entry.getKey();
@@ -54,9 +55,12 @@ public class SchemaConverter {
                 schemaBuilder.field(validKeyName, OPTIONAL_FLOAT64_SCHEMA);
             } else if (value instanceof List) {
                 if (!((List<?>) value).isEmpty()) {
-                    //assuming that every item of the list has the same schema
                     Object head = ((List<?>) value).get(0);
-                    convertListSchema(prefixName, schemaBuilder, key, head);
+                    if (head instanceof Map) {
+                        convertListOfObject(prefixName, schemaBuilder, key, (List<Map<String, Object>>) value);
+                    } else {
+                        convertListSchema(prefixName, schemaBuilder, key, head);
+                    }
                 }
             } else if (value instanceof Map) {
                 convertMapSchema(prefixName, schemaBuilder, entry);
@@ -109,17 +113,28 @@ public class SchemaConverter {
                     validKeyName,
                     array(OPTIONAL_FLOAT64_SCHEMA).optional().build()
             ).build();
-        } else if (item instanceof Map) {
-            SchemaBuilder nestedSchema = struct().name(AvroName.from(prefixName, k)).optional();
-            convertDocumentSchema(
-                    AvroName.from(prefixName, k) + ".",
-                    (Map<String, Object>) item,
-                    nestedSchema
-            );
-            schemaBuilder.field(validKeyName, array(nestedSchema.build()));
-        } else {
+       } else {
             throw new RuntimeException("error in converting list: type not supported");
         }
+    }
+
+
+    private void convertListOfObject(String prefixName, SchemaBuilder schemaBuilder, String k, List<Map<String, Object>> list) {
+        String validKeyName = AvroName.from(k);
+        String keyWithPrefix = AvroName.from(prefixName, k);
+        Map<String, Field> fieldsUnion = new HashMap<>();
+        for (Map<String, Object> obj : list) {
+            SchemaBuilder nestedSchema = struct().name(keyWithPrefix).optional();
+            convertDocumentSchema(keyWithPrefix + ".", obj, nestedSchema);
+            for (Field field : nestedSchema.fields()) {
+                fieldsUnion.putIfAbsent(field.name(), field);
+            }
+        }
+        SchemaBuilder unionNestedSchema = struct().name(prefixName).optional();
+        for (Field field : fieldsUnion.values()) {
+            unionNestedSchema.field(field.name(), field.schema());
+        }
+        schemaBuilder.field(validKeyName, array(unionNestedSchema.build()));
     }
 
 
