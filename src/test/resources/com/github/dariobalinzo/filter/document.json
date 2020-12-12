@@ -1,0 +1,30 @@
+{
+  "name": "elastic",
+  "age": 7,
+  "order_list": [
+    {
+      "id": 1,
+      "details": {
+        "nested_det": "test nested inside list",
+        "qty": 1
+      }
+    },
+    {
+      "id": 2,
+      "details": {
+        "nested_det": "test nested inside list",
+        "qty": 2
+      }
+    }
+  ],
+  "obj": {
+    "key": 55,
+    "details": {
+      "nested_det": "test nested inside list",
+      "qty": 2
+    }
+  },
+  "other-obj" : {
+    "foo": "bar"
+  }
+}

@@ -27,9 +27,10 @@ import java.util.Map;
 
 public class ElasticSourceConnectorConfig extends AbstractConfig {
 
-    //TODO add the possibility to specify multiple hosts
     public final static String ES_HOST_CONF = "es.host";
-    private final static String ES_HOST_DOC = "ElasticSearch host";
+    private final static String ES_HOST_DOC = "ElasticSearch host. " +
+            "Optionally it is possible to specify many hosts " +
+            "using ; as separator (host1;host2;host3)";
     private final static String ES_HOST_DISPLAY = "Elastic host";
 
     public final static String ES_SCHEME_CONF = "es.scheme";
@@ -106,6 +107,14 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String MODE_DISPLAY = "Index Incrementing field";
 
     public static final String INDICES_CONFIG = "es.indices";
+
+    public static final String FIELDS_WHITELIST_CONFIG = "filters.whitelist";
+    private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields (e.g. order.qty;order.price;status )";
+    private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
+
+    public static final String FIELDS_JSON_CAST_CONFIG = "filters.json_cast";
+    private static final String FIELDS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects (e.g. order.qty;order.price;status )";
+    private static final String FIELDS_JSON_CAST_DISPLAY = "Cast to json string";
 
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
@@ -201,7 +210,28 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.LONG,
                 INDEX_PREFIX_DISPLAY
+        ).define(
+                FIELDS_WHITELIST_CONFIG,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                FIELDS_WHITELIST_DOC,
+                CONNECTOR_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                FIELDS_WHITELIST_DISPLAY
+        ).define(
+                FIELDS_JSON_CAST_CONFIG,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                FIELDS_WHITELIST_DOC,
+                CONNECTOR_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                FIELDS_JSON_CAST_DISPLAY
         );
+        ;
     }
 
     private static void addModeOptions(ConfigDef config) {

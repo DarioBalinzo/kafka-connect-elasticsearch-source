@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.github.dariobalinzo.filter;
 
-package com.github.dariobalinzo;
-
-public class Version {
-    public static final String VERSION = "1.1";
+@FunctionalInterface
+public interface JsonElementFilter {
+    Object filterElement(String fieldPath, Object value);
 }

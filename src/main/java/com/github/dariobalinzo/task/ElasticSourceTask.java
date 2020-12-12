@@ -19,8 +19,12 @@ package com.github.dariobalinzo.task;
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ElasticConnection;
+import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.PageResult;
+import com.github.dariobalinzo.filter.DocumentFilter;
+import com.github.dariobalinzo.filter.JsonCastFilter;
+import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.SchemaConverter;
 import com.github.dariobalinzo.schema.StructConverter;
 import org.apache.kafka.common.config.ConfigException;
@@ -56,6 +60,8 @@ public class ElasticSourceTask extends SourceTask {
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
 
+    private final List<DocumentFilter> documentFilters = new ArrayList<>();
+
     public ElasticSourceTask() {
 
     }
@@ -83,7 +89,24 @@ public class ElasticSourceTask extends SourceTask {
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
+        initConnectorFilters();
         initEsConnection();
+    }
+
+    private void initConnectorFilters() {
+        String whiteFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG);
+        if (whiteFilters != null) {
+            String[] whiteFiltersArray = whiteFilters.split(";");
+            Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
+            documentFilters.add(new WhitelistFilter(whiteFiltersSet));
+        }
+
+        String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
+        if (jsonCastFilters != null) {
+            String[] jsonCastFiltersArray = jsonCastFilters.split(";");
+            Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
+            documentFilters.add(new JsonCastFilter(whiteFiltersSet));
+        }
     }
 
     private void initEsConnection() {
@@ -102,25 +125,17 @@ public class ElasticSourceTask extends SourceTask {
         long connectionRetryBackoff = Long.parseLong(config.getString(
                 ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
         ));
-        if (esUser == null || esUser.isEmpty()) {
-            es = new ElasticConnection(
-                    esHost,
-                    esScheme,
-                    esPort,
-                    maxConnectionAttempts,
-                    connectionRetryBackoff
-            );
-        } else {
-            es = new ElasticConnection(
-                    esHost,
-                    esScheme,
-                    esPort,
-                    esUser,
-                    esPwd,
-                    maxConnectionAttempts,
-                    connectionRetryBackoff
-            );
+        ElasticConnectionBuilder connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
+                .withProtocol(esScheme)
+                .withMaxAttempts(maxConnectionAttempts)
+                .withBackoff(connectionRetryBackoff);
 
+        if (esUser == null || esUser.isEmpty()) {
+            es = connectionBuilder.build();
+        } else {
+            es = connectionBuilder.withUser(esUser)
+                    .withPassword(esPwd)
+                    .build();
         }
 
         elasticRepository = new ElasticRepository(es, cursorField);
@@ -171,14 +186,20 @@ public class ElasticSourceTask extends SourceTask {
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
         String index = pageResult.getIndex();
-        for (Map<String, Object> sourceAsMap : pageResult.getDocuments()) {
+        for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, sourceAsMap.get(cursorField).toString());
+            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, elasticDocument.get(cursorField).toString());
 
-            Schema schema = schemaConverter.convert(sourceAsMap, index);
-            Struct struct = structConverter.convert(sourceAsMap, schema);
+            String key = String.join("_", index, elasticDocument.get(cursorField).toString());
 
-            String key = String.join("_", index, sourceAsMap.get(cursorField).toString());
+            last.put(index, elasticDocument.get(cursorField).toString());
+            sent.merge(index, 1, Integer::sum);
+
+            documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
+
+            Schema schema = schemaConverter.convert(elasticDocument, index);
+            Struct struct = structConverter.convert(elasticDocument, schema);
+
             SourceRecord sourceRecord = new SourceRecord(
                     sourcePartition,
                     sourceOffset,
@@ -190,9 +211,6 @@ public class ElasticSourceTask extends SourceTask {
                     schema,
                     struct);
             results.add(sourceRecord);
-
-            last.put(index, sourceAsMap.get(cursorField).toString());
-            sent.merge(index, 1, Integer::sum);
         }
     }
 

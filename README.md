@@ -1,4 +1,7 @@
 # Kafka-connect-elasticsearch-source
+[![YourActionName Actions Status](https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/workflows/Java%20CI%20with%20Maven/badge.svg)](https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/actions)
+
+
 Kafka Connect Elasticsearch Source: fetch data from elastic-search and sends it to kafka. The connector fetches only new data using a strictly incremental / temporal field (like a timestamp or an incrementing id).
 It supports dynamic schema and nested objects/ arrays.
 
@@ -6,6 +9,10 @@ It supports dynamic schema and nested objects/ arrays.
 - Elasticsearch 6.x and 7.x
 - Java >= 8
 - Maven
+
+## Output data serialization format:
+The connector uses kafka-connect schema and structs, that are agnostic regarding
+the user serialization method (e.g. it might be Avro or json, etc...).
 
 ## Bugs or new Ideas?
 - Issues tracker: https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/issues
@@ -65,7 +72,7 @@ curl -X DELETE localhost:8083/connectors/elastic-source | jq
 ### Elasticsearch Configuration
 
 ``es.host``
-  ElasticSearch host
+  ElasticSearch host. Optionally it is possible to specify many hosts using ``;`` as separator (``host1;host2;host3``) 
 
   * Type: string
   * Importance: high
@@ -142,4 +149,20 @@ ElasticSearch scheme (http/https)
 
   * Type: string
   * Importance: high
+
+``filters.whitelist``
+Whitelist filter for extracting a subset of fields from elastic-search json documents. 
+The whitelist filter supports nested fields. To provide multiple fields use `;` as separator 
+(e.g. `customer;order.qty;order.price`).
+  * Type: string
+  * Importance: medium
+  * Default: null
+
+``filters.json_cast``
+This filter casts nested fields to json string, avoiding parsing recursively as kafka connect-schema.
+The json-cast filter supports nested fields. To provide multiple fields use `;` as separator
+(e.g. `customer;order.qty;order.price`).
+* Type: string
+* Importance: high
+* Default: null
   

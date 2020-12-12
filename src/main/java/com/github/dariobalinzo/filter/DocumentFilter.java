@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
-package com.github.dariobalinzo;
+package com.github.dariobalinzo.filter;
 
-public class Version {
-    public static final String VERSION = "1.1";
+import java.util.Map;
+
+public interface DocumentFilter {
+
+    void filter(Map<String, Object> document);
+
 }

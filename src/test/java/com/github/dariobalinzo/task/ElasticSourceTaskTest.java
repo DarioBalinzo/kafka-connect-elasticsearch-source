@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 
 package com.github.dariobalinzo.task;
 
+import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.TestContainersContext;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTaskContext;
@@ -27,6 +28,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -99,6 +101,56 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //then
         List<SourceRecord> empty = task.poll();
         assertTrue(empty.isEmpty());
+
+        task.stop();
+    }
+
+    @Test
+    public void shouldRunSourceTaskWhitelist() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+        Map<String, String> conf = getConf();
+        conf.put(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG, "fullName");
+
+        //when (fetching first page)
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals("Struct{fullName=Test}", poll1.get(0).value().toString());
+
+        task.stop();
+    }
+
+    @Test
+    public void shouldRunSourceTaskWithJsonCastFilter() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+        Map<String, String> conf = getConf();
+        conf.put(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG, "fullName");
+
+        //when (fetching first page)
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals("Struct{fullName=\"Test\",age=10,ts=111}", poll1.get(0).value().toString());
 
         task.stop();
     }
