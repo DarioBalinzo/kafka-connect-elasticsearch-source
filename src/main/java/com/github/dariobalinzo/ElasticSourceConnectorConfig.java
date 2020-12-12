@@ -108,9 +108,13 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
     public static final String INDICES_CONFIG = "es.indices";
 
-    public static final String FIELDS_WHITELIST_CONFIG = "fields.whitelist.filter";
-    private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields";
+    public static final String FIELDS_WHITELIST_CONFIG = "filters.whitelist";
+    private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields (e.g. order.qty;order.price;status )";
     private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
+
+    public static final String FIELDS_JSON_CAST_CONFIG = "filters.json_cast";
+    private static final String FIELDS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects (e.g. order.qty;order.price;status )";
+    private static final String FIELDS_JSON_CAST_DISPLAY = "Cast to json string";
 
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
@@ -216,7 +220,18 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 FIELDS_WHITELIST_DISPLAY
+        ).define(
+                FIELDS_JSON_CAST_CONFIG,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                FIELDS_WHITELIST_DOC,
+                CONNECTOR_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                FIELDS_JSON_CAST_DISPLAY
         );
+        ;
     }
 
     private static void addModeOptions(ConfigDef config) {

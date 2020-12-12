@@ -23,6 +23,7 @@ import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.PageResult;
 import com.github.dariobalinzo.filter.DocumentFilter;
+import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.SchemaConverter;
 import com.github.dariobalinzo.schema.StructConverter;
@@ -88,19 +89,23 @@ public class ElasticSourceTask extends SourceTask {
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
-        initConnectorFilter();
-
-
+        initConnectorFilters();
         initEsConnection();
     }
 
-    private void initConnectorFilter() {
+    private void initConnectorFilters() {
         String whiteFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG);
-
         if (whiteFilters != null) {
             String[] whiteFiltersArray = whiteFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
             documentFilters.add(new WhitelistFilter(whiteFiltersSet));
+        }
+
+        String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
+        if (jsonCastFilters != null) {
+            String[] jsonCastFiltersArray = jsonCastFilters.split(";");
+            Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
+            documentFilters.add(new JsonCastFilter(whiteFiltersSet));
         }
     }
 

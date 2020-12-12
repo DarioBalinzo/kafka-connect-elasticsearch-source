@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,7 +106,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
     }
 
     @Test
-    public void shouldRunSourceTaskWhitelistSingleFilter() throws IOException, InterruptedException {
+    public void shouldRunSourceTaskWhitelist() throws IOException, InterruptedException {
         //given
         deleteTestIndex();
 
@@ -119,12 +119,10 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         ElasticSourceTask task = new ElasticSourceTask();
         Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
         task.initialize(context);
-
-        //when (fetching first page)
         Map<String, String> conf = getConf();
-
         conf.put(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG, "fullName");
 
+        //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
         assertEquals("Struct{fullName=Test}", poll1.get(0).value().toString());
@@ -133,7 +131,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
     }
 
     @Test
-    public void shouldRunSourceTaskWhitelistMultiFilter() throws IOException, InterruptedException {
+    public void shouldRunSourceTaskWithJsonCastFilter() throws IOException, InterruptedException {
         //given
         deleteTestIndex();
 
@@ -146,15 +144,13 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         ElasticSourceTask task = new ElasticSourceTask();
         Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
         task.initialize(context);
+        Map<String, String> conf = getConf();
+        conf.put(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG, "fullName");
 
         //when (fetching first page)
-        Map<String, String> conf = getConf();
-
-        conf.put(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG, "fullName;age");
-
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=Test,age=10}", poll1.get(0).value().toString());
+        assertEquals("Struct{fullName=\"Test\",age=10,ts=111}", poll1.get(0).value().toString());
 
         task.stop();
     }

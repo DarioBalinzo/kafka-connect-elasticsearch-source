@@ -10,6 +10,10 @@ It supports dynamic schema and nested objects/ arrays.
 - Java >= 8
 - Maven
 
+## Output data serialization format:
+The connector uses kafka-connect schema and structs, that are agnostic regarding
+the user serialization method (e.g. it might be Avro or json, etc...).
+
 ## Bugs or new Ideas?
 - Issues tracker: https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/issues
 - Feel free to open an issue to discuss new ideas (or propose new solutions with a PR)
@@ -145,4 +149,20 @@ ElasticSearch scheme (http/https)
 
   * Type: string
   * Importance: high
+
+``filters.whitelist``
+Whitelist filter for extracting a subset of fields from elastic-search json documents. 
+The whitelist filter supports nested fields. To provide multiple fields use `;` as separator 
+(e.g. `customer;order.qty;order.price`).
+  * Type: string
+  * Importance: medium
+  * Default: null
+
+``filters.json_cast``
+This filter casts nested fields to json string, avoiding parsing recursively as kafka connect-schema.
+The json-cast filter supports nested fields. To provide multiple fields use `;` as separator
+(e.g. `customer;order.qty;order.price`).
+* Type: string
+* Importance: high
+* Default: null
   
