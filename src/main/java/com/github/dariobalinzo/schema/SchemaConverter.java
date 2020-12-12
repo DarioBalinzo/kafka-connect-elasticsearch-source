@@ -20,7 +20,9 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.apache.kafka.connect.data.Schema.*;
 import static org.apache.kafka.connect.data.SchemaBuilder.array;
@@ -113,7 +115,7 @@ public class SchemaConverter {
                     validKeyName,
                     array(OPTIONAL_FLOAT64_SCHEMA).optional().build()
             ).build();
-       } else {
+        } else {
             throw new RuntimeException("error in converting list: type not supported");
         }
     }

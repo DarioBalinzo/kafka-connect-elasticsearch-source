@@ -23,5 +23,8 @@
       "nested_det": "test nested inside list",
       "qty": 2
     }
+  },
+  "other-obj" : {
+    "foo": "bar"
   }
 }

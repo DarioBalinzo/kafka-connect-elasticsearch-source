@@ -18,14 +18,14 @@ package com.github.dariobalinzo.filter;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -56,18 +56,17 @@ public class JsonCastFilterTest {
         jsonCastFilter.filter(elasticDocument);
 
         //then
-        assertEquals(4, elasticDocument.keySet().size());
-        assertEquals( "\"elastic\"", elasticDocument.get("name"));
+        assertEquals(5, elasticDocument.keySet().size());
+        assertEquals("\"elastic\"", elasticDocument.get("name"));
         Map<String, Object> obj = (Map<String, Object>) elasticDocument.get("obj");
-        assertEquals( "{\"nested_det\":\"test nested inside list\",\"qty\":2}", obj.get("details"));
+        assertEquals("{\"nested_det\":\"test nested inside list\",\"qty\":2}", obj.get("details"));
 
         List<Object> nestedList = (List<Object>) elasticDocument.get("order_list");
         Map<String, Object> nestedInsideList1 = (Map<String, Object>) nestedList.get(0);
         Map<String, Object> nestedInsideList2 = (Map<String, Object>) nestedList.get(1);
 
-        //TODO fix in a separate PR
-        //assertEquals( "", nestedInsideList1.get("details"));
-        //assertEquals( "", nestedInsideList2.get("details"));
+        assertEquals("{\"nested_det\":\"test nested inside list\",\"qty\":1}", nestedInsideList1.get("details"));
+        assertEquals("{\"nested_det\":\"test nested inside list\",\"qty\":2}", nestedInsideList2.get("details"));
     }
 
 }
