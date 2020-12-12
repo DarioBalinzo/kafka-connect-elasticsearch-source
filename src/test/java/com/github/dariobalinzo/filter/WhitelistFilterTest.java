@@ -17,10 +17,13 @@
 package com.github.dariobalinzo.filter;
 
 
-import com.github.dariobalinzo.schema.SchemaConverter;
-import com.github.dariobalinzo.schema.StructConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -28,10 +31,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class WhitelistFilterTest {
+import static junit.framework.TestCase.assertEquals;
 
-    private final SchemaConverter schemaConverter = new SchemaConverter();
-    private final StructConverter structConverter = new StructConverter();
+public class WhitelistFilterTest {
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     public void shouldConvertSimpleSchema() {
@@ -49,12 +52,36 @@ public class WhitelistFilterTest {
                 "version"
         ).collect(Collectors.toCollection(HashSet::new));
         WhitelistFilter whitelistFilter = new WhitelistFilter(filterValues);
-        Map<String, Object> filteredElasticDocument = whitelistFilter.filter(elasticDocument);
+        whitelistFilter.filter(elasticDocument);
 
         //then
-        assert (filteredElasticDocument.toString()).equals("{surname=search, name=elastic, version=7}");
+        Assert.assertEquals("{name=elastic, surname=search, version=7}", elasticDocument.toString());
     }
 
-    private static class NotSupported {
+    @SuppressWarnings("unchecked")
+    @Test
+    public void shouldConvertNestedDocument() throws IOException {
+        //given
+        String file = this.getClass().getClassLoader()
+                .getResource("com/github/dariobalinzo/filter/document.json")
+                .getFile();
+        String jsonDocument = new String(Files.readAllBytes(Paths.get(file)));
+
+        Map<String, Object> elasticDocument = objectMapper.readValue(jsonDocument, Map.class);
+
+        //when
+        Set<String> whitelist = Stream.of(
+                "name",
+                "obj.details.qty",
+                "order_list.details.qty"
+        ).collect(Collectors.toSet());
+        WhitelistFilter whitelistFilter = new WhitelistFilter(whitelist);
+        whitelistFilter.filter(elasticDocument);
+
+        //then
+        assertEquals(
+                "{name=elastic, order_list=[{details={qty=1}}, {details={qty=2}}], obj={details={qty=2}}}",
+                elasticDocument.toString());
     }
+
 }

@@ -190,9 +190,7 @@ public class ElasticSourceTask extends SourceTask {
             last.put(index, elasticDocument.get(cursorField).toString());
             sent.merge(index, 1, Integer::sum);
 
-            for (DocumentFilter documentFilter : documentFilters) {
-                elasticDocument = documentFilter.filter(elasticDocument);
-            }
+            documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
 
             Schema schema = schemaConverter.convert(elasticDocument, index);
             Struct struct = structConverter.convert(elasticDocument, schema);
