@@ -25,8 +25,7 @@ import com.github.dariobalinzo.elastic.PageResult;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
-import com.github.dariobalinzo.schema.SchemaConverter;
-import com.github.dariobalinzo.schema.StructConverter;
+import com.github.dariobalinzo.schema.*;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -45,8 +44,10 @@ public class ElasticSourceTask extends SourceTask {
     private static final String INDEX = "index";
     static final String POSITION = "position";
 
-    private final SchemaConverter schemaConverter = new SchemaConverter();
-    private final StructConverter structConverter = new StructConverter();
+    private final FieldNameConverter fieldNameConverter;
+
+    private final SchemaConverter schemaConverter;
+    private final StructConverter structConverter;
 
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
@@ -63,7 +64,21 @@ public class ElasticSourceTask extends SourceTask {
     private final List<DocumentFilter> documentFilters = new ArrayList<>();
 
     public ElasticSourceTask() {
+        this.fieldNameConverter = new AvroName();
+        this.schemaConverter = new SchemaConverter(fieldNameConverter);
+        this.structConverter = new StructConverter(fieldNameConverter);
+    }
 
+    public ElasticSourceTask(String converterName) {
+        if (converterName.equals(ElasticSourceConnectorConfig.AVRO_FIELD_CONVERTER))
+            this.fieldNameConverter = new AvroName();
+        else if (converterName.equals(ElasticSourceConnectorConfig.NOP_FIELD_CONVERTER))
+            this.fieldNameConverter = new NopNameConverter();
+        else
+            this.fieldNameConverter = new AvroName();
+
+        this.schemaConverter = new SchemaConverter(fieldNameConverter);
+        this.structConverter = new StructConverter(fieldNameConverter);
     }
 
     @Override
