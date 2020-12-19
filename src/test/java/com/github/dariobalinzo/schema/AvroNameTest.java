@@ -26,11 +26,12 @@ public class AvroNameTest {
     public void shouldCreateValidAvroNames() {
         //given
         String invalidName = "foo.bar";
+        FieldNameConverter converter = new AvroName();
 
         //when
-        String validName = AvroName.from(invalidName);
-        String validNamePrefix = AvroName.from("prefix", invalidName);
-        String startByNumber = AvroName.from("1invalid");
+        String validName = converter.from(invalidName);
+        String validNamePrefix = converter.from("prefix", invalidName);
+        String startByNumber = converter.from("1invalid");
 
         //then
         Assert.assertEquals("foobar", validName);
