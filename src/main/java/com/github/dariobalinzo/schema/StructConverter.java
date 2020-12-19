@@ -25,6 +25,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class StructConverter {
+
+    private final FieldNameConverter converter;
+
+    public StructConverter(FieldNameConverter converter) {
+        this.converter = converter;
+    }
+
     public Struct convert(Map<String, Object> doc, Schema schema) {
         Struct struct = new Struct(schema);
         convertDocumentStruct("", doc, struct, schema);
@@ -37,7 +44,7 @@ public class StructConverter {
             Object value = entry.getValue();
 
             if (isScalar(value)) {
-                struct.put(AvroName.from(key), value);
+                struct.put(converter.from(key), value);
             } else if (value instanceof List) {
                 convertListToAvroArray(prefixName, struct, schema, entry);
             } else if (value instanceof Map) {
@@ -65,15 +72,15 @@ public class StructConverter {
         if (!value.isEmpty()) {
             //assuming that every item of the list has the same schema
             Object head = value.get(0);
-            struct.put(AvroName.from(key), new ArrayList<>());
+            struct.put(converter.from(key), new ArrayList<>());
             if (isScalar(head)) {
-                struct.getArray(AvroName.from(key)).addAll(value);
+                struct.getArray(converter.from(key)).addAll(value);
             } else if (head instanceof Map) {
                 List<Struct> array = value
                         .stream()
                         .map(doc -> convertListOfObject(prefixName, schema, key, (Map<String, Object>) doc))
                         .collect(Collectors.toCollection(ArrayList::new));
-                struct.put(AvroName.from(key), array);
+                struct.put(converter.from(key), array);
             } else {
                 throw new RuntimeException("error in converting list: type not supported");
             }
@@ -85,19 +92,19 @@ public class StructConverter {
     private void covertMapToAvroStruct(String prefixName, Struct struct, Schema schema, Map.Entry<String, Object> entry) {
         String k = entry.getKey();
         Map<String, Object> value = (Map<String, Object>) entry.getValue();
-        Struct nestedStruct = new Struct(schema.field(AvroName.from(k)).schema());
+        Struct nestedStruct = new Struct(schema.field(converter.from(k)).schema());
         convertDocumentStruct(
-                AvroName.from(prefixName, k) + ".",
+                converter.from(prefixName, k) + ".",
                 value,
                 nestedStruct,
-                schema.field(AvroName.from(k)).schema()
+                schema.field(converter.from(k)).schema()
         );
-        struct.put(AvroName.from(k), nestedStruct);
+        struct.put(converter.from(k), nestedStruct);
     }
 
     private Struct convertListOfObject(String prefixName, Schema schema, String key, Map<String, Object> doc) {
-        String validKey = AvroName.from(key);
-        String validKeyPrefix = AvroName.from(prefixName, key) + ".";
+        String validKey = converter.from(key);
+        String validKeyPrefix = converter.from(prefixName, key) + ".";
         Struct nestedStruct = new Struct(
                 schema.field(validKey)
                         .schema()

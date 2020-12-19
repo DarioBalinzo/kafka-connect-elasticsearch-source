@@ -30,8 +30,14 @@ import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
 public class SchemaConverter {
 
+    FieldNameConverter converter;
+
+    public SchemaConverter(FieldNameConverter converter) {
+        this.converter = converter;
+    }
+
     public Schema convert(Map<String, Object> elasticDocument, String schemaName) {
-        String validSchemaName = AvroName.from("", schemaName);
+        String validSchemaName = converter.from("", schemaName);
         SchemaBuilder schemaBuilder = struct().name(validSchemaName);
         convertDocumentSchema("", elasticDocument, schemaBuilder);
         return schemaBuilder.build();
@@ -42,7 +48,7 @@ public class SchemaConverter {
         for (Map.Entry<String, Object> entry : doc.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
-            String validKeyName = AvroName.from(key);
+            String validKeyName = converter.from(key);
             if (value instanceof String) {
                 schemaBuilder.field(validKeyName, OPTIONAL_STRING_SCHEMA);
             } else if (value instanceof Boolean) {
@@ -76,15 +82,15 @@ public class SchemaConverter {
     private void convertMapSchema(String prefixName, SchemaBuilder schemaBuilder, Map.Entry<String, Object> entry) {
         String key = entry.getKey();
         Map<String, Object> value = (Map<String, Object>) entry.getValue();
-        String validKeyName = AvroName.from(prefixName, key);
+        String validKeyName = converter.from(prefixName, key);
         SchemaBuilder nestedSchema = struct().name(validKeyName).optional();
         convertDocumentSchema(validKeyName + ".", value, nestedSchema);
-        schemaBuilder.field(AvroName.from(key), nestedSchema.build());
+        schemaBuilder.field(converter.from(key), nestedSchema.build());
     }
 
     @SuppressWarnings("unchecked")
     private void convertListSchema(String prefixName, SchemaBuilder schemaBuilder, String k, Object item) {
-        String validKeyName = AvroName.from(k);
+        String validKeyName = converter.from(k);
         if (item instanceof String) {
             schemaBuilder.field(
                     validKeyName,
@@ -122,8 +128,8 @@ public class SchemaConverter {
 
 
     private void convertListOfObject(String prefixName, SchemaBuilder schemaBuilder, String k, List<Map<String, Object>> list) {
-        String validKeyName = AvroName.from(k);
-        String keyWithPrefix = AvroName.from(prefixName, k);
+        String validKeyName = converter.from(k);
+        String keyWithPrefix = converter.from(prefixName, k);
         Map<String, Field> fieldsUnion = new HashMap<>();
         for (Map<String, Object> obj : list) {
             SchemaBuilder nestedSchema = struct().name(keyWithPrefix).optional();
