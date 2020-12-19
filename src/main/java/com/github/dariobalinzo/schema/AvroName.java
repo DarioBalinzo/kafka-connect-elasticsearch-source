@@ -16,17 +16,17 @@
 
 package com.github.dariobalinzo.schema;
 
-public class AvroName {
+public class AvroName implements FieldNameConverter {
 
-    public static String from(String elasticName) {
+    public String from(String elasticName) {
         return elasticName == null ? null : filterInvalidCharacters(elasticName);
     }
 
-    public static String from(String prefix, String elasticName) {
+    public String from(String prefix, String elasticName) {
         return elasticName == null ? prefix : prefix + filterInvalidCharacters(elasticName);
     }
 
-    private static String filterInvalidCharacters(String elasticName) {
+    private String filterInvalidCharacters(String elasticName) {
         boolean alphabetic = Character.isLetter(elasticName.charAt(0));
         if (!alphabetic) {
             elasticName = "avro" + elasticName;
