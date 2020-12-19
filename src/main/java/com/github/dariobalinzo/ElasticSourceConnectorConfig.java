@@ -116,9 +116,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String FIELDS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects (e.g. order.qty;order.price;status )";
     private static final String FIELDS_JSON_CAST_DISPLAY = "Cast to json string";
 
+    public static final String AVRO_FIELD_CONVERTER = "Avro";
+    public static final String NOP_FIELD_CONVERTER = "Nop";
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
-
 
     protected static ConfigDef baseConfigDef() {
         ConfigDef config = new ConfigDef();
