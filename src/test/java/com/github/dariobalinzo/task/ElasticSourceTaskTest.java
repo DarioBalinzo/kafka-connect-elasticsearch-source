@@ -150,7 +150,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=\"Test\",age=10,ts=111}", poll1.get(0).value().toString());
+        assertEquals("Struct{fullName=\"Test\",nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
 
         task.stop();
     }
