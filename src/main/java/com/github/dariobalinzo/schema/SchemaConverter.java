@@ -30,7 +30,7 @@ import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
 public class SchemaConverter {
 
-    FieldNameConverter converter;
+    private final FieldNameConverter converter;
 
     public SchemaConverter(FieldNameConverter converter) {
         this.converter = converter;
