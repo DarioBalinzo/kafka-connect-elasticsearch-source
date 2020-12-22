@@ -166,7 +166,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         insertMockData(114);
         refreshIndex();
 
-        ElasticSourceTask task = new ElasticSourceTask(ElasticSourceConnectorConfig.AVRO_FIELD_CONVERTER);
+        ElasticSourceTask task = new ElasticSourceTask();
         Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
         task.initialize(context);
         Map<String, String> conf = getConf();
@@ -191,11 +191,12 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         insertMockData(114);
         refreshIndex();
 
-        ElasticSourceTask task = new ElasticSourceTask(ElasticSourceConnectorConfig.NOP_FIELD_CONVERTER);
+        ElasticSourceTask task = new ElasticSourceTask();
         Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
         task.initialize(context);
         Map<String, String> conf = getConf();
         conf.put(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG, "fullName");
+        conf.put(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG, ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER);
 
         //when (fetching first page)
         task.start(conf);

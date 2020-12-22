@@ -44,10 +44,8 @@ public class ElasticSourceTask extends SourceTask {
     private static final String INDEX = "index";
     static final String POSITION = "position";
 
-    private final FieldNameConverter fieldNameConverter;
-
-    private final SchemaConverter schemaConverter;
-    private final StructConverter structConverter;
+    private SchemaConverter schemaConverter;
+    private StructConverter structConverter;
 
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
@@ -62,24 +60,6 @@ public class ElasticSourceTask extends SourceTask {
     private ElasticRepository elasticRepository;
 
     private final List<DocumentFilter> documentFilters = new ArrayList<>();
-
-    public ElasticSourceTask() {
-        this.fieldNameConverter = new AvroName();
-        this.schemaConverter = new SchemaConverter(fieldNameConverter);
-        this.structConverter = new StructConverter(fieldNameConverter);
-    }
-
-    public ElasticSourceTask(String converterName) {
-        if (converterName.equals(ElasticSourceConnectorConfig.AVRO_FIELD_CONVERTER))
-            this.fieldNameConverter = new AvroName();
-        else if (converterName.equals(ElasticSourceConnectorConfig.NOP_FIELD_CONVERTER))
-            this.fieldNameConverter = new NopNameConverter();
-        else
-            this.fieldNameConverter = new AvroName();
-
-        this.schemaConverter = new SchemaConverter(fieldNameConverter);
-        this.structConverter = new StructConverter(fieldNameConverter);
-    }
 
     @Override
     public String version() {
@@ -105,6 +85,7 @@ public class ElasticSourceTask extends SourceTask {
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
+        initConnectorFieldConverter();
         initEsConnection();
     }
 
@@ -122,6 +103,20 @@ public class ElasticSourceTask extends SourceTask {
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
             documentFilters.add(new JsonCastFilter(whiteFiltersSet));
         }
+    }
+
+    private void initConnectorFieldConverter() {
+        String fieldnameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
+        FieldNameConverter fieldNameConverter = new AvroName();
+
+        if (fieldnameConverterConfig != null &&
+            fieldnameConverterConfig.equals(ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER))
+        {
+            fieldNameConverter = new NopNameConverter();
+        }
+
+        this.schemaConverter = new SchemaConverter(fieldNameConverter);
+        this.structConverter = new StructConverter(fieldNameConverter);
     }
 
     private void initEsConnection() {
