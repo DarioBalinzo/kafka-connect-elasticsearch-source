@@ -106,15 +106,18 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initConnectorFieldConverter() {
-        String fieldnameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
-        FieldNameConverter fieldNameConverter = new AvroName();
+        String nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
 
-        if (fieldnameConverterConfig != null &&
-            fieldnameConverterConfig.equals(ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER))
-        {
-            fieldNameConverter = new NopNameConverter();
+        FieldNameConverter fieldNameConverter;
+        switch (nameConverterConfig) {
+            case ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER:
+                fieldNameConverter = new NopNameConverter();
+                break;
+            case ElasticSourceConnectorConfig.AVRO_FIELDNAME_CONVERTER:
+            default:
+                fieldNameConverter = new AvroName();
+                break;
         }
-
         this.schemaConverter = new SchemaConverter(fieldNameConverter);
         this.structConverter = new StructConverter(fieldNameConverter);
     }

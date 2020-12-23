@@ -116,11 +116,12 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String FIELDS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects (e.g. order.qty;order.price;status )";
     private static final String FIELDS_JSON_CAST_DISPLAY = "Cast to json string";
 
-    public static final String CONNECTOR_FIELDNAME_CONVERTER_CONFIG = "connector.fieldname_converter";
-    public static final String CONNECTOR_FIELDNAME_CONVERTER_DOC = "Determine which name converter should be used for document fields: AVRO converter as standard";
-    public static final String CONNECTOR_FIELDNAME_CONVERTER_DISPLAY = "Fields name converter";
+    public static final String CONNECTOR_FIELDNAME_CONVERTER_CONFIG = "fieldname_converter";
+    public static final String CONNECTOR_FIELDNAME_CONVERTER_DOC = "Determine which name converter should be used for document fields: avro converter as standard";
+    public static final String CONNECTOR_FIELDNAME_CONVERTER_DISPLAY = "Fields name converter (avro, nop)";
 
-    public static final String NOP_FIELDNAME_CONVERTER = "NOP";
+    public static final String NOP_FIELDNAME_CONVERTER = "nop";
+    public static final String AVRO_FIELDNAME_CONVERTER = "avro";
 
     public static final ConfigDef CONFIG_DEF = baseConfigDef();
 
@@ -306,8 +307,8 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         ).define(
                 CONNECTOR_FIELDNAME_CONVERTER_CONFIG,
                 Type.STRING,
-                null,
-                Importance.HIGH,
+                AVRO_FIELDNAME_CONVERTER,
+                Importance.MEDIUM,
                 CONNECTOR_FIELDNAME_CONVERTER_DOC,
                 CONNECTOR_GROUP,
                 ++orderInGroup,
