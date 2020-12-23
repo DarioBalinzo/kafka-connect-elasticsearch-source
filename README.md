@@ -165,4 +165,12 @@ The json-cast filter supports nested fields. To provide multiple fields use `;` 
 * Type: string
 * Importance: high
 * Default: null
-  
+
+``fieldname_converter``
+Configuring which field name converter should be used (allowed values: `avro` or `nop`).
+By default, the avro field name converter renames the json fields non respecting the avro specifications (https://avro.apache.org/docs/current/spec.html#names) 
+in order to be serialized correctly.
+To disable the field name conversion set this parameter to `nop`.
+* Type: string
+* Importance: medium
+* Default: avro

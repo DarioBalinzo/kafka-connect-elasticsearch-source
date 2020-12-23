@@ -150,9 +150,60 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=\"Test\",age=10,ts=111}", poll1.get(0).value().toString());
+        assertEquals("Struct{fullName=\"Test\",nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
 
         task.stop();
     }
+
+    @Test
+    public void shouldRunSourceTaskWithAvroNameConverter() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+        Map<String, String> conf = getConf();
+
+        //when (fetching first page)
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals("Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
+
+        task.stop();
+    }
+
+    @Test
+    public void shouldRunSourceTaskWithNopNameConverter() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+        Map<String, String> conf = getConf();
+        conf.put(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG,
+                ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER);
+
+        //when (fetching first page)
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals("Struct{fullName=Test,non-avro-field=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
+
+        task.stop();
+    }
+
 
 }

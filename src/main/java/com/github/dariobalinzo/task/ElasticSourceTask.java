@@ -25,8 +25,7 @@ import com.github.dariobalinzo.elastic.PageResult;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
-import com.github.dariobalinzo.schema.SchemaConverter;
-import com.github.dariobalinzo.schema.StructConverter;
+import com.github.dariobalinzo.schema.*;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -45,8 +44,8 @@ public class ElasticSourceTask extends SourceTask {
     private static final String INDEX = "index";
     static final String POSITION = "position";
 
-    private final SchemaConverter schemaConverter = new SchemaConverter();
-    private final StructConverter structConverter = new StructConverter();
+    private SchemaConverter schemaConverter;
+    private StructConverter structConverter;
 
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
@@ -61,10 +60,6 @@ public class ElasticSourceTask extends SourceTask {
     private ElasticRepository elasticRepository;
 
     private final List<DocumentFilter> documentFilters = new ArrayList<>();
-
-    public ElasticSourceTask() {
-
-    }
 
     @Override
     public String version() {
@@ -90,6 +85,7 @@ public class ElasticSourceTask extends SourceTask {
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
+        initConnectorFieldConverter();
         initEsConnection();
     }
 
@@ -107,6 +103,23 @@ public class ElasticSourceTask extends SourceTask {
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
             documentFilters.add(new JsonCastFilter(whiteFiltersSet));
         }
+    }
+
+    private void initConnectorFieldConverter() {
+        String nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
+
+        FieldNameConverter fieldNameConverter;
+        switch (nameConverterConfig) {
+            case ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER:
+                fieldNameConverter = new NopNameConverter();
+                break;
+            case ElasticSourceConnectorConfig.AVRO_FIELDNAME_CONVERTER:
+            default:
+                fieldNameConverter = new AvroName();
+                break;
+        }
+        this.schemaConverter = new SchemaConverter(fieldNameConverter);
+        this.structConverter = new StructConverter(fieldNameConverter);
     }
 
     private void initEsConnection() {

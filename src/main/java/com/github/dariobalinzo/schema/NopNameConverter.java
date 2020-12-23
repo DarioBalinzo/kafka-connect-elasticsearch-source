@@ -16,27 +16,14 @@
 
 package com.github.dariobalinzo.schema;
 
+public class NopNameConverter implements FieldNameConverter {
 
-import org.junit.Assert;
-import org.junit.Test;
+    public String from(String elasticName) {
+        return elasticName;
+    }
 
-public class AvroNameTest {
-
-    @Test
-    public void shouldCreateValidAvroNames() {
-        //given
-        String invalidName = "foo.bar";
-        FieldNameConverter converter = new AvroName();
-
-        //when
-        String validName = converter.from(invalidName);
-        String validNamePrefix = converter.from("prefix", invalidName);
-        String startByNumber = converter.from("1invalid");
-
-        //then
-        Assert.assertEquals("foobar", validName);
-        Assert.assertEquals("prefixfoobar", validNamePrefix);
-        Assert.assertEquals("avro1invalid", startByNumber);
+    public String from(String prefix, String elasticName) {
+        return elasticName == null ? prefix : prefix + elasticName;
     }
 
 }

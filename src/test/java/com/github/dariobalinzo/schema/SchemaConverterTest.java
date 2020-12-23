@@ -31,8 +31,8 @@ import java.util.*;
 
 public class SchemaConverterTest {
 
-    private final SchemaConverter schemaConverter = new SchemaConverter();
-    private final StructConverter structConverter = new StructConverter();
+    private final SchemaConverter schemaConverter = new SchemaConverter(new AvroName());
+    private final StructConverter structConverter = new StructConverter(new AvroName());
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
