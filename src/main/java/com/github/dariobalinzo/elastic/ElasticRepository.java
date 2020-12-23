@@ -100,7 +100,7 @@ public final class ElasticRepository {
         try {
             resp = elasticConnection.getClient()
                     .getLowLevelClient()
-                    .performRequest("GET", "_cat/indices");
+                    .performRequest("GET", "/_cat/indices");
         } catch (IOException e) {
             logger.error("error in searching index names");
             throw new RuntimeException(e);
