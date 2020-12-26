@@ -17,5 +17,5 @@
 package com.github.dariobalinzo;
 
 public class Version {
-    public static final String VERSION = "1.2";
+    public static final String VERSION = "1.3";
 }
