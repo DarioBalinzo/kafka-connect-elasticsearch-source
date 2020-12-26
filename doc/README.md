@@ -17,8 +17,6 @@ the user serialization method (e.g. it might be Avro or json, etc...).
 ## Bugs or new Ideas?
 - Issues tracker: https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/issues
 - Feel free to open an issue to discuss new ideas (or propose new solutions with a PR)
-- Do you use this project in production? Would you like new features? This connector will be always free and open source, 
-but if you want to support me in the development please consider offering me a coffee (https://www.paypal.me/coffeeDarioBalinzo).
 
 ## Installation:
 Compile the project with:

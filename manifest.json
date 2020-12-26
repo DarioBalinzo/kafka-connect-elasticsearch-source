@@ -1,0 +1,49 @@
+{
+  "component_types": [
+    "source"
+  ],
+  "description": "This is a connector for getting data out of Elasticsearch into Apache Kafka.",
+  "documentation_url": "https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source",
+  "features": {
+    "confluent_control_center_integration": true,
+    "delivery_guarantee": [
+      "at_least_once"
+    ],
+    "kafka_connect_api": true,
+    "single_message_transforms": true,
+    "supported_encodings": [
+      "any"
+    ]
+  },
+  "license": [
+    {
+      "name": "Apache License, Version 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0",
+      "logo": "assets/apache_logo.gif"
+    }
+  ],
+  "name": "kafka-connect-elasticsearch-source",
+  "owner": {
+    "logo": "assets/dariobalinzo.png",
+    "name": "Dario Balinzo",
+    "type": "user",
+    "url": "https://github.com/DarioBalinzo",
+    "username": "dariobalinzo"
+  },
+  "requirements": [
+    "Elasticsearch >= 6.x"
+  ],
+  "support": {
+    "logo": "assets/dariobalinzo.png",
+    "provider_name": "Dario Balinzo",
+    "summary": "For support please open an issue in the github repository",
+    "url": "https://github.com/DarioBalinzo/kafka-connect-elasticsearch-source/issues"
+  },
+  "tags": [
+    "source",
+    "elasticsearch",
+    "elastic"
+  ],
+  "title": "Kafka Connect Elasticsearch Source",
+  "version": "1.3"
+}
