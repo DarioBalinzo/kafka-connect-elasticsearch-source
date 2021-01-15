@@ -44,12 +44,14 @@ public class TestContainersContext {
 
     protected static final String TEST_INDEX = "source_index";
     protected static final String CURSOR_FIELD = "ts";
+    protected static final String SECONDARY_CURSOR_FIELD = "fullName";
 
     protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.9.3";
 
     protected static ElasticsearchContainer container;
     protected static ElasticConnection connection;
     protected static ElasticRepository repository;
+    protected static ElasticRepository secondarySortRepo;
 
     @BeforeClass
     public static void setupElastic() {
@@ -65,6 +67,8 @@ public class TestContainersContext {
 
         repository = new ElasticRepository(connection, CURSOR_FIELD);
         repository.setPageSize(TEST_PAGE_SIZE);
+
+        secondarySortRepo = new ElasticRepository(connection, CURSOR_FIELD, SECONDARY_CURSOR_FIELD);
     }
 
 
@@ -85,9 +89,13 @@ public class TestContainersContext {
     }
 
     protected void insertMockData(int tsStart, String index) throws IOException {
+        insertMockData(tsStart, "Test", index);
+    }
+
+    protected void insertMockData(int tsStart, String fullName, String index) throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
-                .field("fullName", "Test")
+                .field("fullName", fullName)
                 .field(CURSOR_FIELD, tsStart)
                 .field("age", 10)
                 .field("non-avro-field", "non-avro-field")

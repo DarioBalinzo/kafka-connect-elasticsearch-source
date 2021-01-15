@@ -19,9 +19,12 @@ package com.github.dariobalinzo.elastic;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,31 +32,36 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
-import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
+import static org.elasticsearch.index.query.QueryBuilders.*;
 
 public final class ElasticRepository {
     private final static Logger logger = LoggerFactory.getLogger(ElasticRepository.class);
 
     private final ElasticConnection elasticConnection;
     private final String cursorField;
+    private final String secondaryCursorField;
 
     private int pageSize = 5000;
-
-    public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
-        this.elasticConnection = elasticConnection;
-        this.cursorField = cursorField;
-    }
 
     public ElasticRepository(ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
         this.cursorField = "_id";
+        this.secondaryCursorField = null;
+    }
+
+    public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
+        this.elasticConnection = elasticConnection;
+        this.cursorField = cursorField;
+        this.secondaryCursorField = null;
+    }
+
+    public ElasticRepository(ElasticConnection elasticConnection, String cursorField, String secondaryCursorField) {
+        this.elasticConnection = elasticConnection;
+        this.cursorField = cursorField;
+        this.secondaryCursorField = secondaryCursorField;
     }
 
     public PageResult searchAfter(String index, String cursor) throws IOException, InterruptedException {
@@ -61,10 +69,41 @@ public final class ElasticRepository {
                 matchAllQuery() :
                 rangeQuery(cursorField).from(cursor, false);
 
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(queryBuilder)
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                .query(queryBuilder)
                 .size(pageSize)
                 .sort(cursorField, SortOrder.ASC);
+
+        SearchRequest searchRequest = new SearchRequest(index)
+                .source(searchSourceBuilder);
+
+        SearchResponse response = executeSearch(searchRequest);
+
+        List<Map<String, Object>> documents = Arrays.stream(response.getHits().getHits())
+                .map(SearchHit::getSourceAsMap)
+                .collect(Collectors.toList());
+        return new PageResult(index, documents, cursorField);
+    }
+
+    public PageResult searchAfter(String index, String primaryCursor, String secondaryCursor) throws IOException, InterruptedException {
+        Objects.requireNonNull(secondaryCursorField);
+        Objects.requireNonNull(primaryCursor);
+        Objects.requireNonNull(secondaryCursor);
+
+        BoolQueryBuilder queryBuilder = boolQuery()
+                .minimumShouldMatch(1)
+                .should(rangeQuery(cursorField).from(primaryCursor, false))
+                .should(
+                        boolQuery()
+                                .filter(matchQuery(cursorField, primaryCursor))
+                                .filter(rangeQuery(secondaryCursorField).from(secondaryCursor, false))
+                );
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                .query(queryBuilder)
+                .size(pageSize)
+                .sort(cursorField, SortOrder.ASC)
+                .sort(secondaryCursorField, SortOrder.ASC);
 
         SearchRequest searchRequest = new SearchRequest(index)
                 .source(searchSourceBuilder);
