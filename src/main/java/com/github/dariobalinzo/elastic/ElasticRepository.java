@@ -16,15 +16,15 @@
 
 package com.github.dariobalinzo.elastic;
 
+import com.github.dariobalinzo.elastic.response.Cursor;
+import com.github.dariobalinzo.elastic.response.PageResult;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +64,7 @@ public final class ElasticRepository {
         this.secondaryCursorField = secondaryCursorField;
     }
 
-    public PageResult searchAfter(String index, String cursor) throws IOException, InterruptedException {
+    public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
         QueryBuilder queryBuilder = cursor == null ?
                 matchAllQuery() :
                 rangeQuery(cursorField).from(cursor, false);
@@ -82,22 +82,25 @@ public final class ElasticRepository {
         List<Map<String, Object>> documents = Arrays.stream(response.getHits().getHits())
                 .map(SearchHit::getSourceAsMap)
                 .collect(Collectors.toList());
-        return new PageResult(index, documents, cursorField);
+
+        Cursor lastCursor;
+        if (documents.isEmpty()) {
+            lastCursor = Cursor.empty();
+        } else {
+            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
+            lastCursor = new Cursor(lastDocument.get(cursorField).toString());
+        }
+        return new PageResult(index, documents, lastCursor);
     }
 
-    public PageResult searchAfter(String index, String primaryCursor, String secondaryCursor) throws IOException, InterruptedException {
+    public PageResult searchAfterWithSecondarySort(String index, Cursor cursor) throws IOException, InterruptedException {
         Objects.requireNonNull(secondaryCursorField);
-        Objects.requireNonNull(primaryCursor);
-        Objects.requireNonNull(secondaryCursor);
+        String primaryCursor = cursor.getPrimaryCursor();
+        String secondaryCursor = cursor.getSecondaryCursor();
+        boolean noPrevCursor = primaryCursor == null || secondaryCursor == null;
 
-        BoolQueryBuilder queryBuilder = boolQuery()
-                .minimumShouldMatch(1)
-                .should(rangeQuery(cursorField).from(primaryCursor, false))
-                .should(
-                        boolQuery()
-                                .filter(matchQuery(cursorField, primaryCursor))
-                                .filter(rangeQuery(secondaryCursorField).from(secondaryCursor, false))
-                );
+        QueryBuilder queryBuilder = noPrevCursor? matchAllQuery() :
+                getSecondarySortFieldQuery(primaryCursor, secondaryCursor);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(queryBuilder)
@@ -113,7 +116,26 @@ public final class ElasticRepository {
         List<Map<String, Object>> documents = Arrays.stream(response.getHits().getHits())
                 .map(SearchHit::getSourceAsMap)
                 .collect(Collectors.toList());
-        return new PageResult(index, documents, cursorField);
+
+        Cursor lastCursor;
+        if (documents.isEmpty()) {
+            lastCursor = Cursor.empty();
+        } else {
+            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
+            lastCursor = new Cursor(lastDocument.get(cursorField).toString());
+        }
+        return new PageResult(index, documents, lastCursor);
+    }
+
+    private BoolQueryBuilder getSecondarySortFieldQuery(String primaryCursor, String secondaryCursor) {
+        return boolQuery()
+                .minimumShouldMatch(1)
+                .should(rangeQuery(cursorField).from(primaryCursor, false))
+                .should(
+                        boolQuery()
+                                .filter(matchQuery(cursorField, primaryCursor))
+                                .filter(rangeQuery(secondaryCursorField).from(secondaryCursor, false))
+                );
     }
 
     private SearchResponse executeSearch(SearchRequest searchRequest) throws IOException, InterruptedException {

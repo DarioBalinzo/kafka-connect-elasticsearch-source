@@ -17,6 +17,7 @@
 package com.github.dariobalinzo.elastic;
 
 import com.github.dariobalinzo.TestContainersContext;
+import com.github.dariobalinzo.elastic.response.PageResult;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -56,10 +57,15 @@ public class ElasticRepositoryTest extends TestContainersContext {
     public void shouldFetchDataUsingSecondarySortField() throws IOException, InterruptedException {
         deleteTestIndex();
 
-        insertMockData(111);
-        insertMockData(112);
-        insertMockData(113);
-        insertMockData(114);
+        insertMockData(111, "customerA", TEST_INDEX);
+        insertMockData(111, "customerB", TEST_INDEX);
+        insertMockData(111, "customerC", TEST_INDEX);
+        insertMockData(111, "customerD", TEST_INDEX);
+        insertMockData(112, "customerA", TEST_INDEX);
+        insertMockData(113, "customerB", TEST_INDEX);
+        insertMockData(113, "customerC", TEST_INDEX);
+        insertMockData(113, "customerD", TEST_INDEX);
+
         refreshIndex();
 
         PageResult firstPage = repository.searchAfter(TEST_INDEX, null);

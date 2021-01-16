@@ -21,7 +21,8 @@ import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
-import com.github.dariobalinzo.elastic.PageResult;
+import com.github.dariobalinzo.elastic.response.Cursor;
+import com.github.dariobalinzo.elastic.response.PageResult;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
@@ -43,6 +44,7 @@ public class ElasticSourceTask extends SourceTask {
     private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTask.class);
     private static final String INDEX = "index";
     static final String POSITION = "position";
+    static final String POSITION_SECONDARY = "position_secondary";
 
     private SchemaConverter schemaConverter;
     private StructConverter structConverter;
@@ -55,7 +57,7 @@ public class ElasticSourceTask extends SourceTask {
     private String topic;
     private String cursorField;
     private int pollingMs;
-    private final Map<String, String> last = new HashMap<>();
+    private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
 
@@ -164,7 +166,7 @@ public class ElasticSourceTask extends SourceTask {
             for (String index : indices) {
                 if (!stopping.get()) {
                     logger.info("fetching from {}", index);
-                    String lastValue = fetchLastOffset(index);
+                    Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
                     PageResult pageResult = elasticRepository.searchAfter(index, lastValue);
                     parseResult(pageResult, results);
@@ -182,16 +184,18 @@ public class ElasticSourceTask extends SourceTask {
         return results;
     }
 
-    private String fetchLastOffset(String index) {
+    private Cursor fetchLastOffset(String index) {
         //first we check in cache memory the last value
-        if (last.get(index) != null) {
-            return last.get(index);
+        if (lastCursor.get(index) != null) {
+            return lastCursor.get(index);
         }
 
         //if cache is empty we check the framework
         Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
         if (offset != null) {
-            return (String) offset.get(POSITION);
+            String primaryCursor = (String) offset.get(POSITION);
+            String secondaryCursor = (String) offset.get(POSITION_SECONDARY);
+            return new Cursor(primaryCursor, secondaryCursor);
         } else {
             return null;
         }
@@ -205,7 +209,7 @@ public class ElasticSourceTask extends SourceTask {
 
             String key = String.join("_", index, elasticDocument.get(cursorField).toString());
 
-            last.put(index, elasticDocument.get(cursorField).toString());
+            lastCursor.put(index, new Cursor(elasticDocument.get(cursorField).toString()));
             sent.merge(index, 1, Integer::sum);
 
             documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
