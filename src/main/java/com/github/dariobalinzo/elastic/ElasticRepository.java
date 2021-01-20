@@ -21,7 +21,6 @@ import com.github.dariobalinzo.elastic.response.PageResult;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;
-import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -42,32 +41,41 @@ public final class ElasticRepository {
 
     private final ElasticConnection elasticConnection;
     private final String cursorField;
+    //a field like customer.keyword is represented as customer inside json respose
+    private final String cursorFieldJsonName;
     private final String secondaryCursorField;
+    private final String secondaryCursorFieldJsonName;
 
     private int pageSize = 5000;
 
     public ElasticRepository(ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
         this.cursorField = "_id";
+        this.cursorFieldJsonName = this.cursorField;
         this.secondaryCursorField = null;
+        this.secondaryCursorFieldJsonName = null;
     }
 
     public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
         this.elasticConnection = elasticConnection;
         this.cursorField = cursorField;
+        this.cursorFieldJsonName = cursorField.replace(".keyword", "");
         this.secondaryCursorField = null;
+        this.secondaryCursorFieldJsonName = null;
     }
 
     public ElasticRepository(ElasticConnection elasticConnection, String cursorField, String secondaryCursorField) {
         this.elasticConnection = elasticConnection;
         this.cursorField = cursorField;
+        this.cursorFieldJsonName = cursorField.replace(".keyword", "");
         this.secondaryCursorField = secondaryCursorField;
+        this.secondaryCursorFieldJsonName = secondaryCursorField.replace(".keyword", "");
     }
 
     public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
-        QueryBuilder queryBuilder = cursor == null ?
+        QueryBuilder queryBuilder = cursor.getPrimaryCursor() == null ?
                 matchAllQuery() :
-                rangeQuery(cursorField).from(cursor, false);
+                buildGreaterThen(cursorField, cursor.getPrimaryCursor());
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(queryBuilder)
@@ -97,7 +105,7 @@ public final class ElasticRepository {
         Objects.requireNonNull(secondaryCursorField);
         String primaryCursor = cursor.getPrimaryCursor();
         String secondaryCursor = cursor.getSecondaryCursor();
-        boolean noPrevCursor = primaryCursor == null || secondaryCursor == null;
+        boolean noPrevCursor = primaryCursor == null && secondaryCursor == null;
 
         QueryBuilder queryBuilder = noPrevCursor? matchAllQuery() :
                 getSecondarySortFieldQuery(primaryCursor, secondaryCursor);
@@ -122,19 +130,29 @@ public final class ElasticRepository {
             lastCursor = Cursor.empty();
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            lastCursor = new Cursor(lastDocument.get(cursorField).toString());
+            String primaryCursorValue = lastDocument.get(cursorFieldJsonName).toString();
+            String secondaryCursorValue =  lastDocument.containsKey(secondaryCursorFieldJsonName) ?
+                    lastDocument.get(secondaryCursorFieldJsonName).toString() : null;
+            lastCursor = new Cursor(primaryCursorValue, secondaryCursorValue);
         }
         return new PageResult(index, documents, lastCursor);
     }
 
-    private BoolQueryBuilder getSecondarySortFieldQuery(String primaryCursor, String secondaryCursor) {
+    private QueryBuilder buildGreaterThen(String cursorField, String cursorValue) {
+        return rangeQuery(cursorField).from(cursorValue, false);
+    }
+
+    private QueryBuilder getSecondarySortFieldQuery(String primaryCursor, String secondaryCursor) {
+        if (secondaryCursor == null) {
+            return buildGreaterThen(cursorField, primaryCursor);
+        }
         return boolQuery()
                 .minimumShouldMatch(1)
-                .should(rangeQuery(cursorField).from(primaryCursor, false))
+                .should(buildGreaterThen(cursorField, primaryCursor))
                 .should(
                         boolQuery()
                                 .filter(matchQuery(cursorField, primaryCursor))
-                                .filter(rangeQuery(secondaryCursorField).from(secondaryCursor, false))
+                                .filter(buildGreaterThen(secondaryCursorField, secondaryCursor))
                 );
     }
 
@@ -169,7 +187,7 @@ public final class ElasticRepository {
 
         List<String> result = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()))) {
-            String line = null;
+            String line;
 
             while ((line = reader.readLine()) != null) {
                 String index = line.split("\\s+")[2];

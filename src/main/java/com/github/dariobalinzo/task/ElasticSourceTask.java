@@ -197,7 +197,7 @@ public class ElasticSourceTask extends SourceTask {
             String secondaryCursor = (String) offset.get(POSITION_SECONDARY);
             return new Cursor(primaryCursor, secondaryCursor);
         } else {
-            return null;
+            return Cursor.empty();
         }
     }
 

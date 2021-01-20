@@ -44,7 +44,7 @@ public class TestContainersContext {
 
     protected static final String TEST_INDEX = "source_index";
     protected static final String CURSOR_FIELD = "ts";
-    protected static final String SECONDARY_CURSOR_FIELD = "fullName";
+    protected static final String SECONDARY_CURSOR_FIELD = "fullName.keyword";
 
     protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.9.3";
 
@@ -69,6 +69,7 @@ public class TestContainersContext {
         repository.setPageSize(TEST_PAGE_SIZE);
 
         secondarySortRepo = new ElasticRepository(connection, CURSOR_FIELD, SECONDARY_CURSOR_FIELD);
+        secondarySortRepo.setPageSize(TEST_PAGE_SIZE);
     }
 
 
