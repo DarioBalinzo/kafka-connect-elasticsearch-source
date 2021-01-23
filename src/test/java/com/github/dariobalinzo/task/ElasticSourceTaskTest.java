@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.dariobalinzo.ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -75,6 +76,42 @@ public class ElasticSourceTaskTest extends TestContainersContext {
     }
 
     @Test
+    public void shouldRunTask_WithSecondarySort_WithoutInitialOffset() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111, "customerA", TEST_INDEX);
+        insertMockData(111, "customerB", TEST_INDEX);
+        insertMockData(111, "customerC", TEST_INDEX);
+        insertMockData(111, "customerD", TEST_INDEX);
+        insertMockData(112, "customerA", TEST_INDEX);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+
+        //when (fetching first page)
+        Map<String, String> conf = getConf();
+        conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals(2, poll1.size());
+
+        //when fetching (second page)
+        List<SourceRecord> poll2 = task.poll();
+        assertEquals(2, poll2.size());
+
+        //then
+        List<SourceRecord> last = task.poll();
+        assertEquals(1, last.size());
+        List<SourceRecord> empty = task.poll();
+        assertTrue(empty.isEmpty());
+
+        task.stop();
+    }
+
+    @Test
     public void shouldRunSourceTaskWithInitialOffset() throws IOException, InterruptedException {
         //given
         deleteTestIndex();
@@ -104,6 +141,79 @@ public class ElasticSourceTaskTest extends TestContainersContext {
 
         task.stop();
     }
+
+    @Test
+    public void shouldRunTask_WithSecondarySort_WithOnlyPrimaryInitialOffset() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(110, "customerA", TEST_INDEX); //already seen...
+        insertMockData(111, "customerA", TEST_INDEX);
+        insertMockData(111, "customerB", TEST_INDEX);
+        insertMockData(111, "customerC", TEST_INDEX);
+        insertMockData(111, "customerD", TEST_INDEX);
+        insertMockData(112, "customerA", TEST_INDEX);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.from(String.valueOf(110)));
+        task.initialize(context);
+
+        //when (fetching first page)
+        Map<String, String> conf = getConf();
+        conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals(2, poll1.size());
+
+        //when fetching (second page)
+        List<SourceRecord> poll2 = task.poll();
+        assertEquals(2, poll2.size());
+
+        //then
+        List<SourceRecord> last = task.poll();
+        assertEquals(1, last.size());
+        List<SourceRecord> empty = task.poll();
+        assertTrue(empty.isEmpty());
+
+        task.stop();
+    }
+
+    @Test
+    public void shouldRunTask_WithSecondarySort_WithInitialOffset() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(110, "customerA", TEST_INDEX); //already seen
+        insertMockData(111, "customerA", TEST_INDEX); //already seen
+        insertMockData(111, "customerB", TEST_INDEX);
+        insertMockData(111, "customerC", TEST_INDEX);
+        insertMockData(111, "customerD", TEST_INDEX);
+        insertMockData(112, "customerA", TEST_INDEX);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.from(String.valueOf(111), "customerA"));
+        task.initialize(context);
+
+        //when (fetching first page)
+        Map<String, String> conf = getConf();
+        conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        assertEquals(2, poll1.size());
+
+        //when fetching (second page)
+        List<SourceRecord> poll2 = task.poll();
+        assertEquals(2, poll2.size());
+
+        //then
+        List<SourceRecord> empty = task.poll();
+        assertTrue(empty.isEmpty());
+
+        task.stop();
+    }
+
 
     @Test
     public void shouldRunSourceTaskWhitelist() throws IOException, InterruptedException {

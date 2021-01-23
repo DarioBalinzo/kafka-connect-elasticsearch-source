@@ -87,6 +87,12 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INCREMENTING_FIELD_NAME_DEFAULT = "";
     private static final String INCREMENTING_FIELD_NAME_DISPLAY = "Incrementing Field Name";
 
+    public static final String SECONDARY_INCREMENTING_FIELD_NAME_CONFIG = "incrementing.secondary.field.name";
+    private static final String SECONDARY_INCREMENTING_FIELD_NAME_DOC =
+            "In case the main incrementing field may have duplicates, this secondary field is used as a secondary sort field" +
+                    " in order to avoid data losses when paginating";
+    private static final String SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY = "Secondary Incrementing Field Name";
+
     public static final String INDEX_PREFIX_CONFIG = "index.prefix";
     private static final String INDEX_PREFIX_DOC = "List of indices to include in copying.";
     private static final String INDEX_PREFIX_DEFAULT = "";
@@ -270,6 +276,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 INCREMENTING_FIELD_NAME_DISPLAY
+        ).define(
+                SECONDARY_INCREMENTING_FIELD_NAME_CONFIG,
+                Type.STRING,
+                null,
+                Importance.LOW,
+                SECONDARY_INCREMENTING_FIELD_NAME_DOC,
+                MODE_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY
         );
     }
 

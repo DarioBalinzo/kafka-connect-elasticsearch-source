@@ -23,4 +23,12 @@ public class Cursor {
     }
 
     public static Cursor empty() {return new Cursor(null, null);}
+
+    @Override
+    public String toString() {
+        return "Cursor{" +
+                "primaryCursor='" + primaryCursor + '\'' +
+                ", secondaryCursor='" + secondaryCursor + '\'' +
+                '}';
+    }
 }

@@ -56,6 +56,7 @@ public class ElasticSourceTask extends SourceTask {
     private List<String> indices;
     private String topic;
     private String cursorField;
+    private String secondaryCursorField;
     private int pollingMs;
     private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
@@ -84,6 +85,7 @@ public class ElasticSourceTask extends SourceTask {
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        secondaryCursorField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
@@ -153,7 +155,7 @@ public class ElasticSourceTask extends SourceTask {
                     .build();
         }
 
-        elasticRepository = new ElasticRepository(es, cursorField);
+        elasticRepository = new ElasticRepository(es, cursorField, secondaryCursorField);
         elasticRepository.setPageSize(batchSize);
     }
 
@@ -168,7 +170,9 @@ public class ElasticSourceTask extends SourceTask {
                     logger.info("fetching from {}", index);
                     Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
-                    PageResult pageResult = elasticRepository.searchAfter(index, lastValue);
+                    PageResult pageResult = secondaryCursorField == null ?
+                            elasticRepository.searchAfter(index, lastValue) :
+                            elasticRepository.searchAfterWithSecondarySort(index, lastValue);
                     parseResult(pageResult, results);
                     logger.info("index {} total messages: {} ", index, sent.get(index));
                 }
@@ -209,7 +213,7 @@ public class ElasticSourceTask extends SourceTask {
 
             String key = String.join("_", index, elasticDocument.get(cursorField).toString());
 
-            lastCursor.put(index, new Cursor(elasticDocument.get(cursorField).toString()));
+            lastCursor.put(index, pageResult.getLastCursor());
             sent.merge(index, 1, Integer::sum);
 
             documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));

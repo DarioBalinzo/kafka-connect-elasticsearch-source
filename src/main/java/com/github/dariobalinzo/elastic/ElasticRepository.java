@@ -41,7 +41,7 @@ public final class ElasticRepository {
 
     private final ElasticConnection elasticConnection;
     private final String cursorField;
-    //a field like customer.keyword is represented as customer inside json respose
+    //a field like customer.keyword is represented as customer inside json response
     private final String cursorFieldJsonName;
     private final String secondaryCursorField;
     private final String secondaryCursorFieldJsonName;
@@ -69,7 +69,8 @@ public final class ElasticRepository {
         this.cursorField = cursorField;
         this.cursorFieldJsonName = cursorField.replace(".keyword", "");
         this.secondaryCursorField = secondaryCursorField;
-        this.secondaryCursorFieldJsonName = secondaryCursorField.replace(".keyword", "");
+        this.secondaryCursorFieldJsonName = secondaryCursorField == null ? null :
+                secondaryCursorField.replace(".keyword", "");
     }
 
     public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
