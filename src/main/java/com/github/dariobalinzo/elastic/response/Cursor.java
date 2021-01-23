@@ -22,7 +22,9 @@ public class Cursor {
         return secondaryCursor;
     }
 
-    public static Cursor empty() {return new Cursor(null, null);}
+    public static Cursor empty() {
+        return new Cursor(null, null);
+    }
 
     @Override
     public String toString() {

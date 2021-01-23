@@ -108,7 +108,7 @@ public final class ElasticRepository {
         String secondaryCursor = cursor.getSecondaryCursor();
         boolean noPrevCursor = primaryCursor == null && secondaryCursor == null;
 
-        QueryBuilder queryBuilder = noPrevCursor? matchAllQuery() :
+        QueryBuilder queryBuilder = noPrevCursor ? matchAllQuery() :
                 getSecondarySortFieldQuery(primaryCursor, secondaryCursor);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
@@ -132,7 +132,7 @@ public final class ElasticRepository {
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
             String primaryCursorValue = lastDocument.get(cursorFieldJsonName).toString();
-            String secondaryCursorValue =  lastDocument.containsKey(secondaryCursorFieldJsonName) ?
+            String secondaryCursorValue = lastDocument.containsKey(secondaryCursorFieldJsonName) ?
                     lastDocument.get(secondaryCursorFieldJsonName).toString() : null;
             lastCursor = new Cursor(primaryCursorValue, secondaryCursorValue);
         }
