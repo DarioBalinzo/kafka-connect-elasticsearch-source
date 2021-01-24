@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.github.dariobalinzo.elastic.ElasticJsonNaming.removeKeywordSuffix;
+
 public class ElasticSourceTask extends SourceTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTask.class);
@@ -46,6 +48,8 @@ public class ElasticSourceTask extends SourceTask {
     static final String POSITION = "position";
     static final String POSITION_SECONDARY = "position_secondary";
 
+
+    private final OffsetSerializer offsetSerializer = new OffsetSerializer();
     private SchemaConverter schemaConverter;
     private StructConverter structConverter;
 
@@ -56,7 +60,9 @@ public class ElasticSourceTask extends SourceTask {
     private List<String> indices;
     private String topic;
     private String cursorField;
+    private String cursorFieldJsonName;
     private String secondaryCursorField;
+    private String secondaryCursorFieldJsonName;
     private int pollingMs;
     private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
@@ -85,7 +91,9 @@ public class ElasticSourceTask extends SourceTask {
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        cursorFieldJsonName = removeKeywordSuffix(cursorField);
         secondaryCursorField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
+        secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
@@ -209,9 +217,17 @@ public class ElasticSourceTask extends SourceTask {
         String index = pageResult.getIndex();
         for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, elasticDocument.get(cursorField).toString());
-
-            String key = String.join("_", index, elasticDocument.get(cursorField).toString());
+            Map<String, String> sourceOffset = offsetSerializer.toMapOffset(
+                    cursorFieldJsonName,
+                    secondaryCursorFieldJsonName,
+                    elasticDocument
+            );
+            String key = offsetSerializer.toStringOffset(
+                    cursorFieldJsonName,
+                    secondaryCursorFieldJsonName,
+                    index,
+                    elasticDocument
+            );
 
             lastCursor.put(index, pageResult.getLastCursor());
             sent.merge(index, 1, Integer::sum);

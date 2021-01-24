@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.github.dariobalinzo.elastic.ElasticJsonNaming.removeKeywordSuffix;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 
 public final class ElasticRepository {
@@ -67,10 +68,9 @@ public final class ElasticRepository {
     public ElasticRepository(ElasticConnection elasticConnection, String cursorField, String secondaryCursorField) {
         this.elasticConnection = elasticConnection;
         this.cursorField = cursorField;
-        this.cursorFieldJsonName = cursorField.replace(".keyword", "");
+        this.cursorFieldJsonName = removeKeywordSuffix(cursorField);
         this.secondaryCursorField = secondaryCursorField;
-        this.secondaryCursorFieldJsonName = secondaryCursorField == null ? null :
-                secondaryCursorField.replace(".keyword", "");
+        this.secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
     }
 
     public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
