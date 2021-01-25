@@ -88,9 +88,7 @@ public final class ElasticRepository {
 
         SearchResponse response = executeSearch(searchRequest);
 
-        List<Map<String, Object>> documents = Arrays.stream(response.getHits().getHits())
-                .map(SearchHit::getSourceAsMap)
-                .collect(Collectors.toList());
+        List<Map<String, Object>> documents = extractDocuments(response);
 
         Cursor lastCursor;
         if (documents.isEmpty()) {
@@ -100,6 +98,16 @@ public final class ElasticRepository {
             lastCursor = new Cursor(lastDocument.get(cursorField).toString());
         }
         return new PageResult(index, documents, lastCursor);
+    }
+
+    private List<Map<String, Object>> extractDocuments(SearchResponse response) {
+        return Arrays.stream(response.getHits().getHits())
+                .map(hit -> {
+                    Map<String, Object> sourceMap = hit.getSourceAsMap();
+                    sourceMap.put("id", hit.getId());
+                    sourceMap.put("index", hit.getIndex());
+                    return sourceMap;
+                }).collect(Collectors.toList());
     }
 
     public PageResult searchAfterWithSecondarySort(String index, Cursor cursor) throws IOException, InterruptedException {
@@ -122,9 +130,7 @@ public final class ElasticRepository {
 
         SearchResponse response = executeSearch(searchRequest);
 
-        List<Map<String, Object>> documents = Arrays.stream(response.getHits().getHits())
-                .map(SearchHit::getSourceAsMap)
-                .collect(Collectors.toList());
+        List<Map<String, Object>> documents = extractDocuments(response);
 
         Cursor lastCursor;
         if (documents.isEmpty()) {

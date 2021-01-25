@@ -24,8 +24,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class ElasticRepositoryTest extends TestContainersContext {
 
@@ -92,6 +91,21 @@ public class ElasticRepositoryTest extends TestContainersContext {
         assertEquals(0, emptyPage.getDocuments().size());
         assertNull(emptyPage.getLastCursor().getPrimaryCursor());
         assertNull(emptyPage.getLastCursor().getSecondaryCursor());
+    }
+
+    @Test
+    public void shouldFetchDataWithAdditionalField() throws IOException, InterruptedException {
+        deleteTestIndex();
+
+        insertMockData(110, "customerA", TEST_INDEX);
+        insertMockData(111, "customerB", TEST_INDEX);
+        refreshIndex();
+
+        PageResult firstPage = repository.searchAfter(TEST_INDEX, Cursor.empty());
+        firstPage.getDocuments().forEach(item -> {
+            assertNotNull(item.get((String) "index"));
+            assertNotNull(item.get((String) "id"));
+        });
     }
 
 }
