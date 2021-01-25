@@ -29,8 +29,15 @@ public class MockOffsetFactory {
     }
 
     static OffsetStorageReader from(String initialCursor) {
+        return from(initialCursor, null);
+    }
+
+    static OffsetStorageReader from(String initialCursor, String secondaryCursor) {
         Map<String, Object> state = new HashMap<>();
         state.put(ElasticSourceTask.POSITION, initialCursor);
+        if (secondaryCursor != null) {
+            state.put(ElasticSourceTask.POSITION_SECONDARY, secondaryCursor);
+        }
 
         return new OffsetStorageReader() {
             @Override

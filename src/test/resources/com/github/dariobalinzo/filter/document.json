@@ -24,7 +24,7 @@
       "qty": 2
     }
   },
-  "other-obj" : {
+  "other-obj": {
     "foo": "bar"
   }
 }
