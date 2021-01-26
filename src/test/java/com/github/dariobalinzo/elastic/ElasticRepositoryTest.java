@@ -103,8 +103,8 @@ public class ElasticRepositoryTest extends TestContainersContext {
 
         PageResult firstPage = repository.searchAfter(TEST_INDEX, Cursor.empty());
         firstPage.getDocuments().forEach(item -> {
-            assertNotNull(item.get((String) "index"));
-            assertNotNull(item.get((String) "id"));
+            assertNotNull(item.get((String) "es-index"));
+            assertNotNull(item.get((String) "es-id"));
         });
     }
 

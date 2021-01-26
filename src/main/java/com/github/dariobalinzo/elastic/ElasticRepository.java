@@ -104,8 +104,8 @@ public final class ElasticRepository {
         return Arrays.stream(response.getHits().getHits())
                 .map(hit -> {
                     Map<String, Object> sourceMap = hit.getSourceAsMap();
-                    sourceMap.put("id", hit.getId());
-                    sourceMap.put("index", hit.getIndex());
+                    sourceMap.put("es-id", hit.getId());
+                    sourceMap.put("es-index", hit.getIndex());
                     return sourceMap;
                 }).collect(Collectors.toList());
     }
