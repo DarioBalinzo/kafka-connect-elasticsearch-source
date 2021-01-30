@@ -18,6 +18,7 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.TestContainersContext;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTaskContext;
 import org.junit.Before;
@@ -62,31 +63,30 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(getConf());
         List<SourceRecord> poll1 = task.poll();
-        assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(0).value().toString()
+        assertEquals(2, poll1.size());
+        assertEquals(111,
+                     ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals("{position=111}", poll1.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=112}",
-                poll1.get(1).value().toString()
+                112,
+                ((Struct) poll1.get(1).value()).get("ts")
         );
         assertEquals("{position=112}", poll1.get(1).sourceOffset().toString());
-        assertEquals(2, poll1.size());
 
         //when fetching (second page)
         List<SourceRecord> poll2 = task.poll();
+        assertEquals(2, poll2.size());
         assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=113}",
-                poll2.get(0).value().toString()
+                113,
+                ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position=113}", poll2.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=114}",
-                poll2.get(1).value().toString()
+                114,
+                ((Struct) poll2.get(1).value()).get("ts")
         );
         assertEquals("{position=114}", poll2.get(1).sourceOffset().toString());
-        assertEquals(2, poll2.size());
 
         //then
         List<SourceRecord> empty = task.poll();
@@ -116,40 +116,61 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
+        assertEquals(2, poll1.size());
         assertEquals(
-                "Struct{fullName=customerA,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(0).value().toString()
+                "customerA",
+                ((Struct) poll1.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerA, position=111}", poll1.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=customerB,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(1).value().toString()
+                "customerB",
+                ((Struct) poll1.get(1).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll1.get(1).value()).get("ts")
         );
         assertEquals("{position_secondary=customerB, position=111}", poll1.get(1).sourceOffset().toString());
-        assertEquals(2, poll1.size());
 
         //when fetching (second page)
         List<SourceRecord> poll2 = task.poll();
+        assertEquals(2, poll2.size());
         assertEquals(
-                "Struct{fullName=customerC,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll2.get(0).value().toString()
+                "customerC",
+                ((Struct) poll2.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerC, position=111}", poll2.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=customerD,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll2.get(1).value().toString()
+                "customerD",
+                ((Struct) poll2.get(1).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll2.get(1).value()).get("ts")
         );
         assertEquals("{position_secondary=customerD, position=111}", poll2.get(1).sourceOffset().toString());
-        assertEquals(2, poll2.size());
 
         //then
         List<SourceRecord> last = task.poll();
+        assertEquals(1, last.size());
         assertEquals(
-                "Struct{fullName=customerA,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=112}",
-                last.get(0).value().toString()
+                "customerA",
+                ((Struct) last.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                112,
+                ((Struct) last.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerA, position=112}", last.get(0).sourceOffset().toString());
-        assertEquals(1, last.size());
+
         List<SourceRecord> empty = task.poll();
         assertTrue(empty.isEmpty());
 
@@ -174,27 +195,40 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(getConf());
         List<SourceRecord> poll1 = task.poll();
-        assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=112}",
-                poll1.get(0).value().toString()
-        );
-        assertEquals("{position=112}", poll1.get(0).sourceOffset().toString());
-        assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=113}",
-                poll1.get(1).value().toString()
-        );
-        assertEquals("{position=113}", poll1.get(1).sourceOffset().toString());
 
         assertEquals(2, poll1.size());
 
+        assertEquals(
+                "Test",
+                ((Struct) poll1.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                112,
+                ((Struct) poll1.get(0).value()).get("ts")
+        );
+        assertEquals("{position=112}", poll1.get(0).sourceOffset().toString());
+        assertEquals(
+                "Test",
+                ((Struct) poll1.get(1).value()).get("fullName")
+        );
+        assertEquals(
+                113,
+                ((Struct) poll1.get(1).value()).get("ts")
+        );
+        assertEquals("{position=113}", poll1.get(1).sourceOffset().toString());
+
         //when fetching (second page)
         List<SourceRecord> poll2 = task.poll();
+        assertEquals(1, poll2.size());
         assertEquals(
-                "Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=114}",
-                poll2.get(0).value().toString()
+                "Test",
+                ((Struct) poll2.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                114,
+                ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position=114}", poll2.get(0).sourceOffset().toString());
-        assertEquals(1, poll2.size());
 
         //then
         List<SourceRecord> empty = task.poll();
@@ -225,39 +259,58 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals(
-                "Struct{fullName=customerA,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(0).value().toString()
-        );
-        assertEquals("{position_secondary=customerA, position=111}", poll1.get(0).sourceOffset().toString());
-        assertEquals(
-                "Struct{fullName=customerB,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(1).value().toString()
-        );
         assertEquals(2, poll1.size());
+        assertEquals(
+                "customerA",
+                ((Struct) poll1.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll1.get(0).value()).get("ts")
+        );
+        assertEquals(
+                "customerB",
+                ((Struct) poll1.get(1).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll1.get(1).value()).get("ts")
+        );
 
         //when fetching (second page)
         List<SourceRecord> poll2 = task.poll();
         assertEquals(
-                "Struct{fullName=customerC,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll2.get(0).value().toString()
+                "customerC",
+                ((Struct) poll2.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerC, position=111}", poll2.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=customerD,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll2.get(1).value().toString()
+                "customerD",
+                ((Struct) poll2.get(1).value()).get("fullName")
+        );
+        assertEquals(
+                111,
+                ((Struct) poll2.get(1).value()).get("ts")
         );
         assertEquals("{position_secondary=customerD, position=111}", poll2.get(1).sourceOffset().toString());
         assertEquals(2, poll2.size());
 
         //then
         List<SourceRecord> last = task.poll();
+        assertEquals(1, last.size());
         assertEquals(
-                "Struct{fullName=customerA,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=112}",
-                last.get(0).value().toString()
+                "customerA",
+                ((Struct) last.get(0).value()).get("fullName")
+        );
+        assertEquals(
+                112,
+                ((Struct) last.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerA, position=112}", last.get(0).sourceOffset().toString());
-        assertEquals(1, last.size());
         List<SourceRecord> empty = task.poll();
         assertTrue(empty.isEmpty());
 
@@ -286,30 +339,30 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
+        assertEquals(2, poll1.size());
         assertEquals(
-                "Struct{fullName=customerB,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(0).value().toString()
+                "customerB",
+                ((Struct) poll1.get(0).value()).get("fullName")
         );
         assertEquals("{position_secondary=customerB, position=111}", poll1.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=customerC,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll1.get(1).value().toString()
+                "customerC",
+                ((Struct) poll1.get(1).value()).get("fullName")
         );
-        assertEquals(2, poll1.size());
 
         //when fetching (second page)
         List<SourceRecord> poll2 = task.poll();
+        assertEquals(2, poll2.size());
         assertEquals(
-                "Struct{fullName=customerD,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}",
-                poll2.get(0).value().toString()
+                "customerD",
+                ((Struct) poll2.get(0).value()).get("fullName")
         );
         assertEquals("{position_secondary=customerD, position=111}", poll2.get(0).sourceOffset().toString());
         assertEquals(
-                "Struct{fullName=customerA,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=112}",
-                poll2.get(1).value().toString()
+                "customerA",
+                ((Struct) poll2.get(1).value()).get("fullName")
         );
         assertEquals("{position_secondary=customerA, position=112}", poll2.get(1).sourceOffset().toString());
-        assertEquals(2, poll2.size());
 
         //then
         List<SourceRecord> empty = task.poll();
@@ -339,8 +392,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=Test}", poll1.get(0).value().toString());
-
+        assertEquals(((Struct) poll1.get(0).value()).get("fullName"), "Test");
         task.stop();
     }
 
@@ -364,8 +416,9 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=\"Test\",nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
-
+        Struct structValue = (Struct) poll1.get(0).value();
+        assertEquals(structValue.get("avroField"), "avro-field");
+        assertEquals(structValue.get("nonavrofield"), "non-avro-field");
         task.stop();
     }
 
@@ -388,8 +441,9 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=Test,nonavrofield=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
-
+        Struct structValue = (Struct) poll1.get(0).value();
+        assertEquals(structValue.get("avroField"), "avro-field");
+        assertEquals(structValue.get("nonavrofield"), "non-avro-field");
         task.stop();
     }
 
@@ -414,8 +468,9 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        assertEquals("Struct{fullName=Test,non-avro-field=non-avro-field,avroField=avro-field,age=10,ts=111}", poll1.get(0).value().toString());
-
+        Struct structValue = (Struct) poll1.get(0).value();
+        assertEquals(structValue.get("avroField"), "avro-field");
+        assertEquals(structValue.get("non-avro-field"), "non-avro-field");
         task.stop();
     }
 
