@@ -392,6 +392,8 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
+        //Check the struct contains one only field, and this is "FullName" = "Test"
+        assertEquals(1, ((Struct) poll1.get(0).value()).schema().fields().size());
         assertEquals(((Struct) poll1.get(0).value()).get("fullName"), "Test");
         task.stop();
     }
@@ -417,6 +419,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
         Struct structValue = (Struct) poll1.get(0).value();
+        assertEquals(structValue.get("fullName"), "\"Test\"");
         assertEquals(structValue.get("avroField"), "avro-field");
         assertEquals(structValue.get("nonavrofield"), "non-avro-field");
         task.stop();
