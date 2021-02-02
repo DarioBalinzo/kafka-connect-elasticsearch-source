@@ -65,7 +65,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         List<SourceRecord> poll1 = task.poll();
         assertEquals(2, poll1.size());
         assertEquals(111,
-                     ((Struct) poll1.get(0).value()).get("ts")
+                ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals("{position=111}", poll1.get(0).sourceOffset().toString());
         assertEquals(
