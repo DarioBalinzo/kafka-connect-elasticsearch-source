@@ -73,7 +73,9 @@ public class SchemaConverter {
             } else if (value instanceof Map) {
                 convertMapSchema(prefixName, schemaBuilder, entry);
             } else {
-                throw new RuntimeException("type not supported " + key);
+                if (value != null) {
+                    throw new RuntimeException("type not supported " + key);
+                }
             }
         }
     }

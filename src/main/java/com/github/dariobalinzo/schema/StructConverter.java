@@ -50,7 +50,9 @@ public class StructConverter {
             } else if (value instanceof Map) {
                 covertMapToAvroStruct(prefixName, struct, schema, entry);
             } else {
-                throw new RuntimeException("type not supported " + key);
+                if (value != null) {
+                    throw new RuntimeException("type not supported " + key);
+                }
             }
         }
     }
