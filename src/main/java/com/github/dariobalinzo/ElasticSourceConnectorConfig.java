@@ -98,6 +98,11 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INDEX_PREFIX_DEFAULT = "";
     private static final String INDEX_PREFIX_DISPLAY = "Indices prefix Whitelist";
 
+    public static final String INDEX_NAMES_CONFIG = "index.names";
+    private static final String INDEX_NAMES_DOC = "List of elasticsearch indices (es1,es2,es3)";
+    private static final String INDEX_NAMES_DEFAULT = null;
+    private static final String INDEX_NAMES_DISPLAY = "List of elasticsearch indices (es1,es2,es3)";
+
 
     public static final String TOPIC_PREFIX_CONFIG = "topic.prefix";
     private static final String TOPIC_PREFIX_DOC =
@@ -221,6 +226,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.LONG,
                 INDEX_PREFIX_DISPLAY
+        ).define(
+                INDEX_NAMES_CONFIG,
+                Type.STRING,
+                INDEX_NAMES_DEFAULT,
+                Importance.MEDIUM,
+                INDEX_NAMES_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                INDEX_NAMES_DISPLAY
         ).define(
                 FIELDS_WHITELIST_CONFIG,
                 Type.STRING,
