@@ -46,7 +46,7 @@ public class TestContainersContext {
     protected static final String CURSOR_FIELD = "ts";
     protected static final String SECONDARY_CURSOR_FIELD = "fullName.keyword";
 
-    protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.9.3";
+    protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.11.1";
 
     protected static ElasticsearchContainer container;
     protected static ElasticConnection connection;
