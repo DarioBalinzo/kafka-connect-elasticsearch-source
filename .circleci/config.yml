@@ -1,0 +1,10 @@
+
+#
+version: 2
+machine: true
+jobs:
+  build:
+    steps:
+      - checkout
+
+      - run: mvn -B clean install
