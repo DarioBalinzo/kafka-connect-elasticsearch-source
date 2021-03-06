@@ -32,8 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.dariobalinzo.ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class ElasticSourceTaskTest extends TestContainersContext {
 
@@ -395,6 +394,32 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //Check the struct contains one only field, and this is "FullName" = "Test"
         assertEquals(1, ((Struct) poll1.get(0).value()).schema().fields().size());
         assertEquals(((Struct) poll1.get(0).value()).get("fullName"), "Test");
+        task.stop();
+    }
+
+    @Test
+    public void shouldRunSourceTaskBlacklist() throws IOException, InterruptedException {
+        //given
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        ElasticSourceTask task = new ElasticSourceTask();
+        Mockito.when(context.offsetStorageReader()).thenReturn(MockOffsetFactory.empty());
+        task.initialize(context);
+        Map<String, String> conf = getConf();
+        conf.put(ElasticSourceConnectorConfig.FIELDS_BLACKLIST_CONFIG, "fullName");
+
+        //when (fetching first page)
+        task.start(conf);
+        List<SourceRecord> poll1 = task.poll();
+        //Check the struct contains one only field, and this is "FullName" = "Test"
+        assertEquals(1, ((Struct) poll1.get(0).value()).schema().fields().size());
+        assertNull(((Struct) poll1.get(0).value()).get("fullName"));
         task.stop();
     }
 

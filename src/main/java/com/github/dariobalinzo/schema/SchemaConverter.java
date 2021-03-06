@@ -54,11 +54,11 @@ public class SchemaConverter {
             } else if (value instanceof Boolean) {
                 schemaBuilder.field(validKeyName, OPTIONAL_BOOLEAN_SCHEMA);
             } else if (value instanceof Integer) {
-                schemaBuilder.field(validKeyName, OPTIONAL_INT32_SCHEMA);
+                schemaBuilder.field(validKeyName, OPTIONAL_INT64_SCHEMA);
             } else if (value instanceof Long) {
                 schemaBuilder.field(validKeyName, OPTIONAL_INT64_SCHEMA);
             } else if (value instanceof Float) {
-                schemaBuilder.field(validKeyName, OPTIONAL_FLOAT32_SCHEMA);
+                schemaBuilder.field(validKeyName, OPTIONAL_FLOAT64_SCHEMA);
             } else if (value instanceof Double) {
                 schemaBuilder.field(validKeyName, OPTIONAL_FLOAT64_SCHEMA);
             } else if (value instanceof List) {
@@ -101,12 +101,12 @@ public class SchemaConverter {
         } else if (item instanceof Boolean) {
             schemaBuilder.field(
                     validKeyName,
-                    array(OPTIONAL_INT32_SCHEMA).optional().build()
+                    array(OPTIONAL_BOOLEAN_SCHEMA).optional().build()
             ).build();
         } else if (item instanceof Integer) {
             schemaBuilder.field(
                     validKeyName,
-                    array(OPTIONAL_INT32_SCHEMA).optional().build()
+                    array(OPTIONAL_INT64_SCHEMA).optional().build()
             ).build();
         } else if (item instanceof Long) {
             schemaBuilder.field(
@@ -116,7 +116,7 @@ public class SchemaConverter {
         } else if (item instanceof Float) {
             schemaBuilder.field(
                     validKeyName,
-                    array(OPTIONAL_FLOAT32_SCHEMA).optional().build()
+                    array(OPTIONAL_FLOAT64_SCHEMA).optional().build()
             ).build();
         } else if (item instanceof Double) {
             schemaBuilder.field(
