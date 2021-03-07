@@ -152,6 +152,13 @@ Indices prefix to include in copying.
 * Default: ""
 * Importance: medium
 
+``index.names``
+List of elasticsearch indices: `es1,es2,es3`
+
+* Type: string
+* Default: null
+* Importance: medium
+
 ### Connector Configuration
 
 ``poll.interval.ms``
@@ -176,6 +183,15 @@ Prefix to prepend to index names to generate the name of the Kafka topic to publ
 
 ``filters.whitelist``
 Whitelist filter for extracting a subset of fields from elastic-search json documents. The whitelist filter supports
+nested fields. To provide multiple fields use `;` as separator
+(e.g. `customer;order.qty;order.price`).
+
+* Type: string
+* Importance: medium
+* Default: null
+
+``filters.blacklist``
+Blacklist filter for extracting a subset of fields from elastic-search json documents. The blacklist filter supports
 nested fields. To provide multiple fields use `;` as separator
 (e.g. `customer;order.qty;order.price`).
 
