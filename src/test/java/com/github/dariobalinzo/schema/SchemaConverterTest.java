@@ -52,7 +52,7 @@ public class SchemaConverterTest {
         Assert.assertEquals("[" +
                         "Field{name=name, index=0, schema=Schema{STRING}}," +
                         " Field{name=surname, index=1, schema=Schema{STRING}}, " +
-                        "Field{name=version, index=2, schema=Schema{INT32}}, " +
+                        "Field{name=version, index=2, schema=Schema{INT64}}, " +
                         "Field{name=enabled, index=3, schema=Schema{BOOLEAN}}" +
                         "]",
                 schema.fields().toString()
@@ -76,7 +76,7 @@ public class SchemaConverterTest {
         //then
         Assert.assertEquals("[" +
                         "Field{name=name, index=0, schema=Schema{STRING}}, " +
-                        "Field{name=version, index=1, schema=Schema{INT32}}, " +
+                        "Field{name=version, index=1, schema=Schema{INT64}}, " +
                         "Field{name=enabled, index=2, schema=Schema{BOOLEAN}}" +
                         "]",
                 schema.fields().toString()
@@ -116,7 +116,7 @@ public class SchemaConverterTest {
         //then
         Assert.assertEquals("[" +
                         "Field{name=name, index=0, schema=Schema{STRING}}," +
-                        " Field{name=version, index=1, schema=Schema{INT32}}," +
+                        " Field{name=version, index=1, schema=Schema{INT64}}," +
                         " Field{name=detail, index=2, schema=Schema{detail:STRUCT}}" +
                         "]",
                 schema.fields().toString()
@@ -150,7 +150,7 @@ public class SchemaConverterTest {
                 schema.fields().toString()
         );
 
-        Assert.assertEquals("Schema{INT32}",
+        Assert.assertEquals("Schema{INT64}",
                 schema.field("details")
                         .schema()
                         .valueSchema()

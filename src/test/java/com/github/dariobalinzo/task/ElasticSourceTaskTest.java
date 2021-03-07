@@ -18,6 +18,7 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.TestContainersContext;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTaskContext;
@@ -63,12 +64,12 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         task.start(getConf());
         List<SourceRecord> poll1 = task.poll();
         assertEquals(2, poll1.size());
-        assertEquals(111,
+        assertEquals(111L,
                 ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals("{position=111}", poll1.get(0).sourceOffset().toString());
         assertEquals(
-                112,
+                112L,
                 ((Struct) poll1.get(1).value()).get("ts")
         );
         assertEquals("{position=112}", poll1.get(1).sourceOffset().toString());
@@ -77,12 +78,12 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         List<SourceRecord> poll2 = task.poll();
         assertEquals(2, poll2.size());
         assertEquals(
-                113,
+                113L,
                 ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position=113}", poll2.get(0).sourceOffset().toString());
         assertEquals(
-                114,
+                114L,
                 ((Struct) poll2.get(1).value()).get("ts")
         );
         assertEquals("{position=114}", poll2.get(1).sourceOffset().toString());
@@ -121,7 +122,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll1.get(0).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerA, position=111}", poll1.get(0).sourceOffset().toString());
@@ -130,7 +131,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll1.get(1).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll1.get(1).value()).get("ts")
         );
         assertEquals("{position_secondary=customerB, position=111}", poll1.get(1).sourceOffset().toString());
@@ -143,7 +144,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll2.get(0).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerC, position=111}", poll2.get(0).sourceOffset().toString());
@@ -152,7 +153,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll2.get(1).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll2.get(1).value()).get("ts")
         );
         assertEquals("{position_secondary=customerD, position=111}", poll2.get(1).sourceOffset().toString());
@@ -165,7 +166,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) last.get(0).value()).get("fullName")
         );
         assertEquals(
-                112,
+                112L,
                 ((Struct) last.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerA, position=112}", last.get(0).sourceOffset().toString());
@@ -202,7 +203,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll1.get(0).value()).get("fullName")
         );
         assertEquals(
-                112,
+                112L,
                 ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals("{position=112}", poll1.get(0).sourceOffset().toString());
@@ -211,7 +212,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll1.get(1).value()).get("fullName")
         );
         assertEquals(
-                113,
+                113L,
                 ((Struct) poll1.get(1).value()).get("ts")
         );
         assertEquals("{position=113}", poll1.get(1).sourceOffset().toString());
@@ -224,7 +225,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll2.get(0).value()).get("fullName")
         );
         assertEquals(
-                114,
+                114L,
                 ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position=114}", poll2.get(0).sourceOffset().toString());
@@ -264,7 +265,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll1.get(0).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll1.get(0).value()).get("ts")
         );
         assertEquals(
@@ -272,7 +273,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll1.get(1).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll1.get(1).value()).get("ts")
         );
 
@@ -283,7 +284,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll2.get(0).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll2.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerC, position=111}", poll2.get(0).sourceOffset().toString());
@@ -292,7 +293,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) poll2.get(1).value()).get("fullName")
         );
         assertEquals(
-                111,
+                111L,
                 ((Struct) poll2.get(1).value()).get("ts")
         );
         assertEquals("{position_secondary=customerD, position=111}", poll2.get(1).sourceOffset().toString());
@@ -306,7 +307,7 @@ public class ElasticSourceTaskTest extends TestContainersContext {
                 ((Struct) last.get(0).value()).get("fullName")
         );
         assertEquals(
-                112,
+                112L,
                 ((Struct) last.get(0).value()).get("ts")
         );
         assertEquals("{position_secondary=customerA, position=112}", last.get(0).sourceOffset().toString());
@@ -417,9 +418,10 @@ public class ElasticSourceTaskTest extends TestContainersContext {
         //when (fetching first page)
         task.start(conf);
         List<SourceRecord> poll1 = task.poll();
-        //Check the struct contains one only field, and this is "FullName" = "Test"
-        assertEquals(1, ((Struct) poll1.get(0).value()).schema().fields().size());
-        assertNull(((Struct) poll1.get(0).value()).get("fullName"));
+
+        //Then
+        List<Field> fields = ((Struct) poll1.get(0).value()).schema().fields();
+        assertEquals(6, fields.size());
         task.stop();
     }
 
