@@ -44,6 +44,7 @@ public class StructConverter {
             Object value = entry.getValue();
 
             if (isScalar(value)) {
+                value = handleNumericPrecision(value);
                 struct.put(converter.from(key), value);
             } else if (value instanceof List) {
                 convertListToAvroArray(prefixName, struct, schema, entry);
@@ -66,6 +67,15 @@ public class StructConverter {
                 || value instanceof Float;
     }
 
+    private Object handleNumericPrecision(Object value) {
+        if (value instanceof Integer) {
+            value = ((Integer) value).longValue();
+        } else if (value instanceof Float) {
+            value = ((Float) value).doubleValue();
+        }
+        return value;
+    }
+
     @SuppressWarnings("unchecked")
     private void convertListToAvroArray(String prefixName, Struct struct, Schema schema, Map.Entry<String, Object> entry) {
         String key = entry.getKey();
@@ -76,7 +86,10 @@ public class StructConverter {
             Object head = value.get(0);
             struct.put(converter.from(key), new ArrayList<>());
             if (isScalar(head)) {
-                struct.getArray(converter.from(key)).addAll(value);
+                List<Object> scalars = value.stream()
+                        .map(this::handleNumericPrecision)
+                        .collect(Collectors.toList());
+                struct.getArray(converter.from(key)).addAll(scalars);
             } else if (head instanceof Map) {
                 List<Struct> array = value
                         .stream()

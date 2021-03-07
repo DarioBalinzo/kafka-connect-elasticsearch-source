@@ -23,6 +23,7 @@ import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.PageResult;
+import com.github.dariobalinzo.filter.BlacklistFilter;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
@@ -107,6 +108,13 @@ public class ElasticSourceTask extends SourceTask {
             String[] whiteFiltersArray = whiteFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
             documentFilters.add(new WhitelistFilter(whiteFiltersSet));
+        }
+
+        String blackFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_BLACKLIST_CONFIG);
+        if (blackFilters != null) {
+            String[] blackFiltersArray = blackFilters.split(";");
+            Set<String> blackFiltersSet = new HashSet<>(Arrays.asList(blackFiltersArray));
+            documentFilters.add(new BlacklistFilter(blackFiltersSet));
         }
 
         String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
