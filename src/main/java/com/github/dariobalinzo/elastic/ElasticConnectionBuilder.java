@@ -26,6 +26,11 @@ public class ElasticConnectionBuilder {
     String user;
     String pwd;
 
+    String trustStorePath;
+    String trustStorePassword;
+    String keyStorePath;
+    String keyStorePassword;
+
     public ElasticConnectionBuilder(String hosts, int port) {
         this.hosts = hosts;
         this.port = port;
@@ -53,6 +58,18 @@ public class ElasticConnectionBuilder {
 
     public ElasticConnectionBuilder withBackoff(long connectionRetryBackoff) {
         this.connectionRetryBackoff = connectionRetryBackoff;
+        return this;
+    }
+
+    public ElasticConnectionBuilder withTrustStore(String path, String password) {
+        this.trustStorePath = path;
+        this.trustStorePassword = password;
+        return this;
+    }
+
+    public ElasticConnectionBuilder withKeyStore(String path, String password) {
+        this.keyStorePath = path;
+        this.keyStorePassword = password;
         return this;
     }
 
