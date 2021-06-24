@@ -74,6 +74,19 @@ public class ElasticSourceConnector extends SourceConnector {
                 .withMaxAttempts(maxConnectionAttempts)
                 .withBackoff(connectionRetryBackoff);
 
+        String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
+        String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+        String keystore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
+        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+
+        if (truststore != null) {
+            connectionBuilder.withTrustStore(truststore, truststorePass);
+        }
+
+        if (keystore != null) {
+            connectionBuilder.withKeyStore(keystore, keystorePass);
+        }
+
         if (esUser == null || esUser.isEmpty()) {
             elasticConnection = connectionBuilder.build();
         } else {
@@ -81,6 +94,7 @@ public class ElasticSourceConnector extends SourceConnector {
                     .withPassword(esPwd)
                     .build();
         }
+
         elasticRepository = new ElasticRepository(elasticConnection);
     }
 
