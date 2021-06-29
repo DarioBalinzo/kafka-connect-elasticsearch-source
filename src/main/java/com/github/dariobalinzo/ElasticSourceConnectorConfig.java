@@ -59,7 +59,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public final static String ES_TRUSTSTORE_CONF = "es.tls.truststore.location";
     private final static String ES_TRUSTSTORE_DOC = "Elasticsearch truststore location";
 
-    public final static String ES_TRUSTSTORE_PWD_CONF = "es.tls.keystore.location";
+    public final static String ES_TRUSTSTORE_PWD_CONF = "es.tls.truststore.password";
     private final static String ES_TRUSTSTORE_PWD_DOC = "Elasticsearch truststore password";
 
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
@@ -225,7 +225,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         ).define(
                 ES_KEYSTORE_PWD_CONF,
                 Type.STRING,
-                null,
+                "",
                 Importance.MEDIUM,
                 ES_KEYSTORE_PWD_DOC,
                 DATABASE_GROUP,
@@ -245,7 +245,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
         ).define(
                 ES_TRUSTSTORE_PWD_CONF,
                 Type.STRING,
-                null,
+                "",
                 Importance.MEDIUM,
                 ES_TRUSTSTORE_PWD_DOC,
                 DATABASE_GROUP,
