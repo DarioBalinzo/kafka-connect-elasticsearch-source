@@ -76,8 +76,8 @@ public class ElasticSourceConnector extends SourceConnector {
 
         String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
         String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
-        String keystore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
-        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+        String keystore = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_CONF);
+        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_PWD_CONF);
 
         if (truststore != null) {
             connectionBuilder.withTrustStore(truststore, truststorePass);

@@ -124,12 +124,39 @@ The name of the strictly incrementing field to use to detect new records.
 * Importance: high
 
 ``incrementing.secondary.field.name``
-In case the main incrementing field may have duplicates,
-this secondary field is used as a secondary sort field in order
+In case the main incrementing field may have duplicates, 
+this secondary field is used as a secondary sort field in order 
 to avoid data losses when paginating (available starting from versions >= 1.4).
 
 * Type: any
 * Importance: low
+
+
+``es.tls.truststore.location``
+Elastic ssl truststore location
+
+* Type: string
+* Importance: medium
+
+``es.tls.truststore.password``
+Elastic ssl truststore password
+
+* Type: string
+* Default: ""
+* Importance: medium
+
+``es.tls.keystore.location``
+Elasticsearch keystore location
+
+* Type: string
+* Importance: medium
+
+``es.tls.keystore.password``
+Elasticsearch keystore password
+
+* Type: string
+* Default: ""
+* Importance: medium
 
 ``connection.attempts``
 Maximum number of attempts to retrieve a valid Elasticsearch connection.
@@ -150,6 +177,13 @@ Indices prefix to include in copying.
 
 * Type: string
 * Default: ""
+* Importance: medium
+
+``index.names``
+List of elasticsearch indices: `es1,es2,es3`
+
+* Type: string
+* Default: null
 * Importance: medium
 
 ### Connector Configuration
@@ -176,6 +210,15 @@ Prefix to prepend to index names to generate the name of the Kafka topic to publ
 
 ``filters.whitelist``
 Whitelist filter for extracting a subset of fields from elastic-search json documents. The whitelist filter supports
+nested fields. To provide multiple fields use `;` as separator
+(e.g. `customer;order.qty;order.price`).
+
+* Type: string
+* Importance: medium
+* Default: null
+
+``filters.blacklist``
+Blacklist filter for extracting a subset of fields from elastic-search json documents. The blacklist filter supports
 nested fields. To provide multiple fields use `;` as separator
 (e.g. `customer;order.qty;order.price`).
 
