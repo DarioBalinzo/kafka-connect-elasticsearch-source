@@ -92,6 +92,8 @@ public class ElasticSourceTask extends SourceTask {
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        Objects.requireNonNull(cursorField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
+                + " conf is mandatory");
         cursorFieldJsonName = removeKeywordSuffix(cursorField);
         secondaryCursorField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
         secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
@@ -162,6 +164,19 @@ public class ElasticSourceTask extends SourceTask {
                 .withProtocol(esScheme)
                 .withMaxAttempts(maxConnectionAttempts)
                 .withBackoff(connectionRetryBackoff);
+
+        String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
+        String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+        String keystore = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_CONF);
+        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_PWD_CONF);
+
+        if (truststore != null) {
+            connectionBuilder.withTrustStore(truststore, truststorePass);
+        }
+
+        if (keystore != null) {
+            connectionBuilder.withKeyStore(keystore, keystorePass);
+        }
 
         if (esUser == null || esUser.isEmpty()) {
             es = connectionBuilder.build();

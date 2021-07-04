@@ -131,6 +131,33 @@ to avoid data losses when paginating (available starting from versions >= 1.4).
 * Type: any
 * Importance: low
 
+
+``es.tls.truststore.location``
+Elastic ssl truststore location
+
+* Type: string
+* Importance: medium
+
+``es.tls.truststore.password``
+Elastic ssl truststore password
+
+* Type: string
+* Default: ""
+* Importance: medium
+
+``es.tls.keystore.location``
+Elasticsearch keystore location
+
+* Type: string
+* Importance: medium
+
+``es.tls.keystore.password``
+Elasticsearch keystore password
+
+* Type: string
+* Default: ""
+* Importance: medium
+
 ``connection.attempts``
 Maximum number of attempts to retrieve a valid Elasticsearch connection.
 

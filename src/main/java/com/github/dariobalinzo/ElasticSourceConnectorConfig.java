@@ -50,6 +50,18 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private final static String ES_PWD_DOC = "Elasticsearch password";
     private final static String ES_PWD_DISPLAY = "Elasticsearch password";
 
+    public final static String ES_KEYSTORE_CONF = "es.tls.keystore.location";
+    private final static String ES_KEYSTORE_DOC = "Elasticsearch keystore location";
+
+    public final static String ES_KEYSTORE_PWD_CONF = "es.tls.keystore.password";
+    private final static String ES_KEYSTORE_PWD_DOC = "Elasticsearch keystore password";
+
+    public final static String ES_TRUSTSTORE_CONF = "es.tls.truststore.location";
+    private final static String ES_TRUSTSTORE_DOC = "Elasticsearch truststore location";
+
+    public final static String ES_TRUSTSTORE_PWD_CONF = "es.tls.truststore.password";
+    private final static String ES_TRUSTSTORE_PWD_DOC = "Elasticsearch truststore password";
+
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
     private static final String CONNECTION_ATTEMPTS_DOC
             = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
@@ -200,6 +212,46 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.SHORT,
                 ES_PWD_DISPLAY
+        ).define(
+                ES_KEYSTORE_CONF,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                ES_KEYSTORE_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_KEYSTORE_DOC
+        ).define(
+                ES_KEYSTORE_PWD_CONF,
+                Type.STRING,
+                "",
+                Importance.MEDIUM,
+                ES_KEYSTORE_PWD_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_KEYSTORE_PWD_DOC
+        ).define(
+                ES_TRUSTSTORE_CONF,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                ES_TRUSTSTORE_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_TRUSTSTORE_DOC
+        ).define(
+                ES_TRUSTSTORE_PWD_CONF,
+                Type.STRING,
+                "",
+                Importance.MEDIUM,
+                ES_TRUSTSTORE_PWD_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_TRUSTSTORE_PWD_DOC
         ).define(
                 CONNECTION_ATTEMPTS_CONFIG,
                 Type.STRING,
