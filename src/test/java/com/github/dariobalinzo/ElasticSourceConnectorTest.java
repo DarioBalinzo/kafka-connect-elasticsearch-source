@@ -17,6 +17,7 @@
 package com.github.dariobalinzo;
 
 
+import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -52,6 +53,24 @@ public class ElasticSourceConnectorTest extends TestContainersContext {
         //then
         assertEquals(maxTasks, taskList.size());
         assertNotNull(connector.version());
+        connector.stop();
+    }
+
+    @Test
+    public void shouldGetTaskFromFixedList() {
+        //given
+        ElasticSourceConnector connector = new ElasticSourceConnector();
+        Map<String, String> conf = getConf();
+        conf.remove(ElasticSourceTaskConfig.INDEX_PREFIX_CONFIG);
+        conf.put(ElasticSourceTaskConfig.INDEX_NAMES_CONFIG, "index1,index2,index3");
+        connector.start(conf);
+
+        //when
+        int maxTasks = 3;
+        List<Map<String, String>> taskList = connector.taskConfigs(maxTasks);
+
+        //then
+        assertEquals(maxTasks, taskList.size());
         connector.stop();
     }
 

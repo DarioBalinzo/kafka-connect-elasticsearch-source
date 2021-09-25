@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 
 import static junit.framework.TestCase.assertEquals;
 
-public class WhitelistFilterTest {
+public class BlacklistFilterTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
@@ -51,11 +51,11 @@ public class WhitelistFilterTest {
                 "surname",
                 "version"
         ).collect(Collectors.toCollection(HashSet::new));
-        WhitelistFilter whitelistFilter = new WhitelistFilter(filterValues);
-        whitelistFilter.filter(elasticDocument);
+        BlacklistFilter BlacklistFilter = new BlacklistFilter(filterValues);
+        BlacklistFilter.filter(elasticDocument);
 
         //then
-        Assert.assertEquals("{name=elastic, surname=search, version=7}", elasticDocument.toString());
+        Assert.assertEquals("{enabled=true}", elasticDocument.toString());
     }
 
     @SuppressWarnings("unchecked")
@@ -75,12 +75,12 @@ public class WhitelistFilterTest {
                 "obj.details.qty",
                 "order_list.details.qty"
         ).collect(Collectors.toSet());
-        WhitelistFilter whitelistFilter = new WhitelistFilter(whitelist);
-        whitelistFilter.filter(elasticDocument);
+        BlacklistFilter BlacklistFilter = new BlacklistFilter(whitelist);
+        BlacklistFilter.filter(elasticDocument);
 
         //then
         assertEquals(
-                "{name=elastic, order_list=[{details={qty=1}}, {details={qty=2}}], obj={details={qty=2}}}",
+                "{age=7, order_list=[{id=1, details={nested_det=test nested inside list}}, {id=2, details={nested_det=test nested inside list}}], obj={key=55, details={nested_det=test nested inside list}}}",
                 elasticDocument.toString());
     }
 

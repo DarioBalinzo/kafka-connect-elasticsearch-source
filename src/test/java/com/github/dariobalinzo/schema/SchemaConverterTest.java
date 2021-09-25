@@ -52,12 +52,36 @@ public class SchemaConverterTest {
         Assert.assertEquals("[" +
                         "Field{name=name, index=0, schema=Schema{STRING}}," +
                         " Field{name=surname, index=1, schema=Schema{STRING}}, " +
-                        "Field{name=version, index=2, schema=Schema{INT32}}, " +
+                        "Field{name=version, index=2, schema=Schema{INT64}}, " +
                         "Field{name=enabled, index=3, schema=Schema{BOOLEAN}}" +
                         "]",
                 schema.fields().toString()
         );
         Assert.assertEquals("Struct{name=elastic,surname=search,version=7,enabled=true}", struct.toString());
+    }
+
+    @Test
+    public void shouldConvertNullValues() {
+        //given
+        Map<String, Object> elasticDocument = new LinkedHashMap<>();
+        elasticDocument.put("name", "elastic");
+        elasticDocument.put("surname", null);
+        elasticDocument.put("version", 7);
+        elasticDocument.put("enabled", true);
+
+        //when
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        //then
+        Assert.assertEquals("[" +
+                        "Field{name=name, index=0, schema=Schema{STRING}}, " +
+                        "Field{name=version, index=1, schema=Schema{INT64}}, " +
+                        "Field{name=enabled, index=2, schema=Schema{BOOLEAN}}" +
+                        "]",
+                schema.fields().toString()
+        );
+        Assert.assertEquals("Struct{name=elastic,version=7,enabled=true}", struct.toString());
     }
 
     @Test(expected = RuntimeException.class)
@@ -92,7 +116,7 @@ public class SchemaConverterTest {
         //then
         Assert.assertEquals("[" +
                         "Field{name=name, index=0, schema=Schema{STRING}}," +
-                        " Field{name=version, index=1, schema=Schema{INT32}}," +
+                        " Field{name=version, index=1, schema=Schema{INT64}}," +
                         " Field{name=detail, index=2, schema=Schema{detail:STRUCT}}" +
                         "]",
                 schema.fields().toString()
@@ -126,7 +150,7 @@ public class SchemaConverterTest {
                 schema.fields().toString()
         );
 
-        Assert.assertEquals("Schema{INT32}",
+        Assert.assertEquals("Schema{INT64}",
                 schema.field("details")
                         .schema()
                         .valueSchema()

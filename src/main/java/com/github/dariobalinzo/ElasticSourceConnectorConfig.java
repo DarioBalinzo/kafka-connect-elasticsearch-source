@@ -50,6 +50,18 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private final static String ES_PWD_DOC = "Elasticsearch password";
     private final static String ES_PWD_DISPLAY = "Elasticsearch password";
 
+    public final static String ES_KEYSTORE_CONF = "es.tls.keystore.location";
+    private final static String ES_KEYSTORE_DOC = "Elasticsearch keystore location";
+
+    public final static String ES_KEYSTORE_PWD_CONF = "es.tls.keystore.password";
+    private final static String ES_KEYSTORE_PWD_DOC = "Elasticsearch keystore password";
+
+    public final static String ES_TRUSTSTORE_CONF = "es.tls.truststore.location";
+    private final static String ES_TRUSTSTORE_DOC = "Elasticsearch truststore location";
+
+    public final static String ES_TRUSTSTORE_PWD_CONF = "es.tls.truststore.password";
+    private final static String ES_TRUSTSTORE_PWD_DOC = "Elasticsearch truststore password";
+
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
     private static final String CONNECTION_ATTEMPTS_DOC
             = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
@@ -87,10 +99,21 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INCREMENTING_FIELD_NAME_DEFAULT = "";
     private static final String INCREMENTING_FIELD_NAME_DISPLAY = "Incrementing Field Name";
 
+    public static final String SECONDARY_INCREMENTING_FIELD_NAME_CONFIG = "incrementing.secondary.field.name";
+    private static final String SECONDARY_INCREMENTING_FIELD_NAME_DOC =
+            "In case the main incrementing field may have duplicates, this secondary field is used as a secondary sort field" +
+                    " in order to avoid data losses when paginating";
+    private static final String SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY = "Secondary Incrementing Field Name";
+
     public static final String INDEX_PREFIX_CONFIG = "index.prefix";
     private static final String INDEX_PREFIX_DOC = "List of indices to include in copying.";
     private static final String INDEX_PREFIX_DEFAULT = "";
     private static final String INDEX_PREFIX_DISPLAY = "Indices prefix Whitelist";
+
+    public static final String INDEX_NAMES_CONFIG = "index.names";
+    private static final String INDEX_NAMES_DOC = "List of elasticsearch indices (es1,es2,es3)";
+    private static final String INDEX_NAMES_DEFAULT = null;
+    private static final String INDEX_NAMES_DISPLAY = "List of elasticsearch indices (es1,es2,es3)";
 
 
     public static final String TOPIC_PREFIX_CONFIG = "topic.prefix";
@@ -111,6 +134,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public static final String FIELDS_WHITELIST_CONFIG = "filters.whitelist";
     private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields (e.g. order.qty;order.price;status )";
     private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
+
+    public static final String FIELDS_BLACKLIST_CONFIG = "filters.blacklist";
+    private static final String FIELDS_BLACKLIST_DOC = "Blacklist filter for fields (e.g. order.qty;order.price;status )";
+    private static final String FIELDS_BLACKLIST_DISPLAY = "Fields blacklist";
 
     public static final String FIELDS_JSON_CAST_CONFIG = "filters.json_cast";
     private static final String FIELDS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects (e.g. order.qty;order.price;status )";
@@ -186,6 +213,46 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.SHORT,
                 ES_PWD_DISPLAY
         ).define(
+                ES_KEYSTORE_CONF,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                ES_KEYSTORE_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_KEYSTORE_DOC
+        ).define(
+                ES_KEYSTORE_PWD_CONF,
+                Type.STRING,
+                "",
+                Importance.MEDIUM,
+                ES_KEYSTORE_PWD_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_KEYSTORE_PWD_DOC
+        ).define(
+                ES_TRUSTSTORE_CONF,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                ES_TRUSTSTORE_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_TRUSTSTORE_DOC
+        ).define(
+                ES_TRUSTSTORE_PWD_CONF,
+                Type.STRING,
+                "",
+                Importance.MEDIUM,
+                ES_TRUSTSTORE_PWD_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_TRUSTSTORE_PWD_DOC
+        ).define(
                 CONNECTION_ATTEMPTS_CONFIG,
                 Type.STRING,
                 CONNECTION_ATTEMPTS_DEFAULT,
@@ -216,6 +283,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.LONG,
                 INDEX_PREFIX_DISPLAY
         ).define(
+                INDEX_NAMES_CONFIG,
+                Type.STRING,
+                INDEX_NAMES_DEFAULT,
+                Importance.MEDIUM,
+                INDEX_NAMES_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                INDEX_NAMES_DISPLAY
+        ).define(
                 FIELDS_WHITELIST_CONFIG,
                 Type.STRING,
                 null,
@@ -225,6 +302,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 FIELDS_WHITELIST_DISPLAY
+        ).define(
+                FIELDS_BLACKLIST_CONFIG,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                FIELDS_BLACKLIST_DOC,
+                CONNECTOR_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                FIELDS_BLACKLIST_DISPLAY
         ).define(
                 FIELDS_JSON_CAST_CONFIG,
                 Type.STRING,
@@ -270,6 +357,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 INCREMENTING_FIELD_NAME_DISPLAY
+        ).define(
+                SECONDARY_INCREMENTING_FIELD_NAME_CONFIG,
+                Type.STRING,
+                null,
+                Importance.LOW,
+                SECONDARY_INCREMENTING_FIELD_NAME_DOC,
+                MODE_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY
         );
     }
 

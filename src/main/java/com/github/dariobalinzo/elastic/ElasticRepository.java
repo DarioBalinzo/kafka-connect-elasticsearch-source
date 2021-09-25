@@ -16,11 +16,12 @@
 
 package com.github.dariobalinzo.elastic;
 
+import com.github.dariobalinzo.elastic.response.Cursor;
+import com.github.dariobalinzo.elastic.response.PageResult;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
@@ -29,40 +30,55 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
-import static org.elasticsearch.index.query.QueryBuilders.rangeQuery;
+import static com.github.dariobalinzo.elastic.ElasticJsonNaming.removeKeywordSuffix;
+import static org.elasticsearch.index.query.QueryBuilders.*;
 
 public final class ElasticRepository {
     private final static Logger logger = LoggerFactory.getLogger(ElasticRepository.class);
 
     private final ElasticConnection elasticConnection;
     private final String cursorField;
+    //a field like customer.keyword is represented as customer inside json response
+    private final String cursorFieldJsonName;
+    private final String secondaryCursorField;
+    private final String secondaryCursorFieldJsonName;
 
     private int pageSize = 5000;
-
-    public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
-        this.elasticConnection = elasticConnection;
-        this.cursorField = cursorField;
-    }
 
     public ElasticRepository(ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
         this.cursorField = "_id";
+        this.cursorFieldJsonName = this.cursorField;
+        this.secondaryCursorField = null;
+        this.secondaryCursorFieldJsonName = null;
     }
 
-    public PageResult searchAfter(String index, String cursor) throws IOException, InterruptedException {
-        QueryBuilder queryBuilder = cursor == null ?
-                matchAllQuery() :
-                rangeQuery(cursorField).from(cursor, false);
+    public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
+        this.elasticConnection = elasticConnection;
+        this.cursorField = cursorField;
+        this.cursorFieldJsonName = cursorField.replace(".keyword", "");
+        this.secondaryCursorField = null;
+        this.secondaryCursorFieldJsonName = null;
+    }
 
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(queryBuilder)
+    public ElasticRepository(ElasticConnection elasticConnection, String cursorField, String secondaryCursorField) {
+        this.elasticConnection = elasticConnection;
+        this.cursorField = cursorField;
+        this.cursorFieldJsonName = removeKeywordSuffix(cursorField);
+        this.secondaryCursorField = secondaryCursorField;
+        this.secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
+    }
+
+    public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
+        QueryBuilder queryBuilder = cursor.getPrimaryCursor() == null ?
+                matchAllQuery() :
+                buildGreaterThen(cursorField, cursor.getPrimaryCursor());
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                .query(queryBuilder)
                 .size(pageSize)
                 .sort(cursorField, SortOrder.ASC);
 
@@ -71,10 +87,79 @@ public final class ElasticRepository {
 
         SearchResponse response = executeSearch(searchRequest);
 
-        List<Map<String, Object>> documents = Arrays.stream(response.getHits().getHits())
-                .map(SearchHit::getSourceAsMap)
-                .collect(Collectors.toList());
-        return new PageResult(index, documents, cursorField);
+        List<Map<String, Object>> documents = extractDocuments(response);
+
+        Cursor lastCursor;
+        if (documents.isEmpty()) {
+            lastCursor = Cursor.empty();
+        } else {
+            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
+            lastCursor = new Cursor(lastDocument.get(cursorField).toString());
+        }
+        return new PageResult(index, documents, lastCursor);
+    }
+
+    private List<Map<String, Object>> extractDocuments(SearchResponse response) {
+        return Arrays.stream(response.getHits().getHits())
+                .map(hit -> {
+                    Map<String, Object> sourceMap = hit.getSourceAsMap();
+                    sourceMap.put("es-id", hit.getId());
+                    sourceMap.put("es-index", hit.getIndex());
+                    return sourceMap;
+                }).collect(Collectors.toList());
+    }
+
+    public PageResult searchAfterWithSecondarySort(String index, Cursor cursor) throws IOException, InterruptedException {
+        Objects.requireNonNull(secondaryCursorField);
+        String primaryCursor = cursor.getPrimaryCursor();
+        String secondaryCursor = cursor.getSecondaryCursor();
+        boolean noPrevCursor = primaryCursor == null && secondaryCursor == null;
+
+        QueryBuilder queryBuilder = noPrevCursor ? matchAllQuery() :
+                getSecondarySortFieldQuery(primaryCursor, secondaryCursor);
+
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
+                .query(queryBuilder)
+                .size(pageSize)
+                .sort(cursorField, SortOrder.ASC)
+                .sort(secondaryCursorField, SortOrder.ASC);
+
+        SearchRequest searchRequest = new SearchRequest(index)
+                .source(searchSourceBuilder);
+
+        SearchResponse response = executeSearch(searchRequest);
+
+        List<Map<String, Object>> documents = extractDocuments(response);
+
+        Cursor lastCursor;
+        if (documents.isEmpty()) {
+            lastCursor = Cursor.empty();
+        } else {
+            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
+            String primaryCursorValue = lastDocument.get(cursorFieldJsonName).toString();
+            String secondaryCursorValue = lastDocument.containsKey(secondaryCursorFieldJsonName) ?
+                    lastDocument.get(secondaryCursorFieldJsonName).toString() : null;
+            lastCursor = new Cursor(primaryCursorValue, secondaryCursorValue);
+        }
+        return new PageResult(index, documents, lastCursor);
+    }
+
+    private QueryBuilder buildGreaterThen(String cursorField, String cursorValue) {
+        return rangeQuery(cursorField).from(cursorValue, false);
+    }
+
+    private QueryBuilder getSecondarySortFieldQuery(String primaryCursor, String secondaryCursor) {
+        if (secondaryCursor == null) {
+            return buildGreaterThen(cursorField, primaryCursor);
+        }
+        return boolQuery()
+                .minimumShouldMatch(1)
+                .should(buildGreaterThen(cursorField, primaryCursor))
+                .should(
+                        boolQuery()
+                                .filter(matchQuery(cursorField, primaryCursor))
+                                .filter(buildGreaterThen(secondaryCursorField, secondaryCursor))
+                );
     }
 
     private SearchResponse executeSearch(SearchRequest searchRequest) throws IOException, InterruptedException {
@@ -108,7 +193,7 @@ public final class ElasticRepository {
 
         List<String> result = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()))) {
-            String line = null;
+            String line;
 
             while ((line = reader.readLine()) != null) {
                 String index = line.split("\\s+")[2];

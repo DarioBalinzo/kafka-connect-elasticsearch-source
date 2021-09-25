@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.dariobalinzo.elastic;
+package com.github.dariobalinzo.elastic.response;
 
 import java.util.List;
 import java.util.Map;
@@ -22,24 +22,19 @@ import java.util.Map;
 public class PageResult {
     private final String index;
     private final List<Map<String, Object>> documents;
-    private final String lastCursor;
+    private final Cursor lastCursor;
 
-    public PageResult(String index, List<Map<String, Object>> documents, String cursorField) {
+    public PageResult(String index, List<Map<String, Object>> documents, Cursor cursor) {
         this.index = index;
         this.documents = documents;
-        if (documents.isEmpty()) {
-            this.lastCursor = null;
-        } else {
-            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            this.lastCursor = lastDocument.get(cursorField).toString();
-        }
+        this.lastCursor = cursor;
     }
 
     public List<Map<String, Object>> getDocuments() {
         return documents;
     }
 
-    public String getLastCursor() {
+    public Cursor getLastCursor() {
         return lastCursor;
     }
 
