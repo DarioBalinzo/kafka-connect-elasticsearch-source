@@ -18,6 +18,7 @@ package com.github.dariobalinzo;
 
 
 import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
+
 import org.junit.Test;
 
 import java.io.IOException;
@@ -72,6 +73,67 @@ public class ElasticSourceConnectorTest extends TestContainersContext {
         //then
         assertEquals(maxTasks, taskList.size());
         connector.stop();
+    }
+
+    @Test
+    public void shouldUpdateListOfTopics() throws IOException {
+        throw new UnsupportedOperationException();
+        /*
+        We need to mock the context but I don't know how to do it.
+
+        I've tried with
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams-test-utils</artifactId>
+            <version>3.0.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        as described in https://docs.confluent.io/cloud/current/client-apps/testing.html
+        with MockProcessorContext but it seems I'm wrong.
+        */
+
+        // //given
+        // SourceConnectorContext context = new SourceConnectorContext();
+        // ElasticSourceConnector connector = new ElasticSourceConnector();
+        // connector.initialize(context);
+        // connector.start(getConf());
+        // insertMockData(1, TEST_INDEX + 1);
+
+        // try {
+        //     Thread.sleep(1000);
+        // } catch (InterruptedException e) {
+        //     // TODO Auto-generated catch block
+        //     e.printStackTrace();
+        // }
+
+        // //when
+        // int maxTasks = 1;
+        // List<Map<String, String>> taskList = connector.taskConfigs(maxTasks);
+
+        // //then
+        // assertEquals(1, taskList.get(0).get(ElasticSourceConnectorConfig.INDICES_CONFIG).split(",").length);
+        // assertNotNull(connector.version());
+
+        // insertMockData(4, TEST_INDEX + 2);
+
+        // try {
+        //     Thread.sleep(connector.getPollMilisseconds()+1000);
+        // } catch (InterruptedException e) {
+        //     // TODO Auto-generated catch block
+        //     e.printStackTrace();
+        // }
+
+        // taskList = connector.taskConfigs(maxTasks);
+
+        // assertEquals(2, taskList.get(0).get(ElasticSourceConnectorConfig.INDICES_CONFIG).split(",").length);
+        // assertNotNull(connector.version());
+
+        // connector.stop();
+    }
+
+    private void UnsupportedOperationException() {
     }
 
 }

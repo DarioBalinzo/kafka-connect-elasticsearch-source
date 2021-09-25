@@ -48,7 +48,7 @@ public class TopicMonitorThread extends Thread {
         }
       } catch (Exception e) {
           context.raiseError(e);
-        throw e;
+          throw e;
       }
 
       try {
