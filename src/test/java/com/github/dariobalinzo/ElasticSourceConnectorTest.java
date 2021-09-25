@@ -38,6 +38,13 @@ public class ElasticSourceConnectorTest extends TestContainersContext {
         insertMockData(3, TEST_INDEX + 3);
         insertMockData(4, TEST_INDEX + 4);
 
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         //when
         int maxTasks = 3;
         List<Map<String, String>> taskList = connector.taskConfigs(maxTasks);

@@ -19,6 +19,7 @@ package com.github.dariobalinzo;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
+import com.github.dariobalinzo.elastic.TopicMonitorThread;
 import com.github.dariobalinzo.task.ElasticSourceTask;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -35,11 +36,14 @@ import java.util.Map;
 
 public class ElasticSourceConnector extends SourceConnector {
     private static Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
+    private static final long MAX_TIMEOUT = 10000L;
+    private static final long POLL_MILISSECONDS = 5000L;
 
     private ElasticSourceConnectorConfig config;
     private ElasticConnection elasticConnection;
     private ElasticRepository elasticRepository;
     private Map<String, String> configProperties;
+    private TopicMonitorThread topicMonitorThread;
 
     @Override
     public String version() {
@@ -85,6 +89,9 @@ public class ElasticSourceConnector extends SourceConnector {
                     .build();
         }
         elasticRepository = new ElasticRepository(elasticConnection);
+
+        topicMonitorThread = new TopicMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+        topicMonitorThread.start();
     }
 
     @Override
@@ -95,9 +102,7 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
-        List<String> currentIndexes = elasticRepository.catIndices(
-                config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)
-        );
+        List<String> currentIndexes = topicMonitorThread.topics();
         int numGroups = Math.min(currentIndexes.size(), maxTasks);
         List<List<String>> indexGrouped = groupPartitions(currentIndexes, numGroups);
         List<Map<String, String>> taskConfigs = new ArrayList<>(indexGrouped.size());
@@ -113,6 +118,12 @@ public class ElasticSourceConnector extends SourceConnector {
     @Override
     public void stop() {
         logger.info("stopping elastic source");
+        topicMonitorThread.shutdown();
+        try {
+            topicMonitorThread.join(MAX_TIMEOUT);
+        } catch (InterruptedException e) {
+        // Ignore, shouldn't be interrupted
+        }
         elasticConnection.closeQuietly();
     }
 
