@@ -28,10 +28,7 @@ import org.apache.kafka.connect.source.SourceConnector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ElasticSourceConnector extends SourceConnector {
     private static Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
@@ -77,6 +74,19 @@ public class ElasticSourceConnector extends SourceConnector {
                 .withMaxAttempts(maxConnectionAttempts)
                 .withBackoff(connectionRetryBackoff);
 
+        String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
+        String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+        String keystore = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_CONF);
+        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_PWD_CONF);
+
+        if (truststore != null) {
+            connectionBuilder.withTrustStore(truststore, truststorePass);
+        }
+
+        if (keystore != null) {
+            connectionBuilder.withKeyStore(keystore, keystorePass);
+        }
+
         if (esUser == null || esUser.isEmpty()) {
             elasticConnection = connectionBuilder.build();
         } else {
@@ -84,6 +94,7 @@ public class ElasticSourceConnector extends SourceConnector {
                     .withPassword(esPwd)
                     .build();
         }
+
         elasticRepository = new ElasticRepository(elasticConnection);
     }
 
@@ -95,9 +106,28 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
+        if (configProperties.containsKey(ElasticSourceConnectorConfig.INDEX_NAMES_CONFIG)) {
+            String indicesNames = configProperties.get(ElasticSourceConnectorConfig.INDEX_NAMES_CONFIG);
+            String[] indicesList = indicesNames.split(",");
+            return generateTaskFromFixedList(Arrays.asList(indicesList), maxTasks);
+        } else {
+            return findTaskFromIndexPrefix(maxTasks);
+        }
+    }
+
+    private List<Map<String, String>> generateTaskFromFixedList(List<String> indicesList, int maxTasks) {
+        int numGroups = Math.min(indicesList.size(), maxTasks);
+        return groupIndicesToTasksConfig(maxTasks, indicesList);
+    }
+
+    private List<Map<String, String>> findTaskFromIndexPrefix(int maxTasks) {
         List<String> currentIndexes = elasticRepository.catIndices(
                 config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)
         );
+        return groupIndicesToTasksConfig(maxTasks, currentIndexes);
+    }
+
+    private List<Map<String, String>> groupIndicesToTasksConfig(int maxTasks, List<String> currentIndexes) {
         int numGroups = Math.min(currentIndexes.size(), maxTasks);
         List<List<String>> indexGrouped = groupPartitions(currentIndexes, numGroups);
         List<Map<String, String>> taskConfigs = new ArrayList<>(indexGrouped.size());

@@ -21,7 +21,9 @@ import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
-import com.github.dariobalinzo.elastic.PageResult;
+import com.github.dariobalinzo.elastic.response.Cursor;
+import com.github.dariobalinzo.elastic.response.PageResult;
+import com.github.dariobalinzo.filter.BlacklistFilter;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
@@ -38,12 +40,17 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.github.dariobalinzo.elastic.ElasticJsonNaming.removeKeywordSuffix;
+
 public class ElasticSourceTask extends SourceTask {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticSourceTask.class);
     private static final String INDEX = "index";
     static final String POSITION = "position";
+    static final String POSITION_SECONDARY = "position_secondary";
 
+
+    private final OffsetSerializer offsetSerializer = new OffsetSerializer();
     private SchemaConverter schemaConverter;
     private StructConverter structConverter;
 
@@ -54,8 +61,11 @@ public class ElasticSourceTask extends SourceTask {
     private List<String> indices;
     private String topic;
     private String cursorField;
+    private String cursorFieldJsonName;
+    private String secondaryCursorField;
+    private String secondaryCursorFieldJsonName;
     private int pollingMs;
-    private final Map<String, String> last = new HashMap<>();
+    private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
 
@@ -82,6 +92,11 @@ public class ElasticSourceTask extends SourceTask {
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        Objects.requireNonNull(cursorField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
+                + " conf is mandatory");
+        cursorFieldJsonName = removeKeywordSuffix(cursorField);
+        secondaryCursorField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
+        secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
@@ -95,6 +110,13 @@ public class ElasticSourceTask extends SourceTask {
             String[] whiteFiltersArray = whiteFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
             documentFilters.add(new WhitelistFilter(whiteFiltersSet));
+        }
+
+        String blackFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_BLACKLIST_CONFIG);
+        if (blackFilters != null) {
+            String[] blackFiltersArray = blackFilters.split(";");
+            Set<String> blackFiltersSet = new HashSet<>(Arrays.asList(blackFiltersArray));
+            documentFilters.add(new BlacklistFilter(blackFiltersSet));
         }
 
         String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
@@ -143,6 +165,19 @@ public class ElasticSourceTask extends SourceTask {
                 .withMaxAttempts(maxConnectionAttempts)
                 .withBackoff(connectionRetryBackoff);
 
+        String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
+        String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+        String keystore = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_CONF);
+        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_PWD_CONF);
+
+        if (truststore != null) {
+            connectionBuilder.withTrustStore(truststore, truststorePass);
+        }
+
+        if (keystore != null) {
+            connectionBuilder.withKeyStore(keystore, keystorePass);
+        }
+
         if (esUser == null || esUser.isEmpty()) {
             es = connectionBuilder.build();
         } else {
@@ -151,7 +186,7 @@ public class ElasticSourceTask extends SourceTask {
                     .build();
         }
 
-        elasticRepository = new ElasticRepository(es, cursorField);
+        elasticRepository = new ElasticRepository(es, cursorField, secondaryCursorField);
         elasticRepository.setPageSize(batchSize);
     }
 
@@ -164,9 +199,11 @@ public class ElasticSourceTask extends SourceTask {
             for (String index : indices) {
                 if (!stopping.get()) {
                     logger.info("fetching from {}", index);
-                    String lastValue = fetchLastOffset(index);
+                    Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
-                    PageResult pageResult = elasticRepository.searchAfter(index, lastValue);
+                    PageResult pageResult = secondaryCursorField == null ?
+                            elasticRepository.searchAfter(index, lastValue) :
+                            elasticRepository.searchAfterWithSecondarySort(index, lastValue);
                     parseResult(pageResult, results);
                     logger.info("index {} total messages: {} ", index, sent.get(index));
                 }
@@ -182,18 +219,20 @@ public class ElasticSourceTask extends SourceTask {
         return results;
     }
 
-    private String fetchLastOffset(String index) {
+    private Cursor fetchLastOffset(String index) {
         //first we check in cache memory the last value
-        if (last.get(index) != null) {
-            return last.get(index);
+        if (lastCursor.get(index) != null) {
+            return lastCursor.get(index);
         }
 
         //if cache is empty we check the framework
         Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
         if (offset != null) {
-            return (String) offset.get(POSITION);
+            String primaryCursor = (String) offset.get(POSITION);
+            String secondaryCursor = (String) offset.get(POSITION_SECONDARY);
+            return new Cursor(primaryCursor, secondaryCursor);
         } else {
-            return null;
+            return Cursor.empty();
         }
     }
 
@@ -201,11 +240,19 @@ public class ElasticSourceTask extends SourceTask {
         String index = pageResult.getIndex();
         for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = Collections.singletonMap(POSITION, elasticDocument.get(cursorField).toString());
+            Map<String, String> sourceOffset = offsetSerializer.toMapOffset(
+                    cursorFieldJsonName,
+                    secondaryCursorFieldJsonName,
+                    elasticDocument
+            );
+            String key = offsetSerializer.toStringOffset(
+                    cursorFieldJsonName,
+                    secondaryCursorFieldJsonName,
+                    index,
+                    elasticDocument
+            );
 
-            String key = String.join("_", index, elasticDocument.get(cursorField).toString());
-
-            last.put(index, elasticDocument.get(cursorField).toString());
+            lastCursor.put(index, pageResult.getLastCursor());
             sent.merge(index, 1, Integer::sum);
 
             documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
