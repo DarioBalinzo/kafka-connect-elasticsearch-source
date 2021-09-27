@@ -57,6 +57,7 @@ public class TestContainersContext {
     public static void setupElastic() {
         // Create the elasticsearch container.
         container = new ElasticsearchContainer(ELASTICSEARCH_IMAGE);
+        container.addEnv("ES_JAVA_OPTS", "-Xms512m -Xmx512m");
         container.start();
 
         HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());

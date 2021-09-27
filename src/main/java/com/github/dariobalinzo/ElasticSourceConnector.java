@@ -19,7 +19,7 @@ package com.github.dariobalinzo;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
-import com.github.dariobalinzo.elastic.TopicMonitorThread;
+import com.github.dariobalinzo.elastic.ElasticIndexMonitorThread;
 import com.github.dariobalinzo.task.ElasticSourceTask;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -40,11 +40,7 @@ public class ElasticSourceConnector extends SourceConnector {
     private ElasticConnection elasticConnection;
     private ElasticRepository elasticRepository;
     private Map<String, String> configProperties;
-    private TopicMonitorThread topicMonitorThread;
-
-    public long getPollMilisseconds() {
-        return this.POLL_MILISSECONDS;
-    }
+    private ElasticIndexMonitorThread indexMonitorThread;
 
     @Override
     public String version() {
@@ -105,8 +101,8 @@ public class ElasticSourceConnector extends SourceConnector {
 
         elasticRepository = new ElasticRepository(elasticConnection);
 
-        topicMonitorThread = new TopicMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
-        topicMonitorThread.start();
+        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+        indexMonitorThread.start();
     }
 
     @Override
@@ -132,7 +128,7 @@ public class ElasticSourceConnector extends SourceConnector {
     }
 
     private List<Map<String, String>> findTaskFromIndexPrefix(int maxTasks) {
-        List<String> currentIndexes = topicMonitorThread.topics();
+        List<String> currentIndexes = indexMonitorThread.indexes();
         return groupIndicesToTasksConfig(maxTasks, currentIndexes);
     }
 
@@ -152,9 +148,9 @@ public class ElasticSourceConnector extends SourceConnector {
     @Override
     public void stop() {
         logger.info("stopping elastic source");
-        topicMonitorThread.shutdown();
+        indexMonitorThread.shutdown();
         try {
-            topicMonitorThread.join(MAX_TIMEOUT);
+            indexMonitorThread.join(MAX_TIMEOUT);
         } catch (InterruptedException e) {
         // Ignore, shouldn't be interrupted
         }
