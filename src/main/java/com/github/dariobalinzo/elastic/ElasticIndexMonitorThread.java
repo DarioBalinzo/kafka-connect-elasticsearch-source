@@ -5,7 +5,6 @@ import org.apache.kafka.connect.errors.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -17,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ElasticIndexMonitorThread extends Thread {
   private static final Logger log = LoggerFactory.getLogger(ElasticIndexMonitorThread.class);
-  private static final long timeout = 10000L;
+  private static final long TIMEOUT = 10_000L;
 
   private final ConnectorContext context;
   private final CountDownLatch shutdownLatch;
@@ -36,7 +35,7 @@ public class ElasticIndexMonitorThread extends Thread {
   }
 
   public static  long getTimeout() {
-    return timeout;
+    return TIMEOUT;
   }
 
   @Override
@@ -66,16 +65,16 @@ public class ElasticIndexMonitorThread extends Thread {
     
     long started = System.currentTimeMillis();
     long now = started;
-    while (indexes.size() == 0 && now - started < timeout) {
+    while (indexes.isEmpty() && now - started < TIMEOUT) {
       try {
-        wait(timeout - (now - started));
+        wait(TIMEOUT - (now - started));
       } catch (InterruptedException e) {
         // Ignore
       }
       now = System.currentTimeMillis();
     }
-    if (indexes.size() == 0) {
-      throw new ConnectException("Indexes could not be updated quickly enough.");
+    if (indexes.isEmpty()) {
+      throw new ConnectException("Cannot find any elasticsearch index");
     }
     return indexes;
   }
@@ -88,20 +87,20 @@ public class ElasticIndexMonitorThread extends Thread {
     final List<String> indexes;
     try {
       indexes = elasticRepository.catIndices(this.prefix);
-      log.debug("Got the following topics: " + Arrays.toString(indexes.toArray()));
+      log.debug("Got the following topics: {}", indexes);
     } catch (RuntimeException e) {
       log.error("Error while trying to get updated topics list, ignoring and waiting for next table poll interval", e);
       return false;
     }
 
     if (!indexes.equals(this.indexes)) {
-      log.debug("After filtering we got topics: " + Arrays.toString(indexes.toArray()));
+      log.debug("After filtering we got topics: {}", indexes);
       List<String> previousIndexes = this.indexes;
       this.indexes = indexes;
       notifyAll();
       // Only return true if the table list wasn't previously null, i.e. if this was not the
       // first table lookup
-      return previousIndexes.size() > 0;
+      return !previousIndexes.isEmpty();
     }
     return false;
   }
