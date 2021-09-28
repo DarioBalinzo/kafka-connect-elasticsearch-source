@@ -33,7 +33,7 @@ import static org.junit.Assert.assertNotNull;
 public class ElasticSourceConnectorTest extends TestContainersContext {
 
     @Test
-    public void shouldGetAListOfTasks() throws IOException, InterruptedException {
+    public void shouldGetAListOfTasks() throws IOException {
         //given
         ElasticSourceConnector connector = new ElasticSourceConnector();
         connector.start(getConf());
@@ -41,7 +41,11 @@ public class ElasticSourceConnectorTest extends TestContainersContext {
         insertMockData(2, TEST_INDEX + 2);
         insertMockData(3, TEST_INDEX + 3);
         insertMockData(4, TEST_INDEX + 4);
-        refreshIndex();
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ignored) {
+        }
 
         //when
         int maxTasks = 3;
