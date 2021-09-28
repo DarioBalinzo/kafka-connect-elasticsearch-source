@@ -2,3 +2,8 @@
 /target/
 /.idea/
 /lib/
+/.vscode/
+/.settings/
+.factorypath
+.classpath
+.project

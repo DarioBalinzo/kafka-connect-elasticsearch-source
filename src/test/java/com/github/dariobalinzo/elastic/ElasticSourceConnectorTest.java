@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package com.github.dariobalinzo;
+package com.github.dariobalinzo.elastic;
 
 
+import com.github.dariobalinzo.ElasticSourceConnector;
+import com.github.dariobalinzo.TestContainersContext;
 import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
+
 import org.junit.Test;
 
 import java.io.IOException;
@@ -38,6 +41,13 @@ public class ElasticSourceConnectorTest extends TestContainersContext {
         insertMockData(2, TEST_INDEX + 2);
         insertMockData(3, TEST_INDEX + 3);
         insertMockData(4, TEST_INDEX + 4);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
         //when
         int maxTasks = 3;
@@ -66,5 +76,4 @@ public class ElasticSourceConnectorTest extends TestContainersContext {
         assertEquals(maxTasks, taskList.size());
         connector.stop();
     }
-
 }

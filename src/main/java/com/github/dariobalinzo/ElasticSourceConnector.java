@@ -19,6 +19,7 @@ package com.github.dariobalinzo;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
+import com.github.dariobalinzo.elastic.ElasticIndexMonitorThread;
 import com.github.dariobalinzo.task.ElasticSourceTask;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -32,11 +33,14 @@ import java.util.*;
 
 public class ElasticSourceConnector extends SourceConnector {
     private static Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
+    private static final long MAX_TIMEOUT = 10000L;
+    private static final long POLL_MILISSECONDS = 5000L;
 
     private ElasticSourceConnectorConfig config;
     private ElasticConnection elasticConnection;
     private ElasticRepository elasticRepository;
     private Map<String, String> configProperties;
+    private ElasticIndexMonitorThread indexMonitorThread;
 
     @Override
     public String version() {
@@ -96,6 +100,9 @@ public class ElasticSourceConnector extends SourceConnector {
         }
 
         elasticRepository = new ElasticRepository(elasticConnection);
+
+        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+        indexMonitorThread.start();
     }
 
     @Override
@@ -121,9 +128,7 @@ public class ElasticSourceConnector extends SourceConnector {
     }
 
     private List<Map<String, String>> findTaskFromIndexPrefix(int maxTasks) {
-        List<String> currentIndexes = elasticRepository.catIndices(
-                config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)
-        );
+        List<String> currentIndexes = indexMonitorThread.indexes();
         return groupIndicesToTasksConfig(maxTasks, currentIndexes);
     }
 
@@ -143,6 +148,12 @@ public class ElasticSourceConnector extends SourceConnector {
     @Override
     public void stop() {
         logger.info("stopping elastic source");
+        indexMonitorThread.shutdown();
+        try {
+            indexMonitorThread.join(MAX_TIMEOUT);
+        } catch (InterruptedException e) {
+        // Ignore, shouldn't be interrupted
+        }
         elasticConnection.closeQuietly();
     }
 
