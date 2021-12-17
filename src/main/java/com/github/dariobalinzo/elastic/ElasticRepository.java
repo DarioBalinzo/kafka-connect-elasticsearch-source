@@ -20,6 +20,8 @@ import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.PageResult;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -171,7 +173,7 @@ public final class ElasticRepository {
         for (int i = 0; i < maxTrials; ++i) {
             try {
                 return elasticConnection.getClient()
-                        .search(searchRequest);
+                        .search(searchRequest, RequestOptions.DEFAULT);
             } catch (IOException e) {
                 lastError = e;
                 Thread.sleep(elasticConnection.getConnectionRetryBackoff());
@@ -183,9 +185,10 @@ public final class ElasticRepository {
     public List<String> catIndices(String prefix) {
         Response resp;
         try {
+
             resp = elasticConnection.getClient()
                     .getLowLevelClient()
-                    .performRequest("GET", "/_cat/indices");
+                    .performRequest(new Request("GET", "/_cat/indices"));
         } catch (IOException e) {
             logger.error("error in searching index names");
             throw new RuntimeException(e);
@@ -212,7 +215,7 @@ public final class ElasticRepository {
         try {
             elasticConnection.getClient()
                     .getLowLevelClient()
-                    .performRequest("POST", "/" + index + "/_refresh");
+                    .performRequest(new Request("POST", "/" + index + "/_refresh"));
         } catch (IOException e) {
             logger.error("error in refreshing index " + index);
             throw new RuntimeException(e);

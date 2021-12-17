@@ -25,8 +25,9 @@ import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
@@ -76,7 +77,7 @@ public class TestContainersContext {
 
     protected void deleteTestIndex() {
         try {
-            connection.getClient().indices().delete(new DeleteIndexRequest(TEST_INDEX));
+            connection.getClient().indices().delete(new DeleteIndexRequest(TEST_INDEX), RequestOptions.DEFAULT);
         } catch (Exception ignored) {
 
         }
@@ -108,7 +109,7 @@ public class TestContainersContext {
         indexRequest.type("_doc");
         indexRequest.source(builder);
 
-        IndexResponse response = connection.getClient().index(indexRequest);
+        IndexResponse response = connection.getClient().index(indexRequest, RequestOptions.DEFAULT);
         assertEquals(DocWriteResponse.Result.CREATED, response.getResult());
     }
 

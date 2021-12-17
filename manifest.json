@@ -45,5 +45,5 @@
     "elastic"
   ],
   "title": "Kafka Connect Elasticsearch Source",
-  "version": "1.3"
+  "version": "1.5.0"
 }
