@@ -173,7 +173,8 @@ Backoff time in milliseconds between connection attempts.
 * Importance: low
 
 ``index.prefix``
-Indices prefix to include in copying.
+Indices prefix to include in copying. 
+Periodically, new indices are discovered if they match the pattern.
 
 * Type: string
 * Default: ""
