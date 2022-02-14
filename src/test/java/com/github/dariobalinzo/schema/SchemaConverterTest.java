@@ -178,6 +178,26 @@ public class SchemaConverterTest {
     }
 
     @Test
+    public void shouldConvertEmptyList() {
+        //given
+        Map<String, Object> nested = new LinkedHashMap<>();
+        nested.put("foo", "bar");
+
+        Map<String, Object> fullElasticDocument = new LinkedHashMap<>();
+        fullElasticDocument.put("details", Arrays.asList(nested));
+
+        Map<String, Object> emptyElasticDocument = new LinkedHashMap<>();
+        emptyElasticDocument.put("details", Collections.emptyList());
+
+        //when
+        Schema schema = schemaConverter.convert(fullElasticDocument, "test");
+        Struct struct = structConverter.convert(emptyElasticDocument, schema);
+
+        //then
+        Assert.assertEquals("Struct{name=elastic,details=[Struct{foo=bar}]}", struct.toString());
+    }
+
+    @Test
     public void shouldConvertComplexNestedJson() throws IOException {
         //given
         String file = this.getClass().getClassLoader()
