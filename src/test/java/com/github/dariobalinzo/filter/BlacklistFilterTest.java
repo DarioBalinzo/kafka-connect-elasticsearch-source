@@ -34,6 +34,8 @@ import java.util.stream.Stream;
 import static junit.framework.TestCase.assertEquals;
 
 public class BlacklistFilterTest {
+    private static final boolean IS_WINDOWS = System.getProperty( "os.name" ).contains( "indow" );
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
@@ -65,17 +67,19 @@ public class BlacklistFilterTest {
         String file = this.getClass().getClassLoader()
                 .getResource("com/github/dariobalinzo/filter/document.json")
                 .getFile();
-        String jsonDocument = new String(Files.readAllBytes(Paths.get(file)));
+        String osAppropriateFilePath = IS_WINDOWS ? file.substring(1) : file;
+        String jsonDocument = new String(Files.readAllBytes(Paths.get(osAppropriateFilePath)));
 
         Map<String, Object> elasticDocument = objectMapper.readValue(jsonDocument, Map.class);
 
         //when
-        Set<String> whitelist = Stream.of(
+        Set<String> blacklist = Stream.of(
                 "name",
                 "obj.details.qty",
-                "order_list.details.qty"
+                "order_list.details.qty",
+                "other-obj"
         ).collect(Collectors.toSet());
-        BlacklistFilter BlacklistFilter = new BlacklistFilter(whitelist);
+        BlacklistFilter BlacklistFilter = new BlacklistFilter(blacklist);
         BlacklistFilter.filter(elasticDocument);
 
         //then

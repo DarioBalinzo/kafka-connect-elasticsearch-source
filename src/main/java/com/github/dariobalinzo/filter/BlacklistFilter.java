@@ -31,8 +31,8 @@ public class BlacklistFilter implements DocumentFilter {
     private Object filterBlacklistItem(String key, Object value) {
         if (value instanceof Map || value instanceof List) {
             boolean shouldVisitNestedObj = fieldsToRemove.stream()
-                    .anyMatch(jsonPath -> jsonPath.startsWith(key));
-            return shouldVisitNestedObj ? value : null;
+                    .anyMatch(jsonPath -> key.startsWith(jsonPath));
+            return shouldVisitNestedObj ? null : value;
         }
         return fieldsToRemove.contains(key) ? null : value;
     }

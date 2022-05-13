@@ -32,9 +32,10 @@ import java.util.stream.Stream;
 import static junit.framework.TestCase.assertEquals;
 
 public class JsonCastFilterTest {
+    private static final boolean IS_WINDOWS = System.getProperty( "os.name" ).contains( "indow" );
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    
     @SuppressWarnings("unchecked")
     @Test
     public void shouldConvertSimpleDocument() throws IOException {
@@ -42,7 +43,8 @@ public class JsonCastFilterTest {
         String file = this.getClass().getClassLoader()
                 .getResource("com/github/dariobalinzo/filter/document.json")
                 .getFile();
-        String jsonDocument = new String(Files.readAllBytes(Paths.get(file)));
+        String osAppropriateFilePath = IS_WINDOWS ? file.substring(1) : file;
+        String jsonDocument = new String(Files.readAllBytes(Paths.get(osAppropriateFilePath)));
 
         Map<String, Object> elasticDocument = objectMapper.readValue(jsonDocument, Map.class);
 

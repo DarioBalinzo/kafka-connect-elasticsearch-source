@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class SchemaConverterTest {
+    private static final boolean IS_WINDOWS = System.getProperty( "os.name" ).contains( "indow" );
 
     private final SchemaConverter schemaConverter = new SchemaConverter(new AvroName());
     private final StructConverter structConverter = new StructConverter(new AvroName());
@@ -183,7 +184,8 @@ public class SchemaConverterTest {
         String file = this.getClass().getClassLoader()
                 .getResource("com/github/dariobalinzo/schema/complexDocument.json")
                 .getFile();
-        String jsonDocument = new String(Files.readAllBytes(Paths.get(file)));
+        String osAppropriateFilePath = IS_WINDOWS ? file.substring(1) : file;
+        String jsonDocument = new String(Files.readAllBytes(Paths.get(osAppropriateFilePath)));
 
         Map<String, Object> elasticDocument = objectMapper.readValue(jsonDocument, Map.class);
 

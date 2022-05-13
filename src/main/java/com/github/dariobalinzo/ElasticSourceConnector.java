@@ -123,7 +123,6 @@ public class ElasticSourceConnector extends SourceConnector {
     }
 
     private List<Map<String, String>> generateTaskFromFixedList(List<String> indicesList, int maxTasks) {
-        int numGroups = Math.min(indicesList.size(), maxTasks);
         return groupIndicesToTasksConfig(maxTasks, indicesList);
     }
 
