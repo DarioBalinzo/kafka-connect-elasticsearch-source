@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -93,7 +94,7 @@ public class ElasticIndexMonitorThread extends Thread {
       return false;
     }
 
-    if (!indexes.equals(this.indexes)) {
+    if (!listEqualsIgnoreOrder(indexes, this.indexes)) {
       log.debug("After filtering we got topics: {}", indexes);
       List<String> previousIndexes = this.indexes;
       this.indexes = indexes;
@@ -103,5 +104,9 @@ public class ElasticIndexMonitorThread extends Thread {
       return !previousIndexes.isEmpty();
     }
     return false;
+  }
+
+  private <T> boolean listEqualsIgnoreOrder(List<T> list1, List<T> list2) {
+    return new HashSet<>(list1).equals(new HashSet<>(list2));
   }
 }
