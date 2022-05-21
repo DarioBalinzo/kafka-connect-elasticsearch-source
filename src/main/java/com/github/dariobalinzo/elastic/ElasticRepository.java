@@ -183,12 +183,23 @@ public final class ElasticRepository {
     }
 
     public List<String> catIndices(String prefix) {
+        return catIndices(prefix, null);
+    }
+
+    public List<String> catIndices(String prefix, HashMap<String, String> parameters) {
         Response resp;
         try {
+            Request request = new Request("GET", "/_cat/indices" );
+
+            if(parameters != null){
+                for(Map.Entry<String, String> parameter : parameters.entrySet()){
+                    request.addParameter(parameter.getKey(), parameter.getValue());
+                }
+            }
 
             resp = elasticConnection.getClient()
                     .getLowLevelClient()
-                    .performRequest(new Request("GET", "/_cat/indices"));
+                    .performRequest(request);
         } catch (IOException e) {
             logger.error("error in searching index names");
             throw new RuntimeException(e);
