@@ -115,6 +115,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INDEX_NAMES_DEFAULT = null;
     private static final String INDEX_NAMES_DISPLAY = "List of elasticsearch indices (es1,es2,es3)";
 
+    public static final String INDEX_EXPAND_WILDCARDS_CONFIG = "index.expand_wildcards";
+    private static final String INDEX_EXPAND_WILDCARDS_DOC = "Parameter expand_wildcards for cat indices API";
+    private static final String INDEX_EXPAND_WILDCARDS_DEFAULT = "all";
+    private static final String INDEX_EXPAND_WILDCARDS_DISPLAY = "Parameter expand_wildcards for cat indices API";
 
     public static final String TOPIC_PREFIX_CONFIG = "topic.prefix";
     private static final String TOPIC_PREFIX_DOC =
@@ -292,6 +296,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.LONG,
                 INDEX_NAMES_DISPLAY
+        ).define(
+                INDEX_EXPAND_WILDCARDS_CONFIG,
+                Type.STRING,
+                INDEX_EXPAND_WILDCARDS_DEFAULT,
+                Importance.MEDIUM,
+                INDEX_EXPAND_WILDCARDS_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                INDEX_EXPAND_WILDCARDS_DISPLAY
         ).define(
                 FIELDS_WHITELIST_CONFIG,
                 Type.STRING,

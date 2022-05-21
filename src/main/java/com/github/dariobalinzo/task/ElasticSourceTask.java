@@ -57,7 +57,7 @@ public class ElasticSourceTask extends SourceTask {
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
 
-    private final AtomicBoolean stopping = new AtomicBoolean(false);
+    private final AtomicBoolean lock = new AtomicBoolean(false);
     private List<String> indices;
     private String topic;
     private String cursorField;
@@ -197,7 +197,7 @@ public class ElasticSourceTask extends SourceTask {
         List<SourceRecord> results = new ArrayList<>();
         try {
             for (String index : indices) {
-                if (!stopping.get()) {
+                if (!lock.compareAndSet(false, true)) {
                     logger.info("fetching from {}", index);
                     Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
@@ -212,10 +212,15 @@ public class ElasticSourceTask extends SourceTask {
                 logger.info("no data found, sleeping for {} ms", pollingMs);
                 Thread.sleep(pollingMs);
             }
-
         } catch (Exception e) {
             logger.error("error", e);
+        } finally {
+            synchronized (lock) {
+                lock.set(false);
+                lock.notify();
+            }
         }
+
         return results;
     }
 
@@ -276,7 +281,16 @@ public class ElasticSourceTask extends SourceTask {
 
     //will be called by connect with a different thread than poll thread
     public void stop() {
-        stopping.set(true);
+        while(!lock.compareAndSet(false, true)) {
+            synchronized (lock) {
+                try{
+                    lock.wait();
+                } catch (Exception e) {
+                    logger.error("error", e);
+                }
+            }
+        }
+
         if (es != null) {
             es.closeQuietly();
         }

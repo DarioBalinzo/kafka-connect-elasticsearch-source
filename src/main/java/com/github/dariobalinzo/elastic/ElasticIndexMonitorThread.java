@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -24,14 +25,16 @@ public class ElasticIndexMonitorThread extends Thread {
   private final long pollMs;
   private final ElasticRepository elasticRepository;
   private final String prefix;
+  private final String expandWildcards;
   private List<String> indexes;
   
-  public ElasticIndexMonitorThread(ConnectorContext context, long pollMs, ElasticRepository elasticRepository, String prefix) {
+  public ElasticIndexMonitorThread(ConnectorContext context, long pollMs, ElasticRepository elasticRepository, String prefix, String expandWildcards) {
     this.context = context;
     this.shutdownLatch = new CountDownLatch(1);
     this.pollMs = pollMs;
     this.elasticRepository = elasticRepository;
     this.prefix = prefix;
+    this.expandWildcards = expandWildcards;
     this.indexes = new ArrayList<>();
   }
 
@@ -87,7 +90,10 @@ public class ElasticIndexMonitorThread extends Thread {
   private synchronized boolean updateIndexes() {
     final List<String> indexes;
     try {
-      indexes = elasticRepository.catIndices(this.prefix);
+      HashMap<String, String> parameters = new HashMap<String, String>();
+      parameters.put("expand_wildcards", expandWildcards);
+      
+      indexes = elasticRepository.catIndices(this.prefix, parameters);
       log.debug("Got the following topics: {}", indexes);
     } catch (RuntimeException e) {
       log.error("Error while trying to get updated topics list, ignoring and waiting for next table poll interval", e);

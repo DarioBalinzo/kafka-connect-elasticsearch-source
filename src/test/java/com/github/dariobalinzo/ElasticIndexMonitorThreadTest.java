@@ -34,7 +34,7 @@ public class ElasticIndexMonitorThreadTest extends TestContainersContext {
         insertMockData(10, TEST_INDEX);
         refreshIndex();
 
-        ElasticIndexMonitorThread indexMonitorThread = new ElasticIndexMonitorThread(context, pollInterval, repository, TEST_INDEX);
+        ElasticIndexMonitorThread indexMonitorThread = new ElasticIndexMonitorThread(context, pollInterval, repository, TEST_INDEX, "all");
         indexMonitorThread.start();
 
         assertEquals(1, indexMonitorThread.indexes().size());
