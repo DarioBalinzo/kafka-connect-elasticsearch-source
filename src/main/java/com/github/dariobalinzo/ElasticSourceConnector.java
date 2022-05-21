@@ -101,7 +101,7 @@ public class ElasticSourceConnector extends SourceConnector {
 
         elasticRepository = new ElasticRepository(elasticConnection);
 
-        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG), ElasticSourceConnectorConfig.INDEX_EXPAND_WILDCARDS_CONFIG);
+        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG), config.getString(ElasticSourceConnectorConfig.INDEX_EXPAND_WILDCARDS_CONFIG));
         indexMonitorThread.start();
     }
 
