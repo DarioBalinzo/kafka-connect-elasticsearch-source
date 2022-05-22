@@ -168,8 +168,13 @@ public class ElasticSourceConnector extends SourceConnector {
             result.add(new ArrayList<>());
         }
 
+        logger.debug("Partition indices: {}", currentIndices);
         for (int i = 0; i < currentIndices.size(); ++i) {
-            result.get(i % numGroups).add(currentIndices.get(i));
+            String index = currentIndices.get(i);
+
+            logger.debug("Assign index {} to partition {}", index, i);
+
+            result.get(i % numGroups).add(index);
         }
 
         return result;

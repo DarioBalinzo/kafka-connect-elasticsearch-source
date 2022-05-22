@@ -90,6 +90,8 @@ public class ElasticSourceTask extends SourceTask {
                     + "least one index assigned to it");
         }
 
+        logger.debug("Task indices: {}", indices);
+
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
         cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
         Objects.requireNonNull(cursorField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
@@ -196,8 +198,8 @@ public class ElasticSourceTask extends SourceTask {
     public List<SourceRecord> poll() {
         List<SourceRecord> results = new ArrayList<>();
         try {
-            for (String index : indices) {
-                if (!lock.compareAndSet(false, true)) {
+            if (lock.compareAndSet(false, true)) {
+                for (String index : indices) {
                     logger.info("fetching from {}", index);
                     Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
@@ -208,10 +210,6 @@ public class ElasticSourceTask extends SourceTask {
                     logger.info("index {} total messages: {} ", index, sent.get(index));
                 }
             }
-            if (results.isEmpty()) {
-                logger.info("no data found, sleeping for {} ms", pollingMs);
-                Thread.sleep(pollingMs);
-            }
         } catch (Exception e) {
             logger.error("error", e);
         } finally {
@@ -219,6 +217,17 @@ public class ElasticSourceTask extends SourceTask {
                 lock.set(false);
                 lock.notify();
             }
+        }
+
+        logger.debug("returns total results: {}", results.size());
+
+        try {
+            if (results.isEmpty()) {
+                logger.info("no data found, sleeping for {} ms", pollingMs);
+                Thread.sleep(pollingMs);
+            }
+        } catch (Exception e) {
+            logger.error("error", e);
         }
 
         return results;
@@ -281,7 +290,7 @@ public class ElasticSourceTask extends SourceTask {
 
     //will be called by connect with a different thread than poll thread
     public void stop() {
-        while(!lock.compareAndSet(false, true)) {
+        while(lock.compareAndSet(false, true)) {
             synchronized (lock) {
                 try{
                     lock.wait();

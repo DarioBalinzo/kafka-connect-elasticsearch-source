@@ -331,7 +331,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Type.STRING,
                 null,
                 Importance.MEDIUM,
-                FIELDS_WHITELIST_DOC,
+                FIELDS_JSON_CAST_DOC,
                 CONNECTOR_GROUP,
                 ++orderInGroup,
                 Width.MEDIUM,
