@@ -290,18 +290,18 @@ public class ElasticSourceTask extends SourceTask {
 
     //will be called by connect with a different thread than poll thread
     public void stop() {
-        while(lock.compareAndSet(false, true)) {
-            synchronized (lock) {
+        synchronized (lock) {
+            while(!lock.compareAndSet(false, true)) {
                 try{
                     lock.wait();
                 } catch (Exception e) {
                     logger.error("error", e);
                 }
             }
-        }
-
-        if (es != null) {
-            es.closeQuietly();
+            
+            if (es != null) {
+                es.closeQuietly();
+            }
         }
     }
 }
