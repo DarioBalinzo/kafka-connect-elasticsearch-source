@@ -47,6 +47,7 @@ public class ElasticIndexMonitorThread extends Thread {
     while (shutdownLatch.getCount() > 0) {
       try {
         if (updateIndexes()) {
+          log.debug("Update indexes: {}", indexes);
           context.requestTaskReconfiguration();
         }
       } catch (Exception e) {

@@ -198,8 +198,9 @@ public class ElasticSourceTask extends SourceTask {
     public List<SourceRecord> poll() {
         List<SourceRecord> results = new ArrayList<>();
         try {
-            if (lock.compareAndSet(false, true)) {
-                for (String index : indices) {
+            logger.debug("Task indices: {}", indices);
+            for (String index : indices) {
+                if (lock.compareAndSet(false, true)) {
                     logger.info("fetching from {}", index);
                     Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
@@ -208,16 +209,22 @@ public class ElasticSourceTask extends SourceTask {
                             elasticRepository.searchAfterWithSecondarySort(index, lastValue);
                     parseResult(pageResult, results);
                     logger.info("index {} total messages: {} ", index, sent.get(index));
+                    
+                    synchronized (lock) {
+                        lock.set(false);
+                        lock.notify();
+                    }
+                }else{
+                    logger.info("cannot acquire lock. skipped index: {}", index);
                 }
             }
         } catch (Exception e) {
             logger.error("error", e);
-        } finally {
             synchronized (lock) {
                 lock.set(false);
                 lock.notify();
             }
-        }
+        } 
 
         logger.debug("returns total results: {}", results.size());
 
@@ -290,9 +297,12 @@ public class ElasticSourceTask extends SourceTask {
 
     //will be called by connect with a different thread than poll thread
     public void stop() {
+        logger.debug("Closing task");
+
         synchronized (lock) {
             while(!lock.compareAndSet(false, true)) {
                 try{
+                    logger.debug("Waiting for closing task");
                     lock.wait();
                 } catch (Exception e) {
                     logger.error("error", e);
@@ -303,5 +313,7 @@ public class ElasticSourceTask extends SourceTask {
                 es.closeQuietly();
             }
         }
+
+        logger.debug("Closed task");
     }
 }
