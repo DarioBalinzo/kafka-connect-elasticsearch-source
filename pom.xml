@@ -27,7 +27,7 @@
 
     <groupId>com.github.dariobalinzo</groupId>
     <artifactId>elastic-source-connect</artifactId>
-    <version>1.5.0</version>
+    <version>1.5.1</version>
 
     <licenses>
         <license>
