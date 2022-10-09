@@ -1,9 +1,10 @@
 # Check https://circleci.com/docs/2.0/language-java/ for more details
 #
 version: 2
+orbs:
+  openjdk-install: cloudesire/openjdk-install@1.2.3
 jobs:
   build:
-    machine: ubuntu-2004:202008-01
     steps:
       - checkout
 
