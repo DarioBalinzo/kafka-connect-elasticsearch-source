@@ -8,4 +8,5 @@ jobs:
       - checkout
 
       - run: sudo apt-get install openjdk-8-jdk
+      - run: export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
       - run: mvn -B clean install
