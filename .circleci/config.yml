@@ -4,7 +4,7 @@ version: 2
 machine: true
 jobs:
   build:
-    machine: true
+    machine: ubuntu-2004:202008-01
     steps:
       - checkout
 
