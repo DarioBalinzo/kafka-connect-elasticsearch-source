@@ -1,10 +1,10 @@
 # Check https://circleci.com/docs/2.0/language-java/ for more details
 #
 version: 2
-orbs:
-  openjdk-install: cloudesire/openjdk-install@1.2.3
 jobs:
   build:
+    docker:
+      - image: cimg/openjdk:8.0.345
     steps:
       - checkout
 
