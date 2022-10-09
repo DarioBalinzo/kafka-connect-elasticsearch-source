@@ -3,9 +3,9 @@
 version: 2
 jobs:
   build:
-    docker:
-      - image: cimg/openjdk:8.0.345
+    machine: ubuntu-2004:202008-01
     steps:
       - checkout
 
+      - run: sudo apt-get install openjdk-8-jdk
       - run: mvn -B clean install
