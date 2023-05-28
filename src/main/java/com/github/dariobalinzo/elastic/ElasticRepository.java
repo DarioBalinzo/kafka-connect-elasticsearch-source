@@ -16,7 +16,7 @@
 
 package com.github.dariobalinzo.elastic;
 
-import com.github.dariobalinzo.elastic.response.Cursor;
+import com.github.dariobalinzo.elastic.response.CursorFields.Cursor;
 import com.github.dariobalinzo.elastic.response.PageResult;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -35,47 +35,24 @@ import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.github.dariobalinzo.elastic.ElasticJsonNaming.removeKeywordSuffix;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 
 public final class ElasticRepository {
     private final static Logger logger = LoggerFactory.getLogger(ElasticRepository.class);
 
     private final ElasticConnection elasticConnection;
-    private final String cursorField;
-    //a field like customer.keyword is represented as customer inside json response
-    private final String cursorFieldJsonName;
-    private final String secondaryCursorField;
-    private final String secondaryCursorFieldJsonName;
 
     private int pageSize = 5000;
 
     public ElasticRepository(ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
-        this.cursorField = "_id";
-        this.cursorFieldJsonName = this.cursorField;
-        this.secondaryCursorField = null;
-        this.secondaryCursorFieldJsonName = null;
-    }
-
-    public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
-        this.elasticConnection = elasticConnection;
-        this.cursorField = cursorField;
-        this.cursorFieldJsonName = cursorField.replace(".keyword", "");
-        this.secondaryCursorField = null;
-        this.secondaryCursorFieldJsonName = null;
-    }
-
-    public ElasticRepository(ElasticConnection elasticConnection, String cursorField, String secondaryCursorField) {
-        this.elasticConnection = elasticConnection;
-        this.cursorField = cursorField;
-        this.cursorFieldJsonName = removeKeywordSuffix(cursorField);
-        this.secondaryCursorField = secondaryCursorField;
-        this.secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
     }
 
     public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
-        QueryBuilder queryBuilder = cursor.getPrimaryCursor() == null ?
+        Objects.requireNonNull(cursor);
+
+        String cursorField = cursor.getCursorFields().getPrimaryCursorField();
+        QueryBuilder queryBuilder = cursor.isEmpty() ?
                 matchAllQuery() :
                 buildGreaterThen(cursorField, cursor.getPrimaryCursor());
 
@@ -93,10 +70,10 @@ public final class ElasticRepository {
 
         Cursor lastCursor;
         if (documents.isEmpty()) {
-            lastCursor = Cursor.empty();
+            lastCursor = cursor.newEmptyCursor();
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            lastCursor = new Cursor(lastDocument.get(cursorField).toString());
+            lastCursor = cursor.newCursor(lastDocument.get(cursorField).toString());
         }
         return new PageResult(index, documents, lastCursor);
     }
@@ -112,18 +89,21 @@ public final class ElasticRepository {
     }
 
     public PageResult searchAfterWithSecondarySort(String index, Cursor cursor) throws IOException, InterruptedException {
-        Objects.requireNonNull(secondaryCursorField);
+        Objects.requireNonNull(cursor);
+        Objects.requireNonNull(cursor.getCursorFields().getSecondaryCursorField(), "Secondary cursor field is required in this context");
+
+        String primaryCursorField = cursor.getCursorFields().getPrimaryCursorField();
+        String secondaryCursorField = cursor.getCursorFields().getSecondaryCursorField();
         String primaryCursor = cursor.getPrimaryCursor();
         String secondaryCursor = cursor.getSecondaryCursor();
-        boolean noPrevCursor = primaryCursor == null && secondaryCursor == null;
 
-        QueryBuilder queryBuilder = noPrevCursor ? matchAllQuery() :
-                getSecondarySortFieldQuery(primaryCursor, secondaryCursor);
+        QueryBuilder queryBuilder = cursor.isEmpty() ? matchAllQuery() :
+                getSecondarySortFieldQuery(primaryCursorField, primaryCursor, secondaryCursorField, secondaryCursor);
 
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(queryBuilder)
                 .size(pageSize)
-                .sort(cursorField, SortOrder.ASC)
+                .sort(primaryCursorField, SortOrder.ASC)
                 .sort(secondaryCursorField, SortOrder.ASC);
 
         SearchRequest searchRequest = new SearchRequest(index)
@@ -135,13 +115,13 @@ public final class ElasticRepository {
 
         Cursor lastCursor;
         if (documents.isEmpty()) {
-            lastCursor = Cursor.empty();
+            lastCursor = cursor.newEmptyCursor();
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            String primaryCursorValue = lastDocument.get(cursorFieldJsonName).toString();
-            String secondaryCursorValue = lastDocument.containsKey(secondaryCursorFieldJsonName) ?
-                    lastDocument.get(secondaryCursorFieldJsonName).toString() : null;
-            lastCursor = new Cursor(primaryCursorValue, secondaryCursorValue);
+            String primaryCursorValue = lastDocument.get(cursor.getCursorFields().getPrimaryCursorFieldJsonName()).toString();
+            String secondaryCursorValue = lastDocument.containsKey(cursor.getCursorFields().getSecondaryCursorFieldJsonName()) ?
+                    lastDocument.get(cursor.getCursorFields().getSecondaryCursorFieldJsonName()).toString() : null;
+            lastCursor = cursor.newCursor(primaryCursorValue, secondaryCursorValue);
         }
         return new PageResult(index, documents, lastCursor);
     }
@@ -150,7 +130,7 @@ public final class ElasticRepository {
         return rangeQuery(cursorField).from(cursorValue, false);
     }
 
-    private QueryBuilder getSecondarySortFieldQuery(String primaryCursor, String secondaryCursor) {
+    private QueryBuilder getSecondarySortFieldQuery(String cursorField, String primaryCursor, String secondaryCursorField, String secondaryCursor) {
         if (secondaryCursor == null) {
             return buildGreaterThen(cursorField, primaryCursor);
         }

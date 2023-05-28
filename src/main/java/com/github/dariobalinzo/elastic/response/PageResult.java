@@ -16,6 +16,8 @@
 
 package com.github.dariobalinzo.elastic.response;
 
+import com.github.dariobalinzo.elastic.response.CursorFields.Cursor;
+
 import java.util.List;
 import java.util.Map;
 

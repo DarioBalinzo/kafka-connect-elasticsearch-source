@@ -47,7 +47,7 @@ public class TestContainersContext {
     protected static final String CURSOR_FIELD = "ts";
     protected static final String SECONDARY_CURSOR_FIELD = "fullName.keyword";
 
-    protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.11.1";
+    protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.17";
 
     protected static ElasticsearchContainer container;
     protected static ElasticConnection connection;
@@ -67,10 +67,10 @@ public class TestContainersContext {
                 .withBackoff(RETRY_WAIT_MS)
                 .build();
 
-        repository = new ElasticRepository(connection, CURSOR_FIELD);
+        repository = new ElasticRepository(connection);
         repository.setPageSize(TEST_PAGE_SIZE);
 
-        secondarySortRepo = new ElasticRepository(connection, CURSOR_FIELD, SECONDARY_CURSOR_FIELD);
+        secondarySortRepo = new ElasticRepository(connection);
         secondarySortRepo.setPageSize(TEST_PAGE_SIZE);
     }
 
@@ -96,10 +96,14 @@ public class TestContainersContext {
     }
 
     protected void insertMockData(int tsStart, String fullName, String index) throws IOException {
+        insertMockData(CURSOR_FIELD, tsStart, fullName, index);
+    }
+
+    protected void insertMockData(String field, int tsStart, String fullName, String index) throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
                 .field("fullName", fullName)
-                .field(CURSOR_FIELD, tsStart)
+                .field(field, tsStart)
                 .field("age", 10)
                 .field("non-avro-field", "non-avro-field")
                 .field("avroField", "avro-field")
@@ -135,5 +139,4 @@ public class TestContainersContext {
             container.close();
         }
     }
-
 }

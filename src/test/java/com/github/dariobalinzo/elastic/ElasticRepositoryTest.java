@@ -17,7 +17,7 @@
 package com.github.dariobalinzo.elastic;
 
 import com.github.dariobalinzo.TestContainersContext;
-import com.github.dariobalinzo.elastic.response.Cursor;
+import com.github.dariobalinzo.elastic.response.CursorFields;
 import com.github.dariobalinzo.elastic.response.PageResult;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ public class ElasticRepositoryTest extends TestContainersContext {
         insertMockData(114);
         refreshIndex();
 
-        PageResult firstPage = repository.searchAfter(TEST_INDEX, Cursor.empty());
+        PageResult firstPage = repository.searchAfter(TEST_INDEX, new CursorFields(CURSOR_FIELD).newEmptyCursor());
         assertEquals(3, firstPage.getDocuments().size());
 
         PageResult secondPage = repository.searchAfter(TEST_INDEX, firstPage.getLastCursor());
@@ -78,7 +78,7 @@ public class ElasticRepositoryTest extends TestContainersContext {
 
         refreshIndex();
 
-        PageResult firstPage = secondarySortRepo.searchAfterWithSecondarySort(TEST_INDEX, Cursor.empty());
+        PageResult firstPage = secondarySortRepo.searchAfterWithSecondarySort(TEST_INDEX, new CursorFields(CURSOR_FIELD, SECONDARY_CURSOR_FIELD).newEmptyCursor());
         assertEquals(3, firstPage.getDocuments().size());
 
         PageResult secondPage = secondarySortRepo.searchAfterWithSecondarySort(TEST_INDEX, firstPage.getLastCursor());
@@ -101,11 +101,10 @@ public class ElasticRepositoryTest extends TestContainersContext {
         insertMockData(111, "customerB", TEST_INDEX);
         refreshIndex();
 
-        PageResult firstPage = repository.searchAfter(TEST_INDEX, Cursor.empty());
+        PageResult firstPage = repository.searchAfter(TEST_INDEX, new CursorFields(CURSOR_FIELD).newEmptyCursor());
         firstPage.getDocuments().forEach(item -> {
-            assertNotNull(item.get((String) "es-index"));
-            assertNotNull(item.get((String) "es-id"));
+            assertNotNull(item.get("es-index"));
+            assertNotNull(item.get("es-id"));
         });
     }
-
 }
