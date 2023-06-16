@@ -43,35 +43,22 @@ public final class ElasticRepository {
 
     private final ElasticConnection elasticConnection;
     private final String cursorField;
-    //a field like customer.keyword is represented as customer inside json response
-    private final String cursorFieldJsonName;
     private final String secondaryCursorField;
-    private final String secondaryCursorFieldJsonName;
 
     private int pageSize = 5000;
 
     public ElasticRepository(ElasticConnection elasticConnection) {
-        this.elasticConnection = elasticConnection;
-        this.cursorField = "_id";
-        this.cursorFieldJsonName = this.cursorField;
-        this.secondaryCursorField = null;
-        this.secondaryCursorFieldJsonName = null;
+        this(elasticConnection, "_id");
     }
 
     public ElasticRepository(ElasticConnection elasticConnection, String cursorField) {
-        this.elasticConnection = elasticConnection;
-        this.cursorField = cursorField;
-        this.cursorFieldJsonName = cursorField.replace(".keyword", "");
-        this.secondaryCursorField = null;
-        this.secondaryCursorFieldJsonName = null;
+        this(elasticConnection, cursorField, null);
     }
 
     public ElasticRepository(ElasticConnection elasticConnection, String cursorField, String secondaryCursorField) {
         this.elasticConnection = elasticConnection;
         this.cursorField = cursorField;
-        this.cursorFieldJsonName = removeKeywordSuffix(cursorField);
         this.secondaryCursorField = secondaryCursorField;
-        this.secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
     }
 
     public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
@@ -96,7 +83,7 @@ public final class ElasticRepository {
             lastCursor = Cursor.empty();
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            lastCursor = new Cursor(lastDocument.get(cursorField).toString());
+            lastCursor = new Cursor(getCursorField(lastDocument, cursorField));
         }
         return new PageResult(index, documents, lastCursor);
     }
@@ -138,12 +125,30 @@ public final class ElasticRepository {
             lastCursor = Cursor.empty();
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            String primaryCursorValue = lastDocument.get(cursorFieldJsonName).toString();
-            String secondaryCursorValue = lastDocument.containsKey(secondaryCursorFieldJsonName) ?
-                    lastDocument.get(secondaryCursorFieldJsonName).toString() : null;
+            String primaryCursorValue = getCursorField(lastDocument, cursorField);
+            String secondaryCursorValue = getCursorField(lastDocument, secondaryCursorField);
             lastCursor = new Cursor(primaryCursorValue, secondaryCursorValue);
         }
         return new PageResult(index, documents, lastCursor);
+    }
+
+    private String getCursorField(Map<String, Object> document, String field) {
+        String stripped = removeKeywordSuffix(field);
+        int firstDot = stripped.indexOf('.');
+
+        Object value = null;
+        if(document.containsKey(stripped)) {
+            value = document.get(stripped);
+        } else if(firstDot > 0 && firstDot < stripped.length() - 1) {
+            String parent = stripped.substring(0, firstDot);
+            Object nested = document.get(parent);
+            if(nested instanceof Map) {
+                return getCursorField((Map<String, Object>) document.get(parent),
+                                      stripped.substring(firstDot + 1));
+            }
+        }
+
+        return value == null ? null : value.toString();
     }
 
     private QueryBuilder buildGreaterThen(String cursorField, String cursorValue) {
