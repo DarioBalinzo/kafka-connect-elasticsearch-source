@@ -18,6 +18,7 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
+import com.github.dariobalinzo.elastic.CursorField;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
@@ -60,10 +61,10 @@ public class ElasticSourceTask extends SourceTask {
     private final AtomicBoolean stopping = new AtomicBoolean(false);
     private List<String> indices;
     private String topic;
-    private String cursorField;
-    private String cursorFieldJsonName;
-    private String secondaryCursorField;
-    private String secondaryCursorFieldJsonName;
+    private String cursorSearchField;
+    private CursorField cursorField;
+    private String secondaryCursorSearchField;
+    private CursorField secondaryCursorField;
     private int pollingMs;
     private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
@@ -91,12 +92,12 @@ public class ElasticSourceTask extends SourceTask {
         }
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
-        cursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
-        Objects.requireNonNull(cursorField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
-                + " conf is mandatory");
-        cursorFieldJsonName = removeKeywordSuffix(cursorField);
-        secondaryCursorField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
-        secondaryCursorFieldJsonName = removeKeywordSuffix(secondaryCursorField);
+        cursorSearchField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        Objects.requireNonNull(cursorSearchField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
+                                                  + " conf is mandatory");
+        cursorField = new CursorField(cursorSearchField);
+        secondaryCursorSearchField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
+        secondaryCursorField = new CursorField(secondaryCursorSearchField);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
@@ -186,7 +187,7 @@ public class ElasticSourceTask extends SourceTask {
                     .build();
         }
 
-        elasticRepository = new ElasticRepository(es, cursorField, secondaryCursorField);
+        elasticRepository = new ElasticRepository(es, cursorSearchField, secondaryCursorSearchField);
         elasticRepository.setPageSize(batchSize);
     }
 
@@ -201,7 +202,7 @@ public class ElasticSourceTask extends SourceTask {
                     logger.info("fetching from {}", index);
                     Cursor lastValue = fetchLastOffset(index);
                     logger.info("found last value {}", lastValue);
-                    PageResult pageResult = secondaryCursorField == null ?
+                    PageResult pageResult = secondaryCursorSearchField == null ?
                             elasticRepository.searchAfter(index, lastValue) :
                             elasticRepository.searchAfterWithSecondarySort(index, lastValue);
                     parseResult(pageResult, results);
@@ -241,13 +242,13 @@ public class ElasticSourceTask extends SourceTask {
         for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
             Map<String, String> sourceOffset = offsetSerializer.toMapOffset(
-                    cursorFieldJsonName,
-                    secondaryCursorFieldJsonName,
+                    cursorField,
+                    secondaryCursorField,
                     elasticDocument
             );
             String key = offsetSerializer.toStringOffset(
-                    cursorFieldJsonName,
-                    secondaryCursorFieldJsonName,
+                    cursorField,
+                    secondaryCursorField,
                     index,
                     elasticDocument
             );

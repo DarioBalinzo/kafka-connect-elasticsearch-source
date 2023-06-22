@@ -1,5 +1,7 @@
 package com.github.dariobalinzo.task;
 
+import com.github.dariobalinzo.elastic.CursorField;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -8,7 +10,7 @@ import static com.github.dariobalinzo.task.ElasticSourceTask.POSITION_SECONDARY;
 
 public class OffsetSerializer {
 
-    public Map<String, String> toMapOffset(String primaryCursor, String secondaryCursor, Map<String, Object> document) {
+    public Map<String, String> toMapOffset(CursorField primaryCursor, CursorField secondaryCursor, Map<String, Object> document) {
         Map<String, String> result = new HashMap<>();
         result.put(POSITION, document.get(primaryCursor).toString());
         if (secondaryCursor != null) {
@@ -17,12 +19,12 @@ public class OffsetSerializer {
         return result;
     }
 
-    public String toStringOffset(String cursor, String secondaryCursor, String index, Map<String, Object> document) {
-        String cursorValue = document.get(cursor).toString();
+    public String toStringOffset(CursorField cursor, CursorField secondaryCursor, String index, Map<String, Object> document) {
+        String cursorValue = cursor.read(document);
         if (secondaryCursor == null) {
             return String.join("_", index, cursorValue);
         } else {
-            return String.join("_", index, cursorValue, document.get(secondaryCursor).toString());
+            return String.join("_", index, cursorValue, secondaryCursor.read(document));
         }
     }
 }
