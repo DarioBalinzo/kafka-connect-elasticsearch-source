@@ -20,11 +20,12 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
@@ -73,7 +74,7 @@ public class SchemaConverter {
                     if (head instanceof Map) {
                         convertListOfObject(prefixName, schemaBuilder, key, (List<Map<String, Object>>) value);
                     } else {
-                        convertListSchema(prefixName, schemaBuilder, key, head);
+                        convertListSchema(prefixName, schemaBuilder, key, (List<?>)value);
                     }
                 }
             } else if (value instanceof Map) {
@@ -97,40 +98,40 @@ public class SchemaConverter {
     }
 
     @SuppressWarnings("unchecked")
-    private void convertListSchema(String prefixName, SchemaBuilder schemaBuilder, String k, Object item) {
+    private void convertListSchema(String prefixName, SchemaBuilder schemaBuilder, String k, List<?> items) {
         String validKeyName = converter.from(k);
-        if (item instanceof String) {
-            schemaBuilder.field(
-                    validKeyName,
-                    array(OPTIONAL_STRING_SCHEMA).optional().build()
-            ).build();
-        } else if (item instanceof Boolean) {
-            schemaBuilder.field(
-                    validKeyName,
-                    array(OPTIONAL_BOOLEAN_SCHEMA).optional().build()
-            ).build();
-        } else if (item instanceof Integer) {
-            schemaBuilder.field(
-                    validKeyName,
-                    array(OPTIONAL_INT64_SCHEMA).optional().build()
-            ).build();
-        } else if (item instanceof Long) {
-            schemaBuilder.field(
-                    validKeyName,
-                    array(OPTIONAL_INT64_SCHEMA).optional().build()
-            ).build();
-        } else if (item instanceof Float) {
-            schemaBuilder.field(
-                    validKeyName,
-                    array(OPTIONAL_FLOAT64_SCHEMA).optional().build()
-            ).build();
-        } else if (item instanceof Double) {
-            schemaBuilder.field(
-                    validKeyName,
-                    array(OPTIONAL_FLOAT64_SCHEMA).optional().build()
-            ).build();
+
+        Set<Schema> schemas = items.stream().map(this::convertListSchema).collect(Collectors.toSet());
+        Schema itemSchema;
+        if(schemas.size() == 1) {
+            itemSchema = schemas.iterator().next();
+        } else if(!schemas.contains(OPTIONAL_STRING_SCHEMA) && !schemas.contains(OPTIONAL_BOOLEAN_SCHEMA)) {
+            itemSchema = OPTIONAL_FLOAT64_SCHEMA;
         } else {
-            throw new RuntimeException("error in converting list: type not supported");
+            throw new IllegalArgumentException("list " + validKeyName + " contains items of different schemas: " + schemas);
+        }
+
+        schemaBuilder.field(
+                validKeyName,
+                array(itemSchema).optional().build()
+        ).build();
+    }
+
+    private Schema convertListSchema(Object item) {
+        if (item instanceof String) {
+            return OPTIONAL_STRING_SCHEMA;
+        } else if (item instanceof Boolean) {
+            return OPTIONAL_BOOLEAN_SCHEMA;
+        } else if (item instanceof Integer) {
+            return OPTIONAL_INT64_SCHEMA;
+        } else if (item instanceof Long) {
+            return OPTIONAL_INT64_SCHEMA;
+        } else if (item instanceof Float) {
+            return OPTIONAL_FLOAT64_SCHEMA;
+        } else if (item instanceof Double) {
+            return OPTIONAL_FLOAT64_SCHEMA;
+        } else {
+            throw new RuntimeException("error in converting list: type not supported " + item.getClass());
         }
     }
 
@@ -169,8 +170,50 @@ public class SchemaConverter {
 
         SchemaBuilder union = struct().name(a.name()).optional();
         for (Map.Entry<String, Schema> field : fieldsUnion.entrySet()) {
-            union.field(field.getKey(), field.getValue());
+            union.field(field.getKey(), from(field.getValue()).optional().build());
         }
         return union;
+    }
+
+    private SchemaBuilder from(Schema schema) {
+        if(schema instanceof SchemaBuilder) {
+            return (SchemaBuilder) schema;
+        } else {
+            SchemaBuilder builder;
+            switch (schema.type()) {
+                case STRUCT: {
+                    builder = struct();
+                    for (Field field : schema.fields()) {
+                        builder.field(field.name(), field.schema());
+                    }
+                    break;
+                }
+                case MAP: {
+                    builder = SchemaBuilder.map(schema.keySchema(), schema.valueSchema());
+                    break;
+                }
+                case ARRAY: {
+                    builder = SchemaBuilder.array(schema.valueSchema());
+                    break;
+                }
+                default: {
+                    builder = new SchemaBuilder(schema.type());
+                    break;
+                }
+            }
+            if(schema.isOptional()) {
+                builder.optional();
+            }
+            builder.name(schema.name());
+            if(schema.defaultValue() != null) {
+                builder.defaultValue(schema.defaultValue());
+            }
+            builder.doc(schema.doc());
+            if(schema.parameters() != null) {
+                builder.parameters(schema.parameters());
+            }
+            builder.version(schema.version());
+            return builder;
+        }
     }
 }

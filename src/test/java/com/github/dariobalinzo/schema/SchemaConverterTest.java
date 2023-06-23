@@ -24,13 +24,16 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
 import org.junit.Test;
 
-import javax.ws.rs.core.Link;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-import static org.apache.kafka.connect.data.SchemaBuilder.array;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static org.apache.kafka.connect.data.SchemaBuilder.string;
 import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
@@ -43,15 +46,12 @@ public class SchemaConverterTest {
     @Test
     public void shouldConvertArrayWithDifferentSchema() {
         //given
-        List<Map<String, Object>> list = new ArrayList<>();
-        Map<String, Object> variant1 = mapOf("inner", mapOf("a", "some value"));
-        Map<String, Object> variant2 = mapOf("inner", mapOf("b", "some value"));
-
-        list.add(variant1);
-        list.add(variant2);
-
-        Map<String, Object> elasticDocument = new LinkedHashMap<>();
-        elasticDocument.put("list", list);
+        Map<String, Object> elasticDocument = mapOf(
+                "list", asList(
+                        mapOf("inner", mapOf("a", "some value")),
+                        mapOf("inner", mapOf("b", "some value"))
+                )
+        );
 
         //when
         Schema schema = schemaConverter.convert(elasticDocument, "test");
@@ -68,17 +68,47 @@ public class SchemaConverterTest {
         Assert.assertEquals("Struct{list=[Struct{inner=Struct{a=some value}}, Struct{inner=Struct{b=some value}}]}", struct.toString());
     }
     @Test
+    public void shouldConvertArrayWithDifferentSchemaAlsoWhenDeep() {
+        //given
+        Map<String, Object> elasticDocument = mapOf(
+                "out", singletonList(
+                        mapOf(
+                                "list", asList(
+                                        mapOf("inner", mapOf("a", "some value")),
+                                        mapOf("inner", mapOf("b", "some value"))
+                                )
+                        )
+                )
+        );
+
+        //when
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        //then
+        Schema expected = struct().name("out.list.inner")
+                                  .optional()
+                                  .field("a", string().optional().build())
+                                  .field("b", string().optional().build())
+                                  .build();
+        Schema innerSchema = schema.field("out").schema()
+                                   .valueSchema()
+                                   .field("list").schema()
+                                   .valueSchema()
+                                   .field("inner").schema().schema();
+        Assert.assertEquals(expected, innerSchema);
+        Assert.assertEquals("Struct{out=[Struct{list=[Struct{inner=Struct{a=some value}}, Struct{inner=Struct{b=some value}}]}]}", struct.toString());
+    }
+
+    @Test
     public void shouldConvertNormalListsWithoutMerging() {
         //given
-        List<Map<String, Object>> list = new ArrayList<>();
-        Map<String, Object> variant1 = mapOf("inner", 3);
-        Map<String, Object> variant2 = mapOf("inner", 4);
-
-        list.add(variant1);
-        list.add(variant2);
-
-        Map<String, Object> elasticDocument = new LinkedHashMap<>();
-        elasticDocument.put("list", list);
+        Map<String, Object> elasticDocument = mapOf(
+                "list", asList(
+                        mapOf("inner", 3),
+                        mapOf("inner", 4)
+                )
+        );
 
         //when
         Schema schema = schemaConverter.convert(elasticDocument, "test");
@@ -197,7 +227,7 @@ public class SchemaConverterTest {
         //given
         Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
-        elasticDocument.put("details", Arrays.asList(1, 2, 3));
+        elasticDocument.put("details", asList(1, 2, 3));
 
         //when
         Schema schema = schemaConverter.convert(elasticDocument, "test");
@@ -228,7 +258,7 @@ public class SchemaConverterTest {
 
         Map<String, Object> elasticDocument = new LinkedHashMap<>();
         elasticDocument.put("name", "elastic");
-        elasticDocument.put("details", Collections.singletonList(nested));
+        elasticDocument.put("details", singletonList(nested));
 
         //when
         Schema schema = schemaConverter.convert(elasticDocument, "test");
@@ -356,6 +386,25 @@ public class SchemaConverterTest {
                 "summary=Struct{total=1,affectedproducts=[OpenSSH 7.9p1 Raspbian 10+deb10u2],averagescore=8.1}," +
                 "items=[Struct{product=OpenSSH 7.9p1 Raspbian 10+deb10u2,vulnerabilityid=CVE-2019-7639,vulnerabilityscore=8.1}]}" +
                 "}", struct.toString());
+    }
+
+    @Test
+    public void shouldUpcastLongToFloatWhenAtLeastOnEntryIsFloat() {
+        Map<String, Object> elasticDocument = mapOf("foo", asList(1, 3.0));
+
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        Assert.assertEquals("Schema{FLOAT64}", schema.field("foo").schema().valueSchema().toString());
+        Assert.assertEquals("Struct{foo=[1.0, 3.0]}", struct.toString());
+    }
+
+    @Test
+    public void shouldMergeByMarkingMergedFieldsAsOptional() {
+        Map<String, Object> elasticDocument = mapOf("a", asList(emptyMap(), mapOf("b", asList(emptyMap()))));
+
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
     }
 
     private static class NotSupported {

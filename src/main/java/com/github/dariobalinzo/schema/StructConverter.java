@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.apache.kafka.connect.data.Schema.Type.FLOAT64;
+
 public class StructConverter {
 
     private final FieldNameConverter converter;
@@ -84,12 +86,12 @@ public class StructConverter {
         if (!value.isEmpty()) {
             //assuming that every item of the list has the same schema
             Object head = value.get(0);
-            struct.put(converter.from(key), new ArrayList<>());
             if (isScalar(head)) {
+                boolean isFloat64 = struct.schema().field(converter.from(key)).schema().valueSchema().type().equals(FLOAT64);
                 List<Object> scalars = value.stream()
-                        .map(this::handleNumericPrecision)
+                        .map(s -> isFloat64 ? ((Number) s).doubleValue() : handleNumericPrecision(s))
                         .collect(Collectors.toList());
-                struct.getArray(converter.from(key)).addAll(scalars);
+                struct.put(converter.from(key), scalars);
             } else if (head instanceof Map) {
                 List<Struct> array = value
                         .stream()
