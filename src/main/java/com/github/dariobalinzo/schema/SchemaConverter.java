@@ -101,9 +101,11 @@ public class SchemaConverter {
     private void convertListSchema(String prefixName, SchemaBuilder schemaBuilder, String k, List<?> items) {
         String validKeyName = converter.from(k);
 
-        Set<Schema> schemas = items.stream().map(this::convertListSchema).collect(Collectors.toSet());
+        Set<Schema> schemas = items.stream().filter(i -> i != null).map(this::convertListSchema).collect(Collectors.toSet());
         Schema itemSchema;
-        if(schemas.size() == 1) {
+        if(schemas.isEmpty()) {
+            itemSchema = OPTIONAL_STRING_SCHEMA;
+        } else if(schemas.size() == 1) {
             itemSchema = schemas.iterator().next();
         } else if(!schemas.contains(OPTIONAL_STRING_SCHEMA) && !schemas.contains(OPTIONAL_BOOLEAN_SCHEMA)) {
             itemSchema = OPTIONAL_FLOAT64_SCHEMA;

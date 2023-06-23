@@ -85,8 +85,10 @@ public class StructConverter {
 
         if (!value.isEmpty()) {
             //assuming that every item of the list has the same schema
-            Object head = value.get(0);
-            if (isScalar(head)) {
+            Object head = value.stream().filter(i -> i != null).findFirst().orElse(null);
+            if(head == null) {
+                struct.put(converter.from(key), value);
+            }  else if (isScalar(head)) {
                 boolean isFloat64 = struct.schema().field(converter.from(key)).schema().valueSchema().type().equals(FLOAT64);
                 List<Object> scalars = value.stream()
                         .map(s -> isFloat64 ? ((Number) s).doubleValue() : handleNumericPrecision(s))

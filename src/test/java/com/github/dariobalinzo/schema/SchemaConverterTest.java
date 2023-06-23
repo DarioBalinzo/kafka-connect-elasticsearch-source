@@ -405,6 +405,30 @@ public class SchemaConverterTest {
 
         Schema schema = schemaConverter.convert(elasticDocument, "test");
         Struct struct = structConverter.convert(elasticDocument, schema);
+
+        Assert.assertEquals("Struct{a=[Struct{}, Struct{b=[Struct{}]}]}", struct.toString());
+    }
+
+    @Test
+    public void shouldIgnoreFirstListValueIfNull() {
+        Map<String, Object> elasticDocument = mapOf("a", asList(null, 3));
+
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        //Assert.assertEquals("Schema{FLOAT64}", schema.toString());
+        Assert.assertEquals("Struct{a=[null, 3]}", struct.toString());
+    }
+
+    @Test
+    public void shouldIgnoreListValuesIfAllNull() {
+        Map<String, Object> elasticDocument = mapOf("a", asList(null, null));
+
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        //Assert.assertEquals("Schema{FLOAT64}", schema.toString());
+        Assert.assertEquals("Struct{a=[null, null]}", struct.toString());
     }
 
     private static class NotSupported {
