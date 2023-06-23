@@ -21,10 +21,16 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
-import static org.apache.kafka.connect.data.Schema.*;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.Type.STRUCT;
 import static org.apache.kafka.connect.data.SchemaBuilder.array;
 import static org.apache.kafka.connect.data.SchemaBuilder.struct;
 
@@ -129,23 +135,42 @@ public class SchemaConverter {
     }
 
 
-    private void convertListOfObject(String prefixName, SchemaBuilder schemaBuilder, String k, List<Map<String, Object>> list) {
+    private void convertListOfObject(String prefixName, SchemaBuilder schemaBuilder, String k,
+                                     List<Map<String, Object>> list) {
         String validKeyName = converter.from(k);
         String keyWithPrefix = converter.from(prefixName, k);
-        Map<String, Field> fieldsUnion = new HashMap<>();
+        Schema current = null;
         for (Map<String, Object> obj : list) {
             SchemaBuilder nestedSchema = struct().name(keyWithPrefix).optional();
             convertDocumentSchema(keyWithPrefix + ".", obj, nestedSchema);
-            for (Field field : nestedSchema.fields()) {
-                fieldsUnion.putIfAbsent(field.name(), field);
+
+            if(current == null) {
+                current = nestedSchema;
+            } else {
+                current = merge(current,  nestedSchema);
             }
         }
-        SchemaBuilder unionNestedSchema = struct().name(prefixName).optional();
-        for (Field field : fieldsUnion.values()) {
-            unionNestedSchema.field(field.name(), field.schema());
-        }
-        schemaBuilder.field(validKeyName, array(unionNestedSchema.build()));
+        schemaBuilder.field(validKeyName, array(current));
     }
 
+    private Schema merge(Schema a, Schema b) {
+        if (!(a.type() == STRUCT && b.type() == STRUCT)) {
+            // we can only merge structs, we therefor always return the first found schema
+            return a;
+        }
 
+        Map<String, Schema> fieldsUnion = new LinkedHashMap<>();
+        Consumer<Field> collector = f -> {
+            fieldsUnion.computeIfPresent(f.name(), (key, old) -> merge(old.schema(), f.schema()));
+            fieldsUnion.putIfAbsent(f.name(), f.schema());
+        };
+        a.fields().forEach(collector);
+        b.fields().forEach(collector);
+
+        SchemaBuilder union = struct().name(a.name()).optional();
+        for (Map.Entry<String, Schema> field : fieldsUnion.entrySet()) {
+            union.field(field.getKey(), field.getValue());
+        }
+        return union;
+    }
 }
