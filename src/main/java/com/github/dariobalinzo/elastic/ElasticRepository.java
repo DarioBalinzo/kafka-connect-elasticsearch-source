@@ -16,14 +16,17 @@
 
 package com.github.dariobalinzo.elastic;
 
-import com.github.dariobalinzo.elastic.response.CursorFields.Cursor;
+import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.PageResult;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
+import org.elasticsearch.core.TimeValue;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.search.builder.PointInTimeBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.slf4j.Logger;
@@ -37,45 +40,120 @@ import java.util.stream.Collectors;
 
 import static org.elasticsearch.index.query.QueryBuilders.*;
 
-public final class ElasticRepository {
+public class ElasticRepository {
     private final static Logger logger = LoggerFactory.getLogger(ElasticRepository.class);
 
     private final ElasticConnection elasticConnection;
 
     private int pageSize = 5000;
 
+
     public ElasticRepository(ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
     }
 
-    public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
-        Objects.requireNonNull(cursor);
 
-        String cursorField = cursor.getCursorFields().getPrimaryCursorField();
-        QueryBuilder queryBuilder = cursor.isEmpty() ?
-                matchAllQuery() :
-                buildGreaterThen(cursorField, cursor.getPrimaryCursor());
+    protected String openPit(String index) throws IOException {
+        Objects.requireNonNull(index, "Index cannot be null");
 
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                .query(queryBuilder)
-                .size(pageSize)
-                .sort(cursorField, SortOrder.ASC);
+        OpenPointInTimeRequest openRequest = new OpenPointInTimeRequest(index);
+        openRequest.keepAlive(TimeValue.timeValueMinutes(30));
+        OpenPointInTimeResponse openResponse = elasticConnection.getClient().openPointInTime(openRequest, RequestOptions.DEFAULT);
+        return openResponse.getPointInTimeId();
+    }
 
-        SearchRequest searchRequest = new SearchRequest(index)
-                .source(searchSourceBuilder);
 
-        SearchResponse response = executeSearch(searchRequest);
-
-        List<Map<String, Object>> documents = extractDocuments(response);
-
-        Cursor lastCursor;
-        if (documents.isEmpty()) {
-            lastCursor = cursor.newEmptyCursor();
-        } else {
-            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            lastCursor = cursor.newCursor(lastDocument.get(cursorField).toString());
+    protected void closePit(String pitId) {
+        if (pitId == null) {
+            return;
         }
-        return new PageResult(index, documents, lastCursor);
+
+        ClosePointInTimeRequest closeRequest = new ClosePointInTimeRequest(pitId);
+        try {
+            elasticConnection.getClient().closePointInTime(closeRequest, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public PageResult search(Cursor cursor) {
+        Objects.requireNonNull(cursor, "Cursor cannot be null");
+
+        final var queryBuilder = cursor.cursorFields().stream()
+                .map(cursorField ->
+                        boolQuery().must(rangeQuery(cursorField.field()).from(cursorField.initialValue()).includeLower(true)))
+                .reduce(boolQuery(), BoolQueryBuilder::must);
+
+        final PointInTimeBuilder pitBuilder;
+        try {
+            pitBuilder = new PointInTimeBuilder(Optional.ofNullable(cursor.pitId()).orElse(openPit(cursor.index())));
+            pitBuilder.setKeepAlive("20m");
+
+            final var searchSourceBuilder = new SearchSourceBuilder()
+                    .query(queryBuilder)
+                    .pointInTimeBuilder(pitBuilder)
+                    .size(pageSize);
+
+            cursor.cursorFields().forEach(cursorField -> searchSourceBuilder.sort(cursorField.field(), SortOrder.ASC));
+            Optional.ofNullable(cursor.sortValues()).ifPresent(searchSourceBuilder::searchAfter);
+
+            final var searchRequest = new SearchRequest().source(searchSourceBuilder);
+            final var response = executeSearch(searchRequest);
+
+            final var documents = extractDocuments(response);
+            final var totalHits = response.getHits().getTotalHits().value;
+
+            final PageResult result;
+            if (documents.isEmpty() || totalHits == 0) {
+                // return empty page with same cursor to maybe try again later
+                result = PageResult.empty(cursor);
+            } else if (totalHits > cursor.runningDocumentCount() + documents.size()) {
+                // return page with scrollable cursor
+                // note: ES says the pitId can change in a query so it's got to be set each query cycle
+                final var scrollable = cursor.scrollable(pitBuilder.getEncodedId(),
+                        response.getHits().getAt(documents.size() - 1).getSortValues(), documents.size(),
+                        totalHits);
+
+                result = PageResult.intermediatePage(documents, scrollable);
+            } else {
+                // return last page and cursor for the next frame
+                final var reframed = cursor.reframe(response.getHits().getAt(documents.size() - 1).getSortValues());
+                result = PageResult.lastPage(documents, reframed);
+            }
+
+            if (result.lastPage()) {
+                closePit(pitBuilder.getEncodedId());
+            }
+
+            return result;
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ElasticsearchStatusException e) {
+            if (cursor.isScrollable()) {
+                try {
+                    closePit(cursor.pitId());
+                } catch (RuntimeException ioException) {
+                    // nothing, best efforts, probably here because pit was closed unexpectedly anyway (i.e. timed out)
+                }
+
+                // TODO: make max failure count configurable
+                if (cursor.failureCount() >= 2) {
+                    logger.error("Failed after attempting to scroll cursor {} times, giving up. This is likely caused " +
+                                    "by the PIT timeout being too short to scroll through a long list of duplicates" +
+                                    "across multiple sourceConnector poll cycles.",
+                            cursor.failureCount(), e);
+                }
+
+                // recurse with reframed cursor - if it's not an issue with the pitId it will throw again and this time
+                // bubble up because the reframed cursor is not scrollable
+                return search(cursor.reframe(cursor.sortValues(), true));
+            }
+
+            // if not scrollable it's likely something else re-throw
+            throw e;
+        }
     }
 
     private List<Map<String, Object>> extractDocuments(SearchResponse response) {
@@ -86,62 +164,6 @@ public final class ElasticRepository {
                     sourceMap.put("es-index", hit.getIndex());
                     return sourceMap;
                 }).collect(Collectors.toList());
-    }
-
-    public PageResult searchAfterWithSecondarySort(String index, Cursor cursor) throws IOException, InterruptedException {
-        Objects.requireNonNull(cursor);
-        Objects.requireNonNull(cursor.getCursorFields().getSecondaryCursorField(), "Secondary cursor field is required in this context");
-
-        String primaryCursorField = cursor.getCursorFields().getPrimaryCursorField();
-        String secondaryCursorField = cursor.getCursorFields().getSecondaryCursorField();
-        String primaryCursor = cursor.getPrimaryCursor();
-        String secondaryCursor = cursor.getSecondaryCursor();
-
-        QueryBuilder queryBuilder = cursor.isEmpty() ? matchAllQuery() :
-                getSecondarySortFieldQuery(primaryCursorField, primaryCursor, secondaryCursorField, secondaryCursor);
-
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                .query(queryBuilder)
-                .size(pageSize)
-                .sort(primaryCursorField, SortOrder.ASC)
-                .sort(secondaryCursorField, SortOrder.ASC);
-
-        SearchRequest searchRequest = new SearchRequest(index)
-                .source(searchSourceBuilder);
-
-        SearchResponse response = executeSearch(searchRequest);
-
-        List<Map<String, Object>> documents = extractDocuments(response);
-
-        Cursor lastCursor;
-        if (documents.isEmpty()) {
-            lastCursor = cursor.newEmptyCursor();
-        } else {
-            Map<String, Object> lastDocument = documents.get(documents.size() - 1);
-            String primaryCursorValue = lastDocument.get(cursor.getCursorFields().getPrimaryCursorFieldJsonName()).toString();
-            String secondaryCursorValue = lastDocument.containsKey(cursor.getCursorFields().getSecondaryCursorFieldJsonName()) ?
-                    lastDocument.get(cursor.getCursorFields().getSecondaryCursorFieldJsonName()).toString() : null;
-            lastCursor = cursor.newCursor(primaryCursorValue, secondaryCursorValue);
-        }
-        return new PageResult(index, documents, lastCursor);
-    }
-
-    private QueryBuilder buildGreaterThen(String cursorField, String cursorValue) {
-        return rangeQuery(cursorField).from(cursorValue, false);
-    }
-
-    private QueryBuilder getSecondarySortFieldQuery(String cursorField, String primaryCursor, String secondaryCursorField, String secondaryCursor) {
-        if (secondaryCursor == null) {
-            return buildGreaterThen(cursorField, primaryCursor);
-        }
-        return boolQuery()
-                .minimumShouldMatch(1)
-                .should(buildGreaterThen(cursorField, primaryCursor))
-                .should(
-                        boolQuery()
-                                .filter(matchQuery(cursorField, primaryCursor))
-                                .filter(buildGreaterThen(secondaryCursorField, secondaryCursor))
-                );
     }
 
     private SearchResponse executeSearch(SearchRequest searchRequest) throws IOException, InterruptedException {

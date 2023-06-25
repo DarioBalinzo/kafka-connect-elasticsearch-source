@@ -16,31 +16,25 @@
 
 package com.github.dariobalinzo.elastic.response;
 
-import com.github.dariobalinzo.elastic.response.CursorFields.Cursor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PageResult {
-    private final String index;
-    private final List<Map<String, Object>> documents;
-    private final Cursor lastCursor;
-
-    public PageResult(String index, List<Map<String, Object>> documents, Cursor cursor) {
-        this.index = index;
-        this.documents = documents;
-        this.lastCursor = cursor;
+public record PageResult(List<Map<String, Object>> documents, Cursor cursor, boolean lastPage) {
+    public static PageResult intermediatePage(List<Map<String, Object>> documents, Cursor cursor) {
+        return new PageResult(documents, cursor, false);
     }
 
-    public List<Map<String, Object>> getDocuments() {
-        return documents;
+    public static PageResult lastPage(List<Map<String, Object>> documents, Cursor cursor) {
+        return new PageResult(documents, cursor, true);
     }
 
-    public Cursor getLastCursor() {
-        return lastCursor;
+    public static PageResult empty(Cursor cursor) {
+        return new PageResult(new ArrayList<>(), cursor, true);
     }
 
-    public String getIndex() {
-        return index;
+    public boolean isEmpty() {
+        return documents == null || documents.isEmpty();
     }
 }

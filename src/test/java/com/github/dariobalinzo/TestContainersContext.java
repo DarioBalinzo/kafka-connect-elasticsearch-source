@@ -19,6 +19,7 @@ package com.github.dariobalinzo;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
+import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.DocWriteResponse;

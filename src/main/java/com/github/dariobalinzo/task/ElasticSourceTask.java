@@ -21,10 +21,7 @@ import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
-import com.github.dariobalinzo.elastic.response.CursorFields;
-import com.github.dariobalinzo.elastic.response.CursorFields.Cursor;
-import com.github.dariobalinzo.elastic.response.CursorFields.CursorType;
-import com.github.dariobalinzo.elastic.response.PageResult;
+import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.filter.BlacklistFilter;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
@@ -49,6 +46,8 @@ public class ElasticSourceTask extends SourceTask {
     static final String POSITION = "position";
     static final String POSITION_SECONDARY = "position_secondary";
 
+    static final String SEARCH_AFTER = "search_after";
+
 
     private final OffsetSerializer offsetSerializer = new OffsetSerializer();
     private SchemaConverter schemaConverter;
@@ -60,9 +59,9 @@ public class ElasticSourceTask extends SourceTask {
     private final AtomicBoolean stopping = new AtomicBoolean(false);
     private List<String> indices;
     private String topic;
-    private CursorFields cursorFields;
+//    private CursorFields cursorFields;
     private int pollingMs;
-    private final Map<String, Cursor> lastCursor = new HashMap<>();
+    private final Map<String, Cursor> cursorCache = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
 
@@ -75,28 +74,28 @@ public class ElasticSourceTask extends SourceTask {
 
     @Override
     public void start(Map<String, String> properties) {
-        try {
-            config = new ElasticSourceTaskConfig(properties);
-        } catch (ConfigException e) {
-            throw new ConnectException("Couldn't start ElasticSourceTask due to configuration error", e);
-        }
-
-        indices = Arrays.asList(config.getString(ElasticSourceTaskConfig.INDICES_CONFIG).split(","));
-        if (indices.isEmpty()) {
-            throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
-                    + "least one index assigned to it");
-        }
-
-        topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
-        String primaryCursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
-        Objects.requireNonNull(primaryCursorField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
-                + " conf is mandatory");
-        cursorFields = new CursorFields(primaryCursorField, config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG));
-        pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
-
-        initConnectorFilters();
-        initConnectorFieldConverter();
-        initEsConnection();
+//        try {
+//            config = new ElasticSourceTaskConfig(properties);
+//        } catch (ConfigException e) {
+//            throw new ConnectException("Couldn't start ElasticSourceTask due to configuration error", e);
+//        }
+//
+//        indices = Arrays.asList(config.getString(ElasticSourceTaskConfig.INDICES_CONFIG).split(","));
+//        if (indices.isEmpty()) {
+//            throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
+//                    + "least one index assigned to it");
+//        }
+//
+//        topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
+//        String primaryCursorField = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+//        Objects.requireNonNull(primaryCursorField, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
+//                + " conf is mandatory");
+//        cursorFields = new CursorFields(primaryCursorField, config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG));
+//        pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
+//
+//        initConnectorFilters();
+//        initConnectorFieldConverter();
+//        initEsConnection();
     }
 
     private void initConnectorFilters() {
@@ -189,85 +188,89 @@ public class ElasticSourceTask extends SourceTask {
     //will be called by connect with a different thread than the stop thread
     @Override
     public List<SourceRecord> poll() {
-        List<SourceRecord> results = new ArrayList<>();
-        try {
-            for (String index : indices) {
-                if (!stopping.get()) {
-                    logger.info("fetching from {}", index);
-                    Cursor lastValue = fetchLastOffset(index);
-                    logger.info("found last value {}", lastValue);
-                    PageResult pageResult = cursorFields.getCursorType() == CursorType.PRIMARY_ONLY ?
-                            elasticRepository.searchAfter(index, lastValue) :
-                            elasticRepository.searchAfterWithSecondarySort(index, lastValue);
-                    parseResult(pageResult, results);
-                    logger.info("index {} total messages: {} ", index, sent.get(index));
-                }
-            }
-            if (results.isEmpty()) {
-                logger.info("no data found, sleeping for {} ms", pollingMs);
-                Thread.sleep(pollingMs);
-            }
+//        List<SourceRecord> results = new ArrayList<>();
+//        try {
+//            for (String index : indices) {
+//                if (!stopping.get()) {
+//                    logger.info("fetching from {}", index);
+//                    Cursor lastValue = fetchLastOffset(index);
+//                    logger.info("found last initialValue {}", lastValue);
+//
+//                    try (ElasticPointInTimeResource pointInTime = elasticRepository.newPointTime(index)) {
+//                        PageResult pageResult = cursorFields.getCursorType() == CursorType.PRIMARY_ONLY ?
+//                                elasticRepository.searchAfter(index, lastValue, pointInTime.getPitId()) :
+//                                elasticRepository.searchAfterWithSecondarySort(index, lastValue, pointInTime.getPitId());
+//                        parseResult(pageResult, results);
+//                        logger.info("index {} total messages: {} ", index, sent.get(index));
+//                    }
+//                }
+//            }
+//            if (results.isEmpty()) {
+//                logger.info("no data found, sleeping for {} ms", pollingMs);
+//                Thread.sleep(pollingMs);
+//            }
+//
+//        } catch (Exception e) {
+//            logger.error("error", e);
+//        }
+//        return results;
 
-        } catch (Exception e) {
-            logger.error("error", e);
-        }
-        return results;
+        return List.of();
     }
 
-    private Cursor fetchLastOffset(String index) {
-        //first we check in cache memory the last value
-        if (lastCursor.get(index) != null) {
-            return lastCursor.get(index);
-        }
-
-        //if cache is empty we check the framework
-        Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
-        if (offset != null) {
-            String primaryCursor = (String) offset.get(POSITION);
-            String secondaryCursor = (String) offset.get(POSITION_SECONDARY);
-            return cursorFields.newCursor(primaryCursor, secondaryCursor);
-        } else {
-            return cursorFields.newEmptyCursor();
-        }
-    }
-
-    private void parseResult(PageResult pageResult, List<SourceRecord> results) {
-        String index = pageResult.getIndex();
-        for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
-            Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = offsetSerializer.toMapOffset(
-                    cursorFields.getPrimaryCursorFieldJsonName(),
-                    cursorFields.getSecondaryCursorFieldJsonName(),
-                    elasticDocument
-            );
-            String key = offsetSerializer.toStringOffset(
-                    cursorFields.getPrimaryCursorFieldJsonName(),
-                    cursorFields.getSecondaryCursorFieldJsonName(),
-                    index,
-                    elasticDocument
-            );
-
-            lastCursor.put(index, pageResult.getLastCursor());
-            sent.merge(index, 1, Integer::sum);
-
-            documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
-
-            Schema schema = schemaConverter.convert(elasticDocument, index);
-            Struct struct = structConverter.convert(elasticDocument, schema);
-
-            SourceRecord sourceRecord = new SourceRecord(
-                    sourcePartition,
-                    sourceOffset,
-                    topic + index,
-                    //KEY
-                    Schema.STRING_SCHEMA,
-                    key,
-                    //VALUE
-                    schema,
-                    struct);
-            results.add(sourceRecord);
-        }
-    }
+//    private Cursor fetchLastOffset(String index) {
+//        //first we check in cache memory the last initialValue
+//        if (cursorCache.get(index) != null) {
+//            return cursorCache.get(index);
+//        }
+//
+//        //if cache is empty we check the framework
+//        Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
+//        if (offset != null) {
+//            String primaryCursor = (String) offset.get(POSITION);
+//            String secondaryCursor = (String) offset.get(POSITION_SECONDARY);
+//            Object[] searchAfter = (Object[]) offset.get(SEARCH_AFTER);
+//            return cursorFields.newCursor(primaryCursor, secondaryCursor, null, null);
+//        } else {
+//            return cursorFields.newEmptyCursor();
+//        }
+//
+//        return null;
+//    }
+//
+//    private void parseResult(PageResult pageResult, List<SourceRecord> results) {
+//        String index = pageResult.index();
+//        for (Map<String, Object> elasticDocument : pageResult.documents()) {
+//            Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
+//            var sourceOffset = new CursorSerde().serialize(pageResult.cursor().);
+//            String key = offsetSerializer.toStringOffset(
+//                    cursorFields.getPrimaryCursorFieldJsonName(),
+//                    cursorFields.getSecondaryCursorFieldJsonName(),
+//                    index,
+//                    elasticDocument
+//            );
+//
+//            cursor.put(index, pageResult.getLastCursor());
+//            sent.merge(index, 1, Integer::sum);
+//
+//            documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
+//
+//            Schema schema = schemaConverter.convert(elasticDocument, index);
+//            Struct struct = structConverter.convert(elasticDocument, schema);
+//
+//            SourceRecord sourceRecord = new SourceRecord(
+//                    sourcePartition,
+//                    sourceOffset,
+//                    topic + index,
+//                    //KEY
+//                    Schema.STRING_SCHEMA,
+//                    key,
+//                    //VALUE
+//                    schema,
+//                    struct);
+//            results.add(sourceRecord);
+//        }
+//    }
 
     //will be called by connect with a different thread than poll thread
     public void stop() {
