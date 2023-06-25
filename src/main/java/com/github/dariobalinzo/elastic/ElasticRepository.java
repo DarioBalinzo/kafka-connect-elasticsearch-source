@@ -141,8 +141,8 @@ public class ElasticRepository {
                 // TODO: make max failure count configurable
                 if (cursor.failureCount() >= 2) {
                     logger.error("Failed after attempting to scroll cursor {} times, giving up. This is likely caused " +
-                                    "by the PIT timeout being too short to scroll through a long list of duplicates" +
-                                    "across multiple sourceConnector poll cycles.",
+                                    "by the PIT timeout being too short to scroll through a long list of duplicate " +
+                                    "sort keys across multiple poll cycles.",
                             cursor.failureCount(), e);
                 }
 
