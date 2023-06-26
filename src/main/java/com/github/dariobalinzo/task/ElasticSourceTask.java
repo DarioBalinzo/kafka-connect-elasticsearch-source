@@ -97,7 +97,7 @@ public class ElasticSourceTask extends SourceTask {
                                                   + " conf is mandatory");
         cursorField = new CursorField(cursorSearchField);
         secondaryCursorSearchField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
-        secondaryCursorField = new CursorField(secondaryCursorSearchField);
+        secondaryCursorField = secondaryCursorSearchField == null ? null : new CursorField(secondaryCursorSearchField);
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();

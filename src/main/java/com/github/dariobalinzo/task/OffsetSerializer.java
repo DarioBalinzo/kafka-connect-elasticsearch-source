@@ -12,9 +12,9 @@ public class OffsetSerializer {
 
     public Map<String, String> toMapOffset(CursorField primaryCursor, CursorField secondaryCursor, Map<String, Object> document) {
         Map<String, String> result = new HashMap<>();
-        result.put(POSITION, document.get(primaryCursor).toString());
+        result.put(POSITION, primaryCursor.read(document));
         if (secondaryCursor != null) {
-            result.put(POSITION_SECONDARY, document.get(secondaryCursor).toString());
+            result.put(POSITION_SECONDARY, secondaryCursor.read(document));
         }
         return result;
     }

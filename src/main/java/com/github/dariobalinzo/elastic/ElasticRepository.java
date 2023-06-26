@@ -63,7 +63,7 @@ public final class ElasticRepository {
         this.cursorSearchField = cursorSearchField;
         this.cursorField = new CursorField(cursorSearchField);
         this.secondaryCursorSearchField = secondaryCursorSearchField;
-        this.secondaryCursorField = new CursorField(secondaryCursorSearchField);
+        this.secondaryCursorField = secondaryCursorSearchField == null ? null : new CursorField(secondaryCursorSearchField);
     }
 
     public PageResult searchAfter(String index, Cursor cursor) throws IOException, InterruptedException {
@@ -131,7 +131,7 @@ public final class ElasticRepository {
         } else {
             Map<String, Object> lastDocument = documents.get(documents.size() - 1);
             String primaryCursorValue = cursorField.read(lastDocument);
-            String secondaryCursorValue = cursorField.read(lastDocument);
+            String secondaryCursorValue = secondaryCursorField.read(lastDocument);
             lastCursor = new Cursor(primaryCursorValue, secondaryCursorValue);
         }
         return new PageResult(index, documents, lastCursor);
