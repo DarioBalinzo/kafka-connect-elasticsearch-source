@@ -400,6 +400,21 @@ public class SchemaConverterTest {
     }
 
     @Test
+    public void shouldUpcastNestedLongToFloatWhenAtLeastOnEntryIsFloat() {
+        Map<String, Object> elasticDocument = mapOf("foo", asList(
+                mapOf("bar", 1),
+                mapOf("bar", 3.0)
+        ));
+
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        Assert.assertEquals("Schema{FLOAT64}", schema.field("foo").schema().valueSchema()
+                                                     .field("bar").schema().toString());
+        Assert.assertEquals("Struct{foo=[Struct{bar=1.0}, Struct{bar=3.0}]}", struct.toString());
+    }
+
+    @Test
     public void shouldMergeByMarkingMergedFieldsAsOptional() {
         Map<String, Object> elasticDocument = mapOf("a", asList(emptyMap(), mapOf("b", asList(emptyMap()))));
 

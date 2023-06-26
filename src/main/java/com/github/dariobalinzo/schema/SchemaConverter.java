@@ -31,6 +31,8 @@ import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.Type.FLOAT64;
+import static org.apache.kafka.connect.data.Schema.Type.INT64;
 import static org.apache.kafka.connect.data.Schema.Type.STRUCT;
 import static org.apache.kafka.connect.data.SchemaBuilder.array;
 import static org.apache.kafka.connect.data.SchemaBuilder.struct;
@@ -158,8 +160,12 @@ public class SchemaConverter {
 
     private Schema merge(Schema a, Schema b) {
         if (!(a.type() == STRUCT && b.type() == STRUCT)) {
-            // we can only merge structs, we therefor always return the first found schema
-            return a;
+            if(a.type() == INT64 && b.type() == FLOAT64) {
+                return b;
+            } else {
+                // we can only merge structs, we therefor always return the first found schema
+                return a;
+            }
         }
 
         Map<String, Schema> fieldsUnion = new LinkedHashMap<>();

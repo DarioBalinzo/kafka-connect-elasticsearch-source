@@ -46,8 +46,14 @@ public class StructConverter {
             Object value = entry.getValue();
 
             if (isScalar(value)) {
-                value = handleNumericPrecision(value);
-                struct.put(converter.from(key), value);
+                String field = converter.from(key);
+                boolean isFloat = struct.schema().field(field).schema().type() == FLOAT64;
+                if(isFloat && value instanceof Number) {
+                    value = ((Number) value).doubleValue();
+                } else {
+                    value = handleNumericPrecision(value);
+                }
+                struct.put(field, value);
             } else if (value instanceof List) {
                 convertListToAvroArray(prefixName, struct, schema, entry);
             } else if (value instanceof Map) {
