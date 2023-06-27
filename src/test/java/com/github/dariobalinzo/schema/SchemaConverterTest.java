@@ -44,7 +44,7 @@ public class SchemaConverterTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    public void shouldConvertArrayWithDifferentSchema() {
+    public void shouldMergeArraySchema() {
         //given
         Map<String, Object> elasticDocument = mapOf(
                 "list", asList(
@@ -67,8 +67,9 @@ public class SchemaConverterTest {
         Assert.assertEquals(expected, innerSchema);
         Assert.assertEquals("Struct{list=[Struct{inner=Struct{a=some value}}, Struct{inner=Struct{b=some value}}]}", struct.toString());
     }
+
     @Test
-    public void shouldConvertArrayWithDifferentSchemaAlsoWhenDeep() {
+    public void shouldMergeArraySchemaAlsoWhenDeep() {
         //given
         Map<String, Object> elasticDocument = mapOf(
                 "out", singletonList(
@@ -98,6 +99,43 @@ public class SchemaConverterTest {
                                    .field("inner").schema().schema();
         Assert.assertEquals(expected, innerSchema);
         Assert.assertEquals("Struct{out=[Struct{list=[Struct{inner=Struct{a=some value}}, Struct{inner=Struct{b=some value}}]}]}", struct.toString());
+    }
+
+    @Test
+    public void shouldMergeArraySchemaAlsoWhenDeepInAnotherWay() {
+        //given
+        Map<String, Object> elasticDocument = mapOf(
+                "out", asList(
+                        mapOf(
+                                "list", asList(
+                                        mapOf("inner", mapOf("a", "some value"))
+                                )
+                        ),
+                        mapOf(
+                                "list", asList(
+                                        mapOf("inner", mapOf("b", "some value"))
+                                )
+                        )
+                )
+        );
+
+        //when
+        Schema schema = schemaConverter.convert(elasticDocument, "test");
+        Struct struct = structConverter.convert(elasticDocument, schema);
+
+        //then
+        Schema expected = struct().name("out.list.inner")
+                                  .optional()
+                                  .field("a", string().optional().build())
+                                  .field("b", string().optional().build())
+                                  .build();
+        Schema innerSchema = schema.field("out").schema()
+                                   .valueSchema()
+                                   .field("list").schema()
+                                   .valueSchema()
+                                   .field("inner").schema().schema();
+        Assert.assertEquals(expected, innerSchema);
+        Assert.assertEquals("Struct{out=[Struct{list=[Struct{inner=Struct{a=some value}}]}, Struct{list=[Struct{inner=Struct{b=some value}}]}]}", struct.toString());
     }
 
     @Test

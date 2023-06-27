@@ -31,6 +31,7 @@ import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
+import static org.apache.kafka.connect.data.Schema.Type.ARRAY;
 import static org.apache.kafka.connect.data.Schema.Type.FLOAT64;
 import static org.apache.kafka.connect.data.Schema.Type.INT64;
 import static org.apache.kafka.connect.data.Schema.Type.STRUCT;
@@ -162,8 +163,15 @@ public class SchemaConverter {
         if (!(a.type() == STRUCT && b.type() == STRUCT)) {
             if(a.type() == INT64 && b.type() == FLOAT64) {
                 return b;
+            } else if(a.type() == FLOAT64 && b.type() == INT64) {
+                return a;
+            } else if (a.type() == ARRAY && b.type() == ARRAY) {
+                SchemaBuilder builder = SchemaBuilder.array(merge(a.valueSchema(), b.valueSchema()));
+                copyInto(builder, a);
+                return builder;
             } else {
-                // we can only merge structs, we therefor always return the first found schema
+                // when we reach this cases we were not able to correctly merge the two schemas
+                // we return the first and hope that it somehow works out
                 return a;
             }
         }
@@ -209,19 +217,23 @@ public class SchemaConverter {
                     break;
                 }
             }
-            if(schema.isOptional()) {
-                builder.optional();
-            }
-            builder.name(schema.name());
-            if(schema.defaultValue() != null) {
-                builder.defaultValue(schema.defaultValue());
-            }
-            builder.doc(schema.doc());
-            if(schema.parameters() != null) {
-                builder.parameters(schema.parameters());
-            }
-            builder.version(schema.version());
+            copyInto(builder, schema);
             return builder;
         }
+    }
+
+    private void copyInto(SchemaBuilder builder, Schema from) {
+        if(from.isOptional()) {
+            builder.optional();
+        }
+        builder.name(from.name());
+        if(from.defaultValue() != null) {
+            builder.defaultValue(from.defaultValue());
+        }
+        builder.doc(from.doc());
+        if(from.parameters() != null) {
+            builder.parameters(from.parameters());
+        }
+        builder.version(from.version());
     }
 }
