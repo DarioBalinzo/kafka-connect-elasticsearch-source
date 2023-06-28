@@ -52,6 +52,29 @@ public class ElasticRepositoryTest extends TestContainersContext {
         assertEquals(Collections.singletonList(TEST_INDEX), repository.catIndices("source"));
         assertEquals(Collections.emptyList(), repository.catIndices("non-existing"));
     }
+    @Test
+    public void shouldFetchDataFromElasticWithNestedCursor() throws IOException, InterruptedException {
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        insertMockData(113);
+        insertMockData(114);
+        refreshIndex();
+
+        PageResult firstPage = nestedRepository.searchAfter(TEST_INDEX, Cursor.empty());
+        assertEquals(3, firstPage.getDocuments().size());
+
+        PageResult secondPage = nestedRepository.searchAfter(TEST_INDEX, firstPage.getLastCursor());
+        assertEquals(1, secondPage.getDocuments().size());
+
+        PageResult emptyPage = nestedRepository.searchAfter(TEST_INDEX, secondPage.getLastCursor());
+        assertEquals(0, emptyPage.getDocuments().size());
+        assertNull(emptyPage.getLastCursor().getPrimaryCursor());
+
+        assertEquals(Collections.singletonList(TEST_INDEX), nestedRepository.catIndices("source"));
+        assertEquals(Collections.emptyList(), nestedRepository.catIndices("non-existing"));
+    }
 
     @Test
     public void shouldListExistingIndices() throws IOException, InterruptedException {

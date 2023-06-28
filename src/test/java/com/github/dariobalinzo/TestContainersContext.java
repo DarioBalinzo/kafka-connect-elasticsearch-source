@@ -45,6 +45,8 @@ public class TestContainersContext {
 
     protected static final String TEST_INDEX = "source_index";
     protected static final String CURSOR_FIELD = "ts";
+    protected static final String NESTED_OBJECT = "nested";
+    protected static final String NESTED_CURSOR_FIELD = NESTED_OBJECT + "." + CURSOR_FIELD;
     protected static final String SECONDARY_CURSOR_FIELD = "fullName.keyword";
 
     protected static final String ELASTICSEARCH_IMAGE = "docker.elastic.co/elasticsearch/elasticsearch:7.11.1";
@@ -52,6 +54,7 @@ public class TestContainersContext {
     protected static ElasticsearchContainer container;
     protected static ElasticConnection connection;
     protected static ElasticRepository repository;
+    protected static ElasticRepository nestedRepository;
     protected static ElasticRepository secondarySortRepo;
 
     @BeforeClass
@@ -69,6 +72,9 @@ public class TestContainersContext {
 
         repository = new ElasticRepository(connection, CURSOR_FIELD);
         repository.setPageSize(TEST_PAGE_SIZE);
+
+        nestedRepository = new ElasticRepository(connection, NESTED_CURSOR_FIELD);
+        nestedRepository.setPageSize(TEST_PAGE_SIZE);
 
         secondarySortRepo = new ElasticRepository(connection, CURSOR_FIELD, SECONDARY_CURSOR_FIELD);
         secondarySortRepo.setPageSize(TEST_PAGE_SIZE);
@@ -103,6 +109,7 @@ public class TestContainersContext {
                 .field("age", 10)
                 .field("non-avro-field", "non-avro-field")
                 .field("avroField", "avro-field")
+                .object(NESTED_OBJECT, b -> b.field(CURSOR_FIELD, tsStart))
                 .endObject();
 
         IndexRequest indexRequest = new IndexRequest(index);
