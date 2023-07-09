@@ -16,6 +16,7 @@
 
 package com.github.dariobalinzo.task;
 
+import com.github.dariobalinzo.elastic.response.Cursor;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 
 import java.util.Collection;
@@ -28,16 +29,9 @@ public class MockOffsetFactory {
         return emptyOffset;
     }
 
-    static OffsetStorageReader from(String initialCursor) {
-        return from(initialCursor, null);
-    }
-
-    static OffsetStorageReader from(String initialCursor, String secondaryCursor) {
+    static OffsetStorageReader from(Cursor initialCursor) {
         Map<String, Object> state = new HashMap<>();
         state.put(ElasticSourceTask.POSITION, initialCursor);
-        if (secondaryCursor != null) {
-            state.put(ElasticSourceTask.POSITION_SECONDARY, secondaryCursor);
-        }
 
         return new OffsetStorageReader() {
             @Override

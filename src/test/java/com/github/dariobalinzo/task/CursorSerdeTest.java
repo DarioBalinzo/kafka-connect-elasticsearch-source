@@ -14,7 +14,7 @@ public class CursorSerdeTest extends TestCase {
 
         // serialize
         final var serialized = serde.serialize(cursor);
-        assertEquals("{\"index\":\"some_index\",\"cursorFields\":[{\"field\":\"firstField\",\"initialValue\":9223372036854775807},{\"field\":\"secondField\",\"initialValue\":\"\"}],\"pitId\":null,\"sortValues\":null,\"runningDocumentCount\":0,\"scrollLimit\":0\"failureCount\":0}", serialized);
+        assertEquals("{\"index\":\"some_index\",\"cursorFields\":[{\"field\":\"firstField\",\"initialValue\":9223372036854775807},{\"field\":\"secondField\",\"initialValue\":\"\"}],\"pitId\":null,\"sortValues\":null,\"runningDocumentCount\":0,\"scrollLimit\":0,\"failureCount\":0}", serialized);
 
         // deserialize
         final var deserialized = serde.deserialize(serialized);
@@ -25,7 +25,7 @@ public class CursorSerdeTest extends TestCase {
         final var cursor = new Cursor("some_index",
                 List.of(new CursorField("firstField", Long.MAX_VALUE),
                         new CursorField("secondField", "")),
-                "some_pit_id",
+                false, "some_pit_id",
                 new Object[] { 4711, "some_secondary_value", 37 },
                 53, 64,0);
         final var serde = new CursorSerde();

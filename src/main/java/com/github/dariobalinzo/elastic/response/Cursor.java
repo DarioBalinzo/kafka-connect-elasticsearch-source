@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 
-public record Cursor(String index, List<CursorField> cursorFields, String pitId, Object[] sortValues,
+public record Cursor(String index, List<CursorField> cursorFields, boolean includeLower, String pitId, Object[] sortValues,
                      int runningDocumentCount, long scrollLimit, int failureCount) {
 
     public Cursor {
@@ -25,12 +25,12 @@ public record Cursor(String index, List<CursorField> cursorFields, String pitId,
 
 
     public static Cursor of(String index, List<CursorField> cursorFields) {
-        return new Cursor(index, cursorFields, null, null, 0, 0, 0);
+        return new Cursor(index, cursorFields, false, null, null, 0, 0, 0);
     }
 
 
     public Cursor scrollable(String pitId, Object[] sortValues, int documentCount, long scrollLimit) {
-        return new Cursor(this.index(), this.cursorFields, pitId, sortValues, this.runningDocumentCount + documentCount,
+        return new Cursor(this.index(), this.cursorFields, false, pitId, sortValues, this.runningDocumentCount + documentCount,
                 scrollLimit, 0);
     }
 
@@ -60,10 +60,10 @@ public record Cursor(String index, List<CursorField> cursorFields, String pitId,
     }
 
     public Cursor reframe(Object[] sortValues) {
-        return reframe(sortValues, false);
+        return reframe(sortValues, false, false);
     }
 
-    public Cursor reframe(Object[] sortValues, boolean incrementFailureCount) {
+    public Cursor reframe(Object[] sortValues, boolean includeLower, boolean incrementFailureCount) {
         final List<CursorField> newCursorFields;
         if (sortValues == null || sortValues.length == 0) {
             newCursorFields = cursorFields;
@@ -75,7 +75,7 @@ public record Cursor(String index, List<CursorField> cursorFields, String pitId,
             }
         }
 
-        return new Cursor(this.index, newCursorFields, null, null, 0, 0,
+        return new Cursor(this.index, newCursorFields, includeLower, null, null, 0, 0,
                 incrementFailureCount ? this.failureCount + 1 : 0);
     }
 }

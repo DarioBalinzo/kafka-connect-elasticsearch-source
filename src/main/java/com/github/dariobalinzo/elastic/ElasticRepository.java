@@ -25,7 +25,6 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.builder.PointInTimeBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
@@ -38,6 +37,7 @@ import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.max;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 
 public class ElasticRepository {
@@ -46,10 +46,19 @@ public class ElasticRepository {
     private final ElasticConnection elasticConnection;
 
     private int pageSize = 5000;
+    private final int pitTimeoutSeconds;
+    private final int maxPointInTimeTimeoutCount;
 
 
     public ElasticRepository(ElasticConnection elasticConnection) {
+        this(elasticConnection, 5000, 300, 2);
+    }
+
+    public ElasticRepository(ElasticConnection elasticConnection, int pageSize, int pitTimeoutSeconds, int maxPointInTimeTimeoutCount) {
         this.elasticConnection = elasticConnection;
+        this.pageSize = max(1, pageSize);
+        this.pitTimeoutSeconds = pitTimeoutSeconds = max(35, pitTimeoutSeconds);
+        this.maxPointInTimeTimeoutCount = maxPointInTimeTimeoutCount = max(3, maxPointInTimeTimeoutCount);
     }
 
 
@@ -57,7 +66,7 @@ public class ElasticRepository {
         Objects.requireNonNull(index, "Index cannot be null");
 
         OpenPointInTimeRequest openRequest = new OpenPointInTimeRequest(index);
-        openRequest.keepAlive(TimeValue.timeValueMinutes(30));
+        openRequest.keepAlive(TimeValue.timeValueSeconds(pitTimeoutSeconds));
         OpenPointInTimeResponse openResponse = elasticConnection.getClient().openPointInTime(openRequest, RequestOptions.DEFAULT);
         return openResponse.getPointInTimeId();
     }
@@ -82,13 +91,15 @@ public class ElasticRepository {
 
         final var queryBuilder = cursor.cursorFields().stream()
                 .map(cursorField ->
-                        boolQuery().must(rangeQuery(cursorField.field()).from(cursorField.initialValue()).includeLower(true)))
+                        boolQuery().must(rangeQuery(cursorField.field()).from(cursorField.initialValue()).includeLower(cursor.includeLower())))
                 .reduce(boolQuery(), BoolQueryBuilder::must);
 
         final PointInTimeBuilder pitBuilder;
         try {
             pitBuilder = new PointInTimeBuilder(Optional.ofNullable(cursor.pitId()).orElse(openPit(cursor.index())));
-            pitBuilder.setKeepAlive("20m");
+
+            // timeout slightly (5s) less than that of the PIT itself
+            pitBuilder.setKeepAlive(TimeValue.timeValueSeconds(pitTimeoutSeconds - 5));
 
             final var searchSourceBuilder = new SearchSourceBuilder()
                     .query(queryBuilder)
@@ -131,6 +142,10 @@ public class ElasticRepository {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         } catch (ElasticsearchStatusException e) {
+            // this is to catch when a PIT is timed out and closed by ES before we get to close it, this generally
+            // means the PIT timeout is too short for the amount of data being processed and is not usually an issue
+            // because the cursor will be re-framed and the PIT re-opened at the new start. It is an issue however
+            // if there are too many duplicate sort keys to scroll across in a single PIT timeout.
             if (cursor.isScrollable()) {
                 try {
                     closePit(cursor.pitId());
@@ -138,8 +153,7 @@ public class ElasticRepository {
                     // nothing, best efforts, probably here because pit was closed unexpectedly anyway (i.e. timed out)
                 }
 
-                // TODO: make max failure count configurable
-                if (cursor.failureCount() >= 2) {
+                if (cursor.failureCount() >= maxPointInTimeTimeoutCount) {
                     logger.error("Failed after attempting to scroll cursor {} times, giving up. This is likely caused " +
                                     "by the PIT timeout being too short to scroll through a long list of duplicate " +
                                     "sort keys across multiple poll cycles.",
@@ -148,7 +162,7 @@ public class ElasticRepository {
 
                 // recurse with reframed cursor - if it's not an issue with the pitId it will throw again and this time
                 // bubble up because the reframed cursor is not scrollable
-                return search(cursor.reframe(cursor.sortValues(), true));
+                return search(cursor.reframe(cursor.sortValues(), true, true));
             }
 
             // if not scrollable it's likely something else re-throw

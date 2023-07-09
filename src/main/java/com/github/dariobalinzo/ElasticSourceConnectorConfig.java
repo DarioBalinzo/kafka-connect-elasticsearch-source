@@ -62,6 +62,24 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public final static String ES_TRUSTSTORE_PWD_CONF = "es.tls.truststore.password";
     private final static String ES_TRUSTSTORE_PWD_DOC = "Elasticsearch truststore password";
 
+
+    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG = "point_in_time_timeout_seconds";
+    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC = "Set the timeout of any created point in time cursors in seconds. Defaults to 300 (5 minutes) restricted to a minimum of 30." +
+            "If you expect a large number of duplicate primary and/or secondary keys in your data, you may need to increase this value or you may get stalled. " +
+            "Point in Time cursors are cheap to create but will become expensive if held a long time.";
+    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DISPLAY = "Point in Time Timeout Seconds";
+    public static final Integer ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT = 300;
+
+    public static final String ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_CONFIG = "max_point_in_time_timeout_count";
+    public static final String ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DOC = "The number of times to attempt to recover" +
+            "from a timeout of the Point In Time cursor. If this is exceeded the connector will fail, shutdown and need" +
+            "manual intervention to continue. Exceeding this is likely because the Point In Time Timeout setting is too short" +
+            "to scroll through a set of duplicate sort keys. Default is 3.";
+    public static final String ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DISPLAY = "Max Point In Time Timeout Count";
+
+    public static final Integer ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DEFAULT = 3;
+
+
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
     private static final String CONNECTION_ATTEMPTS_DOC
             = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
@@ -99,11 +117,21 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INCREMENTING_FIELD_NAME_DEFAULT = "";
     private static final String INCREMENTING_FIELD_NAME_DISPLAY = "Incrementing Field Name";
 
+    public static final String INCREMENTING_FIELD_INITIAL_VALUE_CONFIG = "incrementing.field.initial.value";
+    private static final String INCREMENTING_FIELD_INITIAL_VALUE_DOC =
+            "The initial value to start at for the incrementing field, default is zero (0) or empty string ('') probably.";
+    private static final String INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY = "Incrementing Field Initial Value";
+
+
     public static final String SECONDARY_INCREMENTING_FIELD_NAME_CONFIG = "incrementing.secondary.field.name";
     private static final String SECONDARY_INCREMENTING_FIELD_NAME_DOC =
             "In case the main incrementing field may have duplicates, this secondary field is used as a secondary sort field" +
                     " in order to avoid data losses when paginating";
     private static final String SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY = "Secondary Incrementing Field Name";
+    public static final String SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG = "incrementing.secondary.field.initial.value";
+    private static final String SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DOC =
+            "The initial value to start at for the secondary incrementing field, default is zero (0) or empty string ('') probably.";
+    private static final String SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY = "Secondary Incrementing Field Initial Value";
 
     public static final String INDEX_PREFIX_CONFIG = "index.prefix";
     private static final String INDEX_PREFIX_DOC = "List of indices to include in copying.";
@@ -253,6 +281,26 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.SHORT,
                 ES_TRUSTSTORE_PWD_DOC
         ).define(
+                ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG,
+                Type.INT,
+                ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT,
+                Importance.MEDIUM,
+                ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC
+        ).define(
+                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_CONFIG,
+                Type.INT,
+                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DEFAULT,
+                Importance.MEDIUM,
+                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.SHORT,
+                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DISPLAY
+        ).define(
                 CONNECTION_ATTEMPTS_CONFIG,
                 Type.STRING,
                 CONNECTION_ATTEMPTS_DEFAULT,
@@ -358,6 +406,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.MEDIUM,
                 INCREMENTING_FIELD_NAME_DISPLAY
         ).define(
+                INCREMENTING_FIELD_INITIAL_VALUE_CONFIG,
+                Type.STRING,
+                null,
+                Importance.MEDIUM,
+                INCREMENTING_FIELD_INITIAL_VALUE_DOC,
+                MODE_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                INCREMENTING_FIELD_NAME_DISPLAY
+        ).define(
                 SECONDARY_INCREMENTING_FIELD_NAME_CONFIG,
                 Type.STRING,
                 null,
@@ -367,6 +425,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.MEDIUM,
                 SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY
+        ).define(
+                SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG,
+                Type.STRING,
+                null,
+                Importance.LOW,
+                SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DOC,
+                MODE_GROUP,
+                ++orderInGroup,
+                Width.MEDIUM,
+                SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY
         );
     }
 

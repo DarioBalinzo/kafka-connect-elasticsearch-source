@@ -32,13 +32,11 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 public class ElasticSourceConnector extends SourceConnector {
-    private static Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger(ElasticSourceConnector.class);
     private static final long MAX_TIMEOUT = 10000L;
-    private static final long POLL_MILISSECONDS = 5000L;
+    private static final long POLL_MILLISECONDS = 5000L;
 
-    private ElasticSourceConnectorConfig config;
     private ElasticConnection elasticConnection;
-    private ElasticRepository elasticRepository;
     private Map<String, String> configProperties;
     private ElasticIndexMonitorThread indexMonitorThread;
 
@@ -49,6 +47,7 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public void start(Map<String, String> props) {
+        ElasticSourceConnectorConfig config;
         try {
             configProperties = props;
             config = new ElasticSourceConnectorConfig(props);
@@ -99,9 +98,9 @@ public class ElasticSourceConnector extends SourceConnector {
                     .build();
         }
 
-        elasticRepository = new ElasticRepository(elasticConnection);
+        ElasticRepository elasticRepository = new ElasticRepository(elasticConnection);
 
-        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILLISECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
         indexMonitorThread.start();
     }
 
