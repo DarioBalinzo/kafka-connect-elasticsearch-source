@@ -30,8 +30,7 @@ public class MockOffsetFactory {
     }
 
     static OffsetStorageReader from(Cursor initialCursor) {
-        Map<String, Object> state = new HashMap<>();
-        state.put(ElasticSourceTask.POSITION, initialCursor);
+        Map<String, Object> state = new OffsetSerializer().serialize(initialCursor);
 
         return new OffsetStorageReader() {
             @Override

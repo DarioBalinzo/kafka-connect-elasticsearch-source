@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Objects;
 
 
-public record Cursor(String index, List<CursorField> cursorFields, boolean includeLower, String pitId, Object[] sortValues,
-                     int runningDocumentCount, long scrollLimit, int failureCount) {
+public record Cursor(String index, List<CursorField> cursorFields, String pitId, Object[] sortValues,
+                     int runningDocumentCount, long scrollLimit) {
 
     public Cursor {
         Objects.requireNonNull(index);
@@ -25,15 +25,14 @@ public record Cursor(String index, List<CursorField> cursorFields, boolean inclu
 
 
     public static Cursor of(String index, List<CursorField> cursorFields) {
-        return new Cursor(index, cursorFields, false, null, null, 0, 0, 0);
+        return new Cursor(index, cursorFields, null, null, 0, 0);
     }
 
 
     public Cursor scrollable(String pitId, Object[] sortValues, int documentCount, long scrollLimit) {
-        return new Cursor(this.index(), this.cursorFields, false, pitId, sortValues, this.runningDocumentCount + documentCount,
-                scrollLimit, 0);
+        return new Cursor(this.index(), this.cursorFields, pitId, sortValues, this.runningDocumentCount + documentCount,
+            scrollLimit);
     }
-
 
     @Override
     // Overriding equals and hashCode for the sortValues object array which falls back to the Object default
@@ -46,9 +45,9 @@ public record Cursor(String index, List<CursorField> cursorFields, boolean inclu
             return false;
         }
         Cursor cursor = (Cursor) o;
-        return Objects.equals(index, cursor.index) && Objects.equals(cursorFields, cursor.cursorFields) &&
-                Objects.equals(pitId, cursor.pitId) && Arrays.equals(sortValues, cursor.sortValues) &&
-                Objects.equals(runningDocumentCount, cursor.runningDocumentCount);
+        return Objects.equals(index, cursor.index) && Objects.equals(cursorFields, cursor.cursorFields)
+            && Objects.equals(pitId, cursor.pitId) && Arrays.equals(sortValues, cursor.sortValues) && Objects.equals(
+            runningDocumentCount, cursor.runningDocumentCount);
     }
 
 
@@ -57,6 +56,13 @@ public record Cursor(String index, List<CursorField> cursorFields, boolean inclu
         int result = Objects.hash(index, cursorFields, pitId, runningDocumentCount);
         result = 31 * result + Arrays.hashCode(sortValues);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return ("Cursor{index='%s', cursorFields=%s, pitId='%s', sortValues=%s, "
+            + "runningDocumentCount=%d, scrollLimit=%d}").formatted(index, cursorFields, pitId,
+            Arrays.toString(sortValues), runningDocumentCount, scrollLimit);
     }
 
     public Cursor reframe(Object[] sortValues) {
@@ -75,7 +81,6 @@ public record Cursor(String index, List<CursorField> cursorFields, boolean inclu
             }
         }
 
-        return new Cursor(this.index, newCursorFields, includeLower, null, null, 0, 0,
-                incrementFailureCount ? this.failureCount + 1 : 0);
+        return new Cursor(this.index, newCursorFields, null, null, 0, 0);
     }
 }

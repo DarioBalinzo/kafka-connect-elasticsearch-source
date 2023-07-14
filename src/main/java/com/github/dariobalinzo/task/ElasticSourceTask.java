@@ -195,9 +195,8 @@ public class ElasticSourceTask extends SourceTask {
         }
 
         var pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG);
-        var maxPitTimeoutCount = config.getInt(ElasticSourceConnectorConfig.ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_CONFIG);
 
-        elasticRepository = new ElasticRepository(es, batchSize, pitTimeout, maxPitTimeoutCount);
+        elasticRepository = new ElasticRepository(es, batchSize, pitTimeout);
     }
 
 
@@ -209,9 +208,8 @@ public class ElasticSourceTask extends SourceTask {
             for (String index : indices) {
                 if (!stopping.get()) {
                     logger.info("fetching from {}", index);
-                    Cursor cursor = fetchLastOffset(index);
+                    Cursor cursor = fetchAndAlignLastOffset(index, cursorFields);
                     logger.info("found last initialValue {}", cursor);
-
                     var pageResult = elasticRepository.search(cursor);
                     parseResult(pageResult, results);
                     logger.info("index {} total messages: {} ", index, sent.get(index));
@@ -229,7 +227,7 @@ public class ElasticSourceTask extends SourceTask {
         return results;
     }
 
-    private Cursor fetchLastOffset(String index) {
+    private Cursor fetchAndAlignLastOffset(String index, List<CursorField> cursorFields) {
         //first we check in cache memory the last initialValue
         if (cursorCache.get(index) != null) {
             return cursorCache.get(index);
@@ -241,11 +239,17 @@ public class ElasticSourceTask extends SourceTask {
             return Cursor.of(index, cursorFields);
         }
 
-        return (Cursor) offset.get("position");
+        var cursor = new OffsetSerializer().deserialize(offset);
+        if (cursor == null) {
+            return Cursor.of(index, cursorFields);
+        }
+
+        return cursor;
     }
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
         String index = pageResult.cursor().index();
+        cursorCache.put(index, pageResult.cursor());
         for (Map<String, Object> elasticDocument : pageResult.documents()) {
 
             var sourcePartition = Collections.singletonMap(INDEX, index);

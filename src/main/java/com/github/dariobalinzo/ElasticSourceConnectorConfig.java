@@ -70,16 +70,6 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DISPLAY = "Point in Time Timeout Seconds";
     public static final Integer ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT = 300;
 
-    public static final String ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_CONFIG = "max_point_in_time_timeout_count";
-    public static final String ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DOC = "The number of times to attempt to recover" +
-            "from a timeout of the Point In Time cursor. If this is exceeded the connector will fail, shutdown and need" +
-            "manual intervention to continue. Exceeding this is likely because the Point In Time Timeout setting is too short" +
-            "to scroll through a set of duplicate sort keys. Default is 3.";
-    public static final String ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DISPLAY = "Max Point In Time Timeout Count";
-
-    public static final Integer ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DEFAULT = 3;
-
-
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
     private static final String CONNECTION_ATTEMPTS_DOC
             = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
@@ -290,16 +280,6 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 ++orderInGroup,
                 Width.SHORT,
                 ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC
-        ).define(
-                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_CONFIG,
-                Type.INT,
-                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DEFAULT,
-                Importance.MEDIUM,
-                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_MAX_POINT_IN_TIME_TIMEOUT_COUNT_DISPLAY
         ).define(
                 CONNECTION_ATTEMPTS_CONFIG,
                 Type.STRING,

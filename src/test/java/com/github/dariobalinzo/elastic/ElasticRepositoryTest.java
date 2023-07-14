@@ -1,33 +1,28 @@
 /**
  * Copyright © 2018 Dario Balinzo (dariobalinzo@gmail.com)
  * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
  * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 
 package com.github.dariobalinzo.elastic;
 
 import com.github.dariobalinzo.TestContainersContext;
-import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.CursorField;
+import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.PageResult;
+import java.beans.Transient;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.junit.Test;
-import org.testcontainers.shaded.com.google.common.collect.Lists;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,7 +58,6 @@ public class ElasticRepositoryTest extends TestContainersContext {
     //            assertEquals(Collections.emptyList(), repository.catIndices("non-existing"));
     //        }
     //    }
-
 
     //    @Test
     //    public void shouldListExistingIndices() throws IOException, InterruptedException {
@@ -120,41 +114,41 @@ public class ElasticRepositoryTest extends TestContainersContext {
     //        });
     //    }
     //
-//    @Test
-//    public void shouldNotSkipDuplicatesAtBatchBoundaryWithSecondary() throws IOException, InterruptedException {
-//        deleteTestIndex();
-//
-//        insertMockData(111, "customerA", TEST_INDEX);
-//        insertMockData(111, "customerB", TEST_INDEX);
-//        insertMockData(111, "customerC", TEST_INDEX);
-//        insertMockData(111, "customerD", TEST_INDEX);
-//        insertMockData(112, "customerA", TEST_INDEX);
-//        insertMockData(113, "customerB", TEST_INDEX);
-//        insertMockData(113, "customerC", TEST_INDEX);
-//        insertMockData(113, "customerD", TEST_INDEX);
-//        refreshIndex();
-//
-//        ElasticRepository thisRepository = new ElasticRepository(connection);
-//        thisRepository.setPageSize(2);
-//        final var initialCursor = Cursor.of(TEST_INDEX, List.of(
-//                new CursorField(CURSOR_FIELD, 0L),
-//                new CursorField(SECONDARY_CURSOR_FIELD, "")));
-//
-//        var page = thisRepository.search(initialCursor);
-//        assertFalse(page.lastPage());
-//        assertEquals(2, page.documents().size());
-//        assertEquals(111, page.documents().get(0).get("ts"));
-//        assertEquals(111, page.documents().get(1).get("ts"));
-//        assertEquals("customerA", page.documents().get(0).get("fullName"));
-//        assertEquals("customerB", page.documents().get(1).get("fullName"));
-//
-//        page = page.cursor().map(thisRepository::search).orElse(PageResult.empty());
-//        assertEquals(2, page.documents().size());
-//        assertEquals(111, page.documents().get(0).get("ts"));
-//        assertEquals(111, page.documents().get(1).get("ts"));
-//        assertEquals("customerC", page.documents().get(0).get("fullName"));
-//        assertEquals("customerD", page.documents().get(1).get("fullName"));
-//    }
+    //    @Test
+    //    public void shouldNotSkipDuplicatesAtBatchBoundaryWithSecondary() throws IOException, InterruptedException {
+    //        deleteTestIndex();
+    //
+    //        insertMockData(111, "customerA", TEST_INDEX);
+    //        insertMockData(111, "customerB", TEST_INDEX);
+    //        insertMockData(111, "customerC", TEST_INDEX);
+    //        insertMockData(111, "customerD", TEST_INDEX);
+    //        insertMockData(112, "customerA", TEST_INDEX);
+    //        insertMockData(113, "customerB", TEST_INDEX);
+    //        insertMockData(113, "customerC", TEST_INDEX);
+    //        insertMockData(113, "customerD", TEST_INDEX);
+    //        refreshIndex();
+    //
+    //        ElasticRepository thisRepository = new ElasticRepository(connection);
+    //        thisRepository.setPageSize(2);
+    //        final var initialCursor = Cursor.of(TEST_INDEX, List.of(
+    //                new CursorField(CURSOR_FIELD, 0L),
+    //                new CursorField(SECONDARY_CURSOR_FIELD, "")));
+    //
+    //        var page = thisRepository.search(initialCursor);
+    //        assertFalse(page.lastPage());
+    //        assertEquals(2, page.documents().size());
+    //        assertEquals(111, page.documents().get(0).get("ts"));
+    //        assertEquals(111, page.documents().get(1).get("ts"));
+    //        assertEquals("customerA", page.documents().get(0).get("fullName"));
+    //        assertEquals("customerB", page.documents().get(1).get("fullName"));
+    //
+    //        page = page.cursor().map(thisRepository::search).orElse(PageResult.empty());
+    //        assertEquals(2, page.documents().size());
+    //        assertEquals(111, page.documents().get(0).get("ts"));
+    //        assertEquals(111, page.documents().get(1).get("ts"));
+    //        assertEquals("customerC", page.documents().get(0).get("fullName"));
+    //        assertEquals("customerD", page.documents().get(1).get("fullName"));
+    //    }
 
 
     @Test
@@ -197,8 +191,8 @@ public class ElasticRepositoryTest extends TestContainersContext {
         assertEquals(1, page.documents().size());
         assertEquals(114, page.documents().get(0).get("ts"));
 
-//        page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-//        assertTrue(page.isEmpty());
+        //        page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
+        //        assertTrue(page.isEmpty());
 
         deleteTestIndex();
         insertMockData(115);
@@ -218,7 +212,6 @@ public class ElasticRepositoryTest extends TestContainersContext {
         insertMockData(112);
         insertMockData(112);
         insertMockData(112);
-        insertMockData(113);
         refreshIndex();
 
         final ElasticRepository thisRepository = new ElasticRepository(connection);
@@ -231,14 +224,21 @@ public class ElasticRepositoryTest extends TestContainersContext {
         // close the pit
         Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.pitId()));
 
-        // should still work - it'll reframe the cursor and try again.
+        // should still work - it'll reframe the cursor and try again. But restart the 112s so won't be last page -
+        // have to restart the duplicate keys because the scrollId has been cleared with the pitId being closed
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-        assertTrue(page.lastPage());
+        assertFalse(page.lastPage());
         assertEquals(2, page.documents().size());
         assertEquals(112, page.documents().get(0).get("ts"));
         assertEquals(112, page.documents().get(1).get("ts"));
+
+        // will be last page now though - only one entry left
+        page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
+        assertTrue(page.lastPage());
+        assertEquals(1, page.documents().size());
     }
- @Test
+
+    @Test
     public void testHandlingReplaysDuplicatesRatherThanSkips() throws IOException, InterruptedException {
         deleteTestIndex();
 
@@ -271,7 +271,8 @@ public class ElasticRepositoryTest extends TestContainersContext {
     }
 
     @Test(expected = ElasticsearchStatusException.class)
-    public void testGracefulHandlingOfUnexpectedlyClosedPitIdLetsOtherIssuesPast() throws IOException, InterruptedException {
+    public void testGracefulHandlingOfUnexpectedlyClosedPitIdLetsOtherIssuesPast()
+        throws IOException, InterruptedException {
         deleteTestIndex();
 
         insertMockData(111);

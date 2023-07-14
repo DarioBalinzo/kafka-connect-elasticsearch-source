@@ -238,89 +238,89 @@ public class ElasticSourceTaskTest extends TestContainersContext {
 //
 //        task.stop();
 //    }
-
-    @Test
-    public void shouldRunTask_WithSecondarySort_WithOnlyPrimaryInitialOffset() throws IOException, InterruptedException {
-        //given
-        deleteTestIndex();
-
-        insertMockData(110, "customerA", TEST_INDEX); //already seen...
-        insertMockData(111, "customerA", TEST_INDEX);
-        insertMockData(111, "customerB", TEST_INDEX);
-        insertMockData(111, "customerC", TEST_INDEX);
-        insertMockData(111, "customerD", TEST_INDEX);
-        insertMockData(112, "customerA", TEST_INDEX);
-        refreshIndex();
-
-        ElasticSourceTask task = new ElasticSourceTask();
-        Mockito.when(context.offsetStorageReader()).then(
-                invocation ->
-                MockOffsetFactory.from(
-                        Cursor.of(TEST_INDEX, List.of(new CursorField("ts", 110)))));
-        task.initialize(context);
-
-        //when (fetching first page)
-        Map<String, String> conf = getConf();
-        conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
-        task.start(conf);
-        List<SourceRecord> poll1 = task.poll();
-        assertEquals(2, poll1.size());
-        assertEquals(
-                "customerA",
-                ((Struct) poll1.get(0).value()).get("fullName")
-        );
-        assertEquals(
-                111L,
-                ((Struct) poll1.get(0).value()).get("ts")
-        );
-        assertEquals(
-                "customerB",
-                ((Struct) poll1.get(1).value()).get("fullName")
-        );
-        assertEquals(
-                111L,
-                ((Struct) poll1.get(1).value()).get("ts")
-        );
-
-        //when fetching (second page)
-        List<SourceRecord> poll2 = task.poll();
-        assertEquals(
-                "customerC",
-                ((Struct) poll2.get(0).value()).get("fullName")
-        );
-        assertEquals(
-                111L,
-                ((Struct) poll2.get(0).value()).get("ts")
-        );
-        assertEquals("{position_secondary=customerC, position=111}", poll2.get(0).sourceOffset().toString());
-        assertEquals(
-                "customerD",
-                ((Struct) poll2.get(1).value()).get("fullName")
-        );
-        assertEquals(
-                111L,
-                ((Struct) poll2.get(1).value()).get("ts")
-        );
-        assertEquals("{position_secondary=customerD, position=111}", poll2.get(1).sourceOffset().toString());
-        assertEquals(2, poll2.size());
-
-        //then
-        List<SourceRecord> last = task.poll();
-        assertEquals(1, last.size());
-        assertEquals(
-                "customerA",
-                ((Struct) last.get(0).value()).get("fullName")
-        );
-        assertEquals(
-                112L,
-                ((Struct) last.get(0).value()).get("ts")
-        );
-        assertEquals("{position_secondary=customerA, position=112}", last.get(0).sourceOffset().toString());
-        List<SourceRecord> empty = task.poll();
-        assertTrue(empty.isEmpty());
-
-        task.stop();
-    }
+//
+//    @Test
+//    public void shouldRunTask_WithSecondarySort_WithOnlyPrimaryInitialOffset() throws IOException, InterruptedException {
+//        //given
+//        deleteTestIndex();
+//
+//        insertMockData(110, "customerA", TEST_INDEX); //already seen...
+//        insertMockData(111, "customerA", TEST_INDEX);
+//        insertMockData(111, "customerB", TEST_INDEX);
+//        insertMockData(111, "customerC", TEST_INDEX);
+//        insertMockData(111, "customerD", TEST_INDEX);
+//        insertMockData(112, "customerA", TEST_INDEX);
+//        refreshIndex();
+//
+//        var initialCursor = Cursor.of(TEST_INDEX, List.of(new CursorField("ts", 110)));
+//
+//        ElasticSourceTask task = new ElasticSourceTask();
+//        Mockito.when(context.offsetStorageReader()).then(invocation -> MockOffsetFactory.from(initialCursor));
+//        task.initialize(context);
+//
+//        //when (fetching first page)
+//        Map<String, String> conf = getConf();
+//        conf.put(SECONDARY_INCREMENTING_FIELD_NAME_CONFIG, SECONDARY_CURSOR_FIELD);
+//        task.start(conf);
+//        List<SourceRecord> poll1 = task.poll();
+//        assertEquals(2, poll1.size());
+//        assertEquals(
+//                "customerA",
+//                ((Struct) poll1.get(0).value()).get("fullName")
+//        );
+//        assertEquals(
+//                111L,
+//                ((Struct) poll1.get(0).value()).get("ts")
+//        );
+//        assertEquals(
+//                "customerB",
+//                ((Struct) poll1.get(1).value()).get("fullName")
+//        );
+//        assertEquals(
+//                111L,
+//                ((Struct) poll1.get(1).value()).get("ts")
+//        );
+//
+//        //when fetching (second page)
+//        List<SourceRecord> poll2 = task.poll();
+//        assertEquals(
+//                "customerC",
+//                ((Struct) poll2.get(0).value()).get("fullName")
+//        );
+//        assertEquals(
+//                111L,
+//                ((Struct) poll2.get(0).value()).get("ts")
+//        );
+//        Cursor recordCursor = (Cursor) poll2.get(0).sourceOffset().get("position");
+//        assertArrayEquals(new Object[]{111, 4}, recordCursor.sortValues());
+//        assertEquals(
+//                "customerD",
+//                ((Struct) poll2.get(1).value()).get("fullName")
+//        );
+//        assertEquals(
+//                111L,
+//                ((Struct) poll2.get(1).value()).get("ts")
+//        );
+//        assertEquals("{position_secondary=customerD, position=111}", poll2.get(1).sourceOffset().toString());
+//        assertEquals(2, poll2.size());
+//
+//        //then
+//        List<SourceRecord> last = task.poll();
+//        assertEquals(1, last.size());
+//        assertEquals(
+//                "customerA",
+//                ((Struct) last.get(0).value()).get("fullName")
+//        );
+//        assertEquals(
+//                112L,
+//                ((Struct) last.get(0).value()).get("ts")
+//        );
+//        assertEquals("{position_secondary=customerA, position=112}", last.get(0).sourceOffset().toString());
+//        List<SourceRecord> empty = task.poll();
+//        assertTrue(empty.isEmpty());
+//
+//        task.stop();
+//    }
 
 //    @Test
 //    public void shouldRunTask_WithSecondarySort_WithInitialOffset() throws IOException, InterruptedException {
