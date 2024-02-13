@@ -1,0 +1,108 @@
+{
+  "equipments": [
+    {
+      "prices": {
+        "listPrice": {
+          "netPrice": {
+            "amount": 420.17,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 500,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:18.046399"
+        },
+        "salesPrice": {
+          "netPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:17.844466"
+        }
+      }
+    },
+    {
+      "prices": {
+        "listPrice": {
+          "netPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:18.046401"
+        },
+        "salesPrice": {
+          "netPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:17.844525"
+        }
+      }
+    },
+    {
+      "prices": {
+        "listPrice": {
+          "netPrice": {
+            "amount": 3403.36,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 4050,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:18.0464"
+        },
+        "salesPrice": {
+          "netPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:17.844519"
+        }
+      }
+    },
+    {
+      "prices": {
+        "listPrice": {
+          "netPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:18.046397"
+        },
+        "salesPrice": {
+          "netPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "grossPrice": {
+            "amount": 0,
+            "currency": "EUR"
+          },
+          "updatedAt": "2023-05-17T04:08:17.844406"
+        }
+      }
+    }
+  ]
+}

@@ -83,7 +83,6 @@ public class ElasticRepository {
         }
     }
 
-
     public PageResult search(Cursor cursor) {
         Objects.requireNonNull(cursor, "Cursor cannot be null");
 
@@ -190,7 +189,6 @@ public class ElasticRepository {
     public List<String> catIndices(String prefix) {
         Response resp;
         try {
-
             resp = elasticConnection.getClient()
                     .getLowLevelClient()
                     .performRequest(new Request("GET", "/_cat/indices"));
@@ -212,6 +210,8 @@ public class ElasticRepository {
         } catch (IOException e) {
             logger.error("error while getting indices", e);
         }
+
+        Collections.sort(result);
 
         return result;
     }
