@@ -29,6 +29,7 @@ import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.*;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -227,12 +228,12 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private Cursor fetchAndAlignLastOffset(String index, List<CursorField> cursorFields) {
-        //first we check in cache memory the last initialValue
+        // first we check in cache memory the last initialValue
         if (cursorCache.get(index) != null) {
             return cursorCache.get(index);
         }
 
-        //if cache is empty we check the framework
+        // if cache is empty we check the framework
         Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
         if (offset == null || offset.isEmpty()) {
             return Cursor.of(index, cursorFields);
@@ -252,7 +253,7 @@ public class ElasticSourceTask extends SourceTask {
         for (Map<String, Object> elasticDocument : pageResult.documents()) {
 
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, Cursor> sourceOffset = Collections.singletonMap("position", pageResult.cursor());
+            Map<String, Object> sourceOffset =  new OffsetSerializer().serialize(pageResult.cursor());
 
             Object key = elasticDocument.get("es-id");
             sent.merge(index, 1, Integer::sum);

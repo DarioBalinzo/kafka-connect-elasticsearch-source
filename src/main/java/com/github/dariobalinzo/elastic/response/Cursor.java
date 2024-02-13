@@ -3,11 +3,7 @@ package com.github.dariobalinzo.elastic.response;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.beans.Transient;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 
 public class Cursor {
@@ -126,4 +122,24 @@ public class Cursor {
         return scrollLimit;
     }
 
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("index", index);
+        map.put("cursorFields", cursorFields);
+        map.put("pitId", pitId);
+        map.put("sortValues", sortValues);
+        map.put("runningDocumentCount", runningDocumentCount);
+        map.put("scrollLimit", scrollLimit);
+        return map;
+    }
+
+    public static Cursor fromMap(Map<String, Object> map) {
+        return new Cursor((String) map.get("index"),
+                (List<CursorField>) map.get("cursorFields"),
+                (String) map.get("pitId"),
+                (Object[]) map.get("sortValues"),
+                (int) map.get("runningDocumentCount"),
+                (long) map.get("scrollLimit"));
+    }
 }

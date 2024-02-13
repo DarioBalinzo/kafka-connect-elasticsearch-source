@@ -13,7 +13,6 @@ public final class CursorField {
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public CursorField(@JsonProperty("field") String field, @JsonProperty("initialValue") Object initialValue) {
         Objects.requireNonNull(field);
-        ;
         this.field = field;
         this.initialValue = initialValue;
     }
