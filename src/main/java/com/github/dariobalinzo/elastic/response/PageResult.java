@@ -20,8 +20,20 @@ package com.github.dariobalinzo.elastic.response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-public record PageResult(List<Map<String, Object>> documents, Cursor cursor, boolean lastPage) {
+public final class PageResult {
+
+    private final List<Map<String, Object>> documents;
+    private final Cursor cursor;
+    private final boolean lastPage;
+
+    public PageResult(List<Map<String, Object>> documents, Cursor cursor, boolean lastPage) {
+        this.documents = documents;
+        this.cursor = cursor;
+        this.lastPage = lastPage;
+    }
+
     public static PageResult intermediatePage(List<Map<String, Object>> documents, Cursor cursor) {
         return new PageResult(documents, cursor, false);
     }
@@ -37,4 +49,41 @@ public record PageResult(List<Map<String, Object>> documents, Cursor cursor, boo
     public boolean isEmpty() {
         return documents == null || documents.isEmpty();
     }
+
+    public List<Map<String, Object>> documents() {
+        return documents;
+    }
+
+    public Cursor cursor() {
+        return cursor;
+    }
+
+    public boolean lastPage() {
+        return lastPage;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+        }
+        var that = (PageResult) obj;
+        return Objects.equals(this.documents, that.documents) && Objects.equals(this.cursor, that.cursor)
+            && this.lastPage == that.lastPage;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(documents, cursor, lastPage);
+    }
+
+    @Override
+    public String toString() {
+        return "PageResult[" + "documents=" + documents + ", " + "cursor=" + cursor + ", " + "lastPage=" + lastPage
+            + ']';
+    }
+
 }

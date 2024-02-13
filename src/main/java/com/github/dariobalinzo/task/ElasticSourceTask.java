@@ -93,14 +93,13 @@ public class ElasticSourceTask extends SourceTask {
         String incrementingFieldName = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
         Objects.requireNonNull(incrementingFieldName, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
                 + " conf is mandatory");
-        var primaryCursorField = new CursorField(incrementingFieldName,
+        CursorField primaryCursorField = new CursorField(incrementingFieldName,
                 config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_INITIAL_VALUE_CONFIG));
         cursorFields.add(primaryCursorField);
 
-
         String secondaryIncrementingFieldName = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
         if (secondaryIncrementingFieldName != null) {
-            var secondaryCursorField = new CursorField(secondaryIncrementingFieldName,
+            CursorField secondaryCursorField = new CursorField(secondaryIncrementingFieldName,
                     config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG));
             cursorFields.add(secondaryCursorField);
         }
@@ -194,7 +193,7 @@ public class ElasticSourceTask extends SourceTask {
                     .build();
         }
 
-        var pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG);
+        Integer pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG);
 
         elasticRepository = new ElasticRepository(es, batchSize, pitTimeout);
     }
@@ -210,7 +209,7 @@ public class ElasticSourceTask extends SourceTask {
                     logger.info("fetching from {}", index);
                     Cursor cursor = fetchAndAlignLastOffset(index, cursorFields);
                     logger.info("found last initialValue {}", cursor);
-                    var pageResult = elasticRepository.search(cursor);
+                    PageResult pageResult = elasticRepository.search(cursor);
                     parseResult(pageResult, results);
                     logger.info("index {} total messages: {} ", index, sent.get(index));
 
@@ -239,7 +238,7 @@ public class ElasticSourceTask extends SourceTask {
             return Cursor.of(index, cursorFields);
         }
 
-        var cursor = new OffsetSerializer().deserialize(offset);
+        Cursor cursor = new OffsetSerializer().deserialize(offset);
         if (cursor == null) {
             return Cursor.of(index, cursorFields);
         }
@@ -248,14 +247,14 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
-        String index = pageResult.cursor().index();
+        String index = pageResult.cursor().getIndex();
         cursorCache.put(index, pageResult.cursor());
         for (Map<String, Object> elasticDocument : pageResult.documents()) {
 
-            var sourcePartition = Collections.singletonMap(INDEX, index);
-            var sourceOffset = Collections.singletonMap("position", pageResult.cursor());
+            Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
+            Map<String, Cursor> sourceOffset = Collections.singletonMap("position", pageResult.cursor());
 
-            var key = elasticDocument.get("es-id");
+            Object key = elasticDocument.get("es-id");
             sent.merge(index, 1, Integer::sum);
 
             documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
@@ -271,7 +270,7 @@ public class ElasticSourceTask extends SourceTask {
                     Schema.STRING_SCHEMA,
                     key,
                     //VALUE
-                    Schema.OPTIONAL_STRING_SCHEMA,
+                    schema,
                     struct);
             results.add(sourceRecord);
         }

@@ -87,13 +87,13 @@ public class ElasticRepository {
     public PageResult search(Cursor cursor) {
         Objects.requireNonNull(cursor, "Cursor cannot be null");
 
-        final var queryBuilder = cursor.cursorFields().stream().map(cursorField -> boolQuery().must(
-                rangeQuery(cursorField.field()).from(cursorField.initialValue()).includeLower(true)))
+        final var queryBuilder = cursor.getCursorFields().stream().map(cursorField -> boolQuery().must(
+                rangeQuery(cursorField.getField()).from(cursorField.getInitialValue()).includeLower(true)))
                 .reduce(boolQuery(), BoolQueryBuilder::must);
 
         final PointInTimeBuilder pitBuilder;
         try {
-            pitBuilder = new PointInTimeBuilder(Optional.ofNullable(cursor.pitId()).orElse(openPit(cursor.index())));
+            pitBuilder = new PointInTimeBuilder(Optional.ofNullable(cursor.getPitId()).orElse(openPit(cursor.getIndex())));
 
             // timeout slightly (5s) less than that of the PIT itself
             pitBuilder.setKeepAlive(TimeValue.timeValueSeconds(pitTimeoutSeconds - 5));
@@ -103,8 +103,8 @@ public class ElasticRepository {
                     .pointInTimeBuilder(pitBuilder)
                     .size(pageSize);
 
-            cursor.cursorFields().forEach(cursorField -> searchSourceBuilder.sort(cursorField.field(), SortOrder.ASC));
-            Optional.ofNullable(cursor.sortValues()).ifPresent(searchSourceBuilder::searchAfter);
+            cursor.getCursorFields().forEach(cursorField -> searchSourceBuilder.sort(cursorField.getField(), SortOrder.ASC));
+            Optional.ofNullable(cursor.getSortValues()).ifPresent(searchSourceBuilder::searchAfter);
 
             final var searchRequest = new SearchRequest().source(searchSourceBuilder);
             final var response = executeSearch(searchRequest);
@@ -116,7 +116,7 @@ public class ElasticRepository {
             if (documents.isEmpty() || totalHits == 0) {
                 // return empty page with same cursor to maybe try again later
                 result = PageResult.empty(cursor);
-            } else if (totalHits > cursor.runningDocumentCount() + documents.size()) {
+            } else if (totalHits > cursor.getRunningDocumentCount() + documents.size()) {
                 // return page with scrollable cursor
                 // note: ES says the pitId can change in a query so it's got to be set each query cycle
                 final var scrollable = cursor.scrollable(pitBuilder.getEncodedId(),
@@ -145,14 +145,14 @@ public class ElasticRepository {
             // if there are too many duplicate sort keys to scroll across in a single PIT timeout.
             if (cursor.isScrollable()) {
                 try {
-                    closePit(cursor.pitId());
+                    closePit(cursor.getPitId());
                 } catch (RuntimeException ioException) {
                     // nothing, best efforts, probably here because pit was closed unexpectedly anyway (i.e. timed out)
                 }
 
                 // recurse with reframed cursor - if it's not an issue with the pitId it will throw again and this time
                 // bubble up because the reframed cursor is not scrollable
-                return search(cursor.reframe(cursor.sortValues(), true, true));
+                return search(cursor.reframe(cursor.getSortValues()));
             }
 
             // if not scrollable it's likely something else re-throw

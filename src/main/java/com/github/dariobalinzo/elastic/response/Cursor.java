@@ -1,5 +1,7 @@
 package com.github.dariobalinzo.elastic.response;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.beans.Transient;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,13 +10,28 @@ import java.util.List;
 import java.util.Objects;
 
 
-public record Cursor(String index, List<CursorField> cursorFields, String pitId, Object[] sortValues,
-                     int runningDocumentCount, long scrollLimit) {
+public class Cursor {
 
-    public Cursor {
+    private final String index;
+    private final List<CursorField> cursorFields;
+    private final String pitId;
+    private final Object[] sortValues;
+    private final int runningDocumentCount;
+    private final long scrollLimit;
+
+
+    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+    public Cursor(@JsonProperty("index") String index, @JsonProperty("cursorFields") List<CursorField> cursorFields, @JsonProperty("pitId") String pitId,
+        @JsonProperty("sortValues") Object[] sortValues, @JsonProperty("runningDocumentCount") int runningDocumentCount, @JsonProperty("scrollLimit") long scrollLimit) {
         Objects.requireNonNull(index);
         Objects.requireNonNull(cursorFields);
         cursorFields = Collections.unmodifiableList(cursorFields);
+        this.index = index;
+        this.cursorFields = cursorFields;
+        this.pitId = pitId;
+        this.sortValues = sortValues;
+        this.runningDocumentCount = runningDocumentCount;
+        this.scrollLimit = scrollLimit;
     }
 
 
@@ -30,8 +47,8 @@ public record Cursor(String index, List<CursorField> cursorFields, String pitId,
 
 
     public Cursor scrollable(String pitId, Object[] sortValues, int documentCount, long scrollLimit) {
-        return new Cursor(this.index(), this.cursorFields, pitId, sortValues, this.runningDocumentCount + documentCount,
-            scrollLimit);
+        return new Cursor(this.getIndex(), this.cursorFields, pitId, sortValues,
+            this.runningDocumentCount + documentCount, scrollLimit);
     }
 
     @Override
@@ -60,16 +77,17 @@ public record Cursor(String index, List<CursorField> cursorFields, String pitId,
 
     @Override
     public String toString() {
-        return ("Cursor{index='%s', cursorFields=%s, pitId='%s', sortValues=%s, "
-            + "runningDocumentCount=%d, scrollLimit=%d}").formatted(index, cursorFields, pitId,
-            Arrays.toString(sortValues), runningDocumentCount, scrollLimit);
+        return "Cursor{" +
+                "index='" + index + '\'' +
+                ", cursorFields=" + cursorFields +
+                ", pitId='" + pitId + '\'' +
+                ", sortValues=" + Arrays.toString(sortValues) +
+                ", runningDocumentCount=" + runningDocumentCount +
+                ", scrollLimit=" + scrollLimit +
+                '}';
     }
 
     public Cursor reframe(Object[] sortValues) {
-        return reframe(sortValues, false, false);
-    }
-
-    public Cursor reframe(Object[] sortValues, boolean includeLower, boolean incrementFailureCount) {
         final List<CursorField> newCursorFields;
         if (sortValues == null || sortValues.length == 0) {
             newCursorFields = cursorFields;
@@ -77,10 +95,35 @@ public record Cursor(String index, List<CursorField> cursorFields, String pitId,
             newCursorFields = new ArrayList<>(cursorFields.size());
 
             for (int i = 0; i < cursorFields.size(); i++) {
-                newCursorFields.add(new CursorField(cursorFields.get(i).field(), sortValues[i]));
+                newCursorFields.add(new CursorField(cursorFields.get(i).getField(), sortValues[i]));
             }
         }
 
         return new Cursor(this.index, newCursorFields, null, null, 0, 0);
     }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public List<CursorField> getCursorFields() {
+        return cursorFields;
+    }
+
+    public String getPitId() {
+        return pitId;
+    }
+
+    public Object[] getSortValues() {
+        return sortValues;
+    }
+
+    public int getRunningDocumentCount() {
+        return runningDocumentCount;
+    }
+
+    public long getScrollLimit() {
+        return scrollLimit;
+    }
+
 }

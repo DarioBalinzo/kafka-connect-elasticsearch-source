@@ -16,9 +16,6 @@ package com.github.dariobalinzo.elastic;
 import com.github.dariobalinzo.TestContainersContext;
 import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.CursorField;
-import com.github.dariobalinzo.elastic.response.Cursor;
-import com.github.dariobalinzo.elastic.response.PageResult;
-import java.beans.Transient;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.junit.Test;
 
@@ -222,7 +219,7 @@ public class ElasticRepositoryTest extends TestContainersContext {
         assertFalse(page.lastPage());
 
         // close the pit
-        Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.pitId()));
+        Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.getPitId()));
 
         // should still work - it'll reframe the cursor and try again. But restart the 112s so won't be last page -
         // have to restart the duplicate keys because the scrollId has been cleared with the pitId being closed
@@ -257,7 +254,7 @@ public class ElasticRepositoryTest extends TestContainersContext {
         assertFalse(page.lastPage());
 
         // close the pit
-        Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.pitId()));
+        Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.getPitId()));
 
         // should still work - it'll reframe the cursor and try again.
         thisRepository.setPageSize(4);
