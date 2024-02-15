@@ -18,7 +18,6 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
-import com.github.dariobalinzo.elastic.CursorField;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
@@ -30,7 +29,6 @@ import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.*;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -65,7 +63,6 @@ public class ElasticSourceTask extends SourceTask {
 
     // cursorFields order is important
     private final List<CursorField> cursorFields = new ArrayList<>();
-
     private int pollingMs;
     private final Map<String, Cursor> cursorCache = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
@@ -213,7 +210,6 @@ public class ElasticSourceTask extends SourceTask {
                     Cursor cursor = fetchAndAlignLastOffset(index, cursorFields);
                     logger.info("found last initialValue {}", cursor);
                     PageResult pageResult = elasticRepository.search(cursor);
-
                     parseResult(pageResult, results);
                     logger.info("index {} total messages: {} ", index, sent.get(index));
 
@@ -259,7 +255,6 @@ public class ElasticSourceTask extends SourceTask {
             Map<String, Object> sourceOffset =  new OffsetSerializer().serialize(pageResult.cursor());
 
             Object key = elasticDocument.get("es-id");
-
             sent.merge(index, 1, Integer::sum);
 
             documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
