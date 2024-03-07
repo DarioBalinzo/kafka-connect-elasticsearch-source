@@ -47,26 +47,26 @@ public class ElasticRepositoryTest extends TestContainersContext {
 
         var page = thisRepository.search(initialCursor);
 
-        assertEquals(2, page.documents().size());
-        assertEquals(111, page.documents().get(0).get("ts"));
-        assertEquals(112, page.documents().get(1).get("ts"));
+        assertEquals(2, page.getSize());
+        assertEquals(111, page.next().asMap().get("ts"));
+        assertEquals(112, page.next().asMap().get("ts"));
 
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
 
-        assertEquals(2, page.documents().size());
-        assertEquals(113, page.documents().get(0).get("ts"));
-        assertEquals(113, page.documents().get(1).get("ts"));
+        assertEquals(2, page.getSize());
+        assertEquals(113, page.next().asMap().get("ts"));
+        assertEquals(113, page.next().asMap().get("ts"));
 
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
 
-        assertEquals(2, page.documents().size());
-        assertEquals(113, page.documents().get(0).get("ts"));
-        assertEquals(113, page.documents().get(1).get("ts"));
+        assertEquals(2, page.getSize());
+        assertEquals(113, page.next().asMap().get("ts"));
+        assertEquals(113, page.next().asMap().get("ts"));
 
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-        assertTrue(page.lastPage());
-        assertEquals(1, page.documents().size());
-        assertEquals(114, page.documents().get(0).get("ts"));
+        assertTrue(page.isLastPage());
+        assertEquals(1, page.getSize());
+        assertEquals(114, page.next().asMap().get("ts"));
 
         //        page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
         //        assertTrue(page.isEmpty());
@@ -78,7 +78,29 @@ public class ElasticRepositoryTest extends TestContainersContext {
         refreshIndex();
 
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-        assertEquals(2, page.documents().size());
+        assertEquals(2, page.getSize());
+    }
+
+    @Test
+    public void shouldCompleteWhenReachingEnd() throws IOException, InterruptedException {
+        deleteTestIndex();
+
+        insertMockData(111);
+        insertMockData(112);
+        refreshIndex();
+
+        ElasticRepository thisRepository = new ElasticRepository(connection);
+        thisRepository.setPageSize(2);
+        final var initialCursor = Cursor.of(TEST_INDEX, List.of(new CursorField(CURSOR_FIELD, 0L)));
+
+        var page = thisRepository.search(initialCursor);
+
+        assertEquals(2, page.getSize());
+        assertEquals(111, page.next().asMap().get("ts"));
+        assertEquals(112, page.next().asMap().get("ts"));
+
+        page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
+        assertFalse(page.hasNext());
     }
 
     @Test
@@ -96,7 +118,8 @@ public class ElasticRepositoryTest extends TestContainersContext {
         final var initialCursor = Cursor.of(TEST_INDEX, List.of(new CursorField(CURSOR_FIELD, 0L)));
 
         var page = thisRepository.search(initialCursor);
-        assertFalse(page.lastPage());
+        assertFalse(page.isLastPage());
+        page.next();
 
         // close the pit
         Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.getPitId()));
@@ -104,15 +127,15 @@ public class ElasticRepositoryTest extends TestContainersContext {
         // should still work - it'll reframe the cursor and try again. But restart the 112s so won't be last page -
         // have to restart the duplicate keys because the scrollId has been cleared with the pitId being closed
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-        assertFalse(page.lastPage());
-        assertEquals(2, page.documents().size());
-        assertEquals(112, page.documents().get(0).get("ts"));
-        assertEquals(112, page.documents().get(1).get("ts"));
+        assertFalse(page.isLastPage());
+        assertEquals(2, page.getSize());
+        assertEquals(111, page.next().asMap().get("ts"));
+        assertEquals(112, page.next().asMap().get("ts"));
 
         // will be last page now though - only one entry left
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-        assertTrue(page.lastPage());
-        assertEquals(1, page.documents().size());
+        assertTrue(page.isLastPage());
+        assertEquals(2, page.getSize());
     }
 
     @Test
@@ -131,7 +154,9 @@ public class ElasticRepositoryTest extends TestContainersContext {
         final var initialCursor = Cursor.of(TEST_INDEX, List.of(new CursorField(CURSOR_FIELD, 0L)));
 
         var page = thisRepository.search(initialCursor);
-        assertFalse(page.lastPage());
+        assertFalse(page.isLastPage());
+        page.next();
+        page.next();
 
         // close the pit
         Optional.ofNullable(page.cursor()).ifPresent(cursor -> thisRepository.closePit(cursor.getPitId()));
@@ -139,12 +164,12 @@ public class ElasticRepositoryTest extends TestContainersContext {
         // should still work - it'll reframe the cursor and try again.
         thisRepository.setPageSize(4);
         page = Optional.ofNullable(page.cursor()).map(thisRepository::search).orElseThrow();
-        assertTrue(page.lastPage());
-        assertEquals(4, page.documents().size());
-        assertEquals(112, page.documents().get(0).get("ts"));
-        assertEquals(112, page.documents().get(1).get("ts"));
-        assertEquals(112, page.documents().get(2).get("ts"));
-        assertEquals(113, page.documents().get(3).get("ts"));
+        assertTrue(page.isLastPage());
+        assertEquals(4, page.getSize());
+        assertEquals(112, page.next().asMap().get("ts"));
+        assertEquals(112, page.next().asMap().get("ts"));
+        assertEquals(112, page.next().asMap().get("ts"));
+        assertEquals(113, page.next().asMap().get("ts"));
     }
 
     @Test(expected = ElasticsearchStatusException.class)
@@ -162,7 +187,7 @@ public class ElasticRepositoryTest extends TestContainersContext {
         final var initialCursor = Cursor.of(TEST_INDEX, List.of(new CursorField(CURSOR_FIELD, 0L)));
 
         var page = thisRepository.search(initialCursor);
-        assertFalse(page.lastPage());
+        assertFalse(page.isLastPage());
 
         // delete the test index all together
         deleteTestIndex();

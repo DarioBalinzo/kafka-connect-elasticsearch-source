@@ -14,11 +14,18 @@ public class Cursor {
     private final Object[] sortValues;
     private final int runningDocumentCount;
     private final long scrollLimit;
+    private final boolean includeLowerBound;
 
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
-    public Cursor(@JsonProperty("index") String index, @JsonProperty("cursorFields") List<CursorField> cursorFields, @JsonProperty("pitId") String pitId,
-        @JsonProperty("sortValues") Object[] sortValues, @JsonProperty("runningDocumentCount") int runningDocumentCount, @JsonProperty("scrollLimit") long scrollLimit) {
+    public Cursor(@JsonProperty("index") String index,
+                  @JsonProperty("cursorFields") List<CursorField> cursorFields,
+                  @JsonProperty("pitId") String pitId,
+                  @JsonProperty("sortValues") Object[] sortValues,
+                  @JsonProperty("runningDocumentCount") int runningDocumentCount,
+                  @JsonProperty("scrollLimit") long scrollLimit,
+                  @JsonProperty("includeLowerBound") boolean includeLowerBound) {
+        this.includeLowerBound = includeLowerBound;
         Objects.requireNonNull(index);
         Objects.requireNonNull(cursorFields);
         cursorFields = Collections.unmodifiableList(cursorFields);
@@ -38,13 +45,20 @@ public class Cursor {
 
 
     public static Cursor of(String index, List<CursorField> cursorFields) {
-        return new Cursor(index, cursorFields, null, null, 0, 0);
+        return new Cursor(index, cursorFields, null, null, 0, 0, false);
     }
 
+    public Cursor scroll(Object[] sortValues, int documentCount) {
+        var progress = this.runningDocumentCount + documentCount;
+        if (progress == this.scrollLimit)
+            return this.reframe(this.includeLowerBound);
+
+        return new Cursor(this.getIndex(), this.cursorFields, this.pitId, sortValues, progress, this.scrollLimit, this.includeLowerBound);
+    }
 
     public Cursor scrollable(String pitId, Object[] sortValues, int documentCount, long scrollLimit) {
         return new Cursor(this.getIndex(), this.cursorFields, pitId, sortValues,
-            this.runningDocumentCount + documentCount, scrollLimit);
+                this.runningDocumentCount + documentCount, scrollLimit, this.includeLowerBound);
     }
 
     @Override
@@ -59,8 +73,8 @@ public class Cursor {
         }
         Cursor cursor = (Cursor) o;
         return Objects.equals(index, cursor.index) && Objects.equals(cursorFields, cursor.cursorFields)
-            && Objects.equals(pitId, cursor.pitId) && Arrays.equals(sortValues, cursor.sortValues) && Objects.equals(
-            runningDocumentCount, cursor.runningDocumentCount);
+                && Objects.equals(pitId, cursor.pitId) && Arrays.equals(sortValues, cursor.sortValues) && Objects.equals(
+                runningDocumentCount, cursor.runningDocumentCount);
     }
 
 
@@ -83,7 +97,7 @@ public class Cursor {
                 '}';
     }
 
-    public Cursor reframe(Object[] sortValues) {
+    public Cursor reframe(boolean includeLowerBound) {
         final List<CursorField> newCursorFields;
         if (sortValues == null || sortValues.length == 0) {
             newCursorFields = cursorFields;
@@ -91,11 +105,11 @@ public class Cursor {
             newCursorFields = new ArrayList<>(cursorFields.size());
 
             for (int i = 0; i < cursorFields.size(); i++) {
-                newCursorFields.add(new CursorField(cursorFields.get(i).getField(), sortValues[i]));
+                newCursorFields.add(new CursorField(cursorFields.get(i).getField(), this.sortValues[i]));
             }
         }
 
-        return new Cursor(this.index, newCursorFields, null, null, 0, 0);
+        return new Cursor(this.index, newCursorFields, null, null, 0, 0, includeLowerBound);
     }
 
     public String getIndex() {
@@ -120,5 +134,13 @@ public class Cursor {
 
     public long getScrollLimit() {
         return scrollLimit;
+    }
+
+    public Cursor withPitId(String encodedId) {
+        return new Cursor(this.index, this.cursorFields, encodedId, this.sortValues, this.runningDocumentCount, this.scrollLimit, this.includeLowerBound);
+    }
+
+    public boolean includeLowerBound() {
+        return includeLowerBound;
     }
 }

@@ -87,8 +87,9 @@ public class ElasticRepository {
     public PageResult search(Cursor cursor) {
         Objects.requireNonNull(cursor, "Cursor cannot be null");
 
-        final var queryBuilder = cursor.getCursorFields().stream().map(cursorField -> boolQuery().must(
-                rangeQuery(cursorField.getField()).from(cursorField.getInitialValue()).includeLower(true)))
+        final var queryBuilder = cursor.getCursorFields().stream()
+                .map(cursorField -> boolQuery().must(rangeQuery(cursorField.getField()).from(cursorField.getInitialValue())
+                        .includeLower(cursor.includeLowerBound())))
                 .reduce(boolQuery(), BoolQueryBuilder::must);
 
         final PointInTimeBuilder pitBuilder;
@@ -109,32 +110,7 @@ public class ElasticRepository {
             final var searchRequest = new SearchRequest().source(searchSourceBuilder);
             final var response = executeSearch(searchRequest);
 
-            final var documents = extractDocuments(response);
-            final var totalHits = response.getHits().getTotalHits().value;
-
-            final PageResult result;
-            if (documents.isEmpty() || totalHits == 0) {
-                // return empty page with same cursor to maybe try again later
-                result = PageResult.empty(cursor);
-            } else if (totalHits > cursor.getRunningDocumentCount() + documents.size()) {
-                // return page with scrollable cursor
-                // note: ES says the pitId can change in a query so it's got to be set each query cycle
-                final var scrollable = cursor.scrollable(pitBuilder.getEncodedId(),
-                        response.getHits().getAt(documents.size() - 1).getSortValues(), documents.size(),
-                        totalHits);
-
-                result = PageResult.intermediatePage(documents, scrollable);
-            } else {
-                // return last page and cursor for the next frame
-                final var reframed = cursor.reframe(response.getHits().getAt(documents.size() - 1).getSortValues());
-                result = PageResult.lastPage(documents, reframed);
-            }
-
-            if (result.lastPage()) {
-                closePit(pitBuilder.getEncodedId());
-            }
-
-            return result;
+            return new PageResult(response.getHits(), cursor.withPitId(pitBuilder.getEncodedId()));
 
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -152,7 +128,7 @@ public class ElasticRepository {
 
                 // recurse with reframed cursor - if it's not an issue with the pitId it will throw again and this time
                 // bubble up because the reframed cursor is not scrollable
-                return search(cursor.reframe(cursor.getSortValues()));
+                return search(cursor.reframe(true));
             }
 
             // if not scrollable it's likely something else re-throw
@@ -160,15 +136,6 @@ public class ElasticRepository {
         }
     }
 
-    private List<Map<String, Object>> extractDocuments(SearchResponse response) {
-        return Arrays.stream(response.getHits().getHits())
-                .map(hit -> {
-                    Map<String, Object> sourceMap = hit.getSourceAsMap();
-                    sourceMap.put("es-id", hit.getId());
-                    sourceMap.put("es-index", hit.getIndex());
-                    return sourceMap;
-                }).collect(Collectors.toList());
-    }
 
     protected SearchResponse executeSearch(SearchRequest searchRequest) throws IOException, InterruptedException {
         int maxTrials = elasticConnection.getMaxConnectionAttempts();

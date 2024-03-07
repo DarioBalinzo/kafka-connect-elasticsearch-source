@@ -17,73 +17,88 @@
 package com.github.dariobalinzo.elastic.response;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 
-public final class PageResult {
+import java.util.*;
 
-    private final List<Map<String, Object>> documents;
-    private final Cursor cursor;
-    private final boolean lastPage;
+public final class PageResult implements Iterator<PageResult.Document> {
 
-    public PageResult(List<Map<String, Object>> documents, Cursor cursor, boolean lastPage) {
-        this.documents = documents;
-        this.cursor = cursor;
-        this.lastPage = lastPage;
+    private final SearchHits searchHits;
+    private final boolean isLastPage;
+
+    private int currentIndex = 0;
+    private Cursor cursor;
+
+    public PageResult(SearchHits searchHits, Cursor openingCursor) {
+        this.searchHits = searchHits;
+        this.cursor = openingCursor;
+
+        this.isLastPage = this.searchHits.getHits().length +
+                this.cursor.getRunningDocumentCount() >= this.searchHits.getTotalHits().value;
     }
 
-    public static PageResult intermediatePage(List<Map<String, Object>> documents, Cursor cursor) {
-        return new PageResult(documents, cursor, false);
+    @Override
+    public boolean hasNext() {
+        return currentIndex < searchHits.getHits().length;
     }
 
-    public static PageResult lastPage(List<Map<String, Object>> documents, Cursor cursor) {
-        return new PageResult(documents, cursor, true);
+    @Override
+    public Document next() {
+        if (hasNext()) {
+            cursor = cursor.scroll(searchHits.getAt(currentIndex).getSortValues(), 1);
+            var result = new Document(searchHits.getAt(currentIndex), cursor);
+            currentIndex++;
+
+            return result;
+        }
+
+        return null;
     }
 
-    public static PageResult empty(Cursor cursor) {
-        return new PageResult(new ArrayList<>(), cursor, true);
+    public boolean isLastPage() {
+        return isLastPage;
     }
 
-    public boolean isEmpty() {
-        return documents == null || documents.isEmpty();
-    }
-
-    public List<Map<String, Object>> documents() {
-        return documents;
-    }
 
     public Cursor cursor() {
         return cursor;
     }
 
-    public boolean lastPage() {
-        return lastPage;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
+    public int getSize() {
+        if (searchHits == null) {
+            return 0;
         }
-        if (obj == null || obj.getClass() != this.getClass()) {
-            return false;
+        return searchHits.getHits().length;
+    }
+
+    public String getIndex() {
+        return cursor.getIndex();
+    }
+
+    public static class Document {
+        private final Map<String, Object> documentMap;
+        private final Cursor cursor;
+        private final String id;
+
+        public Document(SearchHit document, Cursor cursor) {
+            this.documentMap = document.getSourceAsMap();
+            this.documentMap.put("es-id", document.getId());
+            this.documentMap.put("es-index", document.getIndex());
+            this.cursor = cursor;
+            this.id = document.getId();
         }
-        var that = (PageResult) obj;
-        return Objects.equals(this.documents, that.documents) && Objects.equals(this.cursor, that.cursor)
-            && this.lastPage == that.lastPage;
-    }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(documents, cursor, lastPage);
-    }
+        public String getId() {
+            return this.id;
+        }
 
-    @Override
-    public String toString() {
-        return "PageResult[" + "documents=" + documents + ", " + "cursor=" + cursor + ", " + "lastPage=" + lastPage
-            + ']';
-    }
+        public Map<String, Object> asMap() {
+            return documentMap;
+        }
 
+        public Cursor getDocumentCursor() {
+            return cursor;
+        }
+    }
 }

@@ -211,8 +211,10 @@ public class ElasticSourceTask extends SourceTask {
                     logger.info("found last initialValue {}", cursor);
                     PageResult pageResult = elasticRepository.search(cursor);
                     parseResult(pageResult, results);
+                    if (pageResult.isLastPage()) {
+                        cursorCache.put(cursor.getIndex(), pageResult.cursor().reframe(false));
+                    }
                     logger.info("index {} total messages: {} ", index, sent.get(index));
-
                 }
             }
             if (results.isEmpty()) {
@@ -234,6 +236,7 @@ public class ElasticSourceTask extends SourceTask {
 
         // if cache is empty we check the framework
         Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
+        logger.info("offset from framework: {}", offset);
         if (offset == null || offset.isEmpty()) {
             return Cursor.of(index, cursorFields);
         }
@@ -247,32 +250,34 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
-        String index = pageResult.cursor().getIndex();
-        cursorCache.put(index, pageResult.cursor());
-        for (Map<String, Object> elasticDocument : pageResult.documents()) {
+        String index = pageResult.getIndex();
+        while (pageResult.hasNext() && !stopping.get()) {
+            PageResult.Document elasticDocument = pageResult.next();
+            if (elasticDocument != null) {
+                cursorCache.put(index, elasticDocument.getDocumentCursor());
+                Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
+                Map<String, Object> sourceOffset = new OffsetSerializer().serialize(elasticDocument.getDocumentCursor());
 
-            Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, Object> sourceOffset =  new OffsetSerializer().serialize(pageResult.cursor());
+                sent.merge(index, 1, Integer::sum);
 
-            Object key = elasticDocument.get("es-id");
-            sent.merge(index, 1, Integer::sum);
+                var docMap = elasticDocument.asMap();
+                documentFilters.forEach(jsonFilter -> jsonFilter.filter(docMap));
+                Schema schema = schemaConverter.convert(docMap, index);
+                Struct struct = structConverter.convert(docMap, schema);
 
-            documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
+                SourceRecord sourceRecord = new SourceRecord(
+                        sourcePartition,
+                        sourceOffset,
+                        topic + index,
+                        //KEY
+                        Schema.STRING_SCHEMA,
+                        elasticDocument.getId(),
+                        //VALUE
+                        schema,
+                        struct);
 
-            Schema schema = schemaConverter.convert(elasticDocument, index);
-            Struct struct = structConverter.convert(elasticDocument, schema);
-
-            SourceRecord sourceRecord = new SourceRecord(
-                    sourcePartition,
-                    sourceOffset,
-                    topic + index,
-                    //KEY
-                    Schema.STRING_SCHEMA,
-                    key,
-                    //VALUE
-                    schema,
-                    struct);
-            results.add(sourceRecord);
+                results.add(sourceRecord);
+            }
         }
     }
 

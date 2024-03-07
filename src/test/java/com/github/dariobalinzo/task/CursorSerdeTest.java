@@ -28,7 +28,7 @@ public class CursorSerdeTest extends TestCase {
 
     public void testCanSerializeIntermediateCursor() throws Exception {
         final Cursor cursor = new Cursor("some_index",
-            List.of(new CursorField("firstField", Long.MAX_VALUE), new CursorField("secondField", "")), "some_pit_id", new Object[]{4711, "some_secondary_value", 37}, 53, 64);
+            List.of(new CursorField("firstField", Long.MAX_VALUE), new CursorField("secondField", "")), "some_pit_id", new Object[]{4711, "some_secondary_value", 37}, 53, 64, false);
         final CursorSerde serde = new OffsetSerializer.CursorSerde(new ObjectMapper());
 
         // serialize
