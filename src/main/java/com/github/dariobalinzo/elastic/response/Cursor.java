@@ -1,9 +1,13 @@
 package com.github.dariobalinzo.elastic.response;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.beans.Transient;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 
 public class Cursor {
@@ -11,21 +15,13 @@ public class Cursor {
     private final String index;
     private final List<CursorField> cursorFields;
     private final String pitId;
-    private final Object[] sortValues;
-    private final int runningDocumentCount;
-    private final long scrollLimit;
-    private final boolean includeLowerBound;
-
+    private final List<FieldValue> sortValues;
 
     @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public Cursor(@JsonProperty("index") String index,
                   @JsonProperty("cursorFields") List<CursorField> cursorFields,
                   @JsonProperty("pitId") String pitId,
-                  @JsonProperty("sortValues") Object[] sortValues,
-                  @JsonProperty("runningDocumentCount") int runningDocumentCount,
-                  @JsonProperty("scrollLimit") long scrollLimit,
-                  @JsonProperty("includeLowerBound") boolean includeLowerBound) {
-        this.includeLowerBound = includeLowerBound;
+                  @JsonProperty("sortValues") List<FieldValue> sortValues) {
         Objects.requireNonNull(index);
         Objects.requireNonNull(cursorFields);
         cursorFields = Collections.unmodifiableList(cursorFields);
@@ -33,83 +29,10 @@ public class Cursor {
         this.cursorFields = cursorFields;
         this.pitId = pitId;
         this.sortValues = sortValues;
-        this.runningDocumentCount = runningDocumentCount;
-        this.scrollLimit = scrollLimit;
     }
-
-
-    @Transient
-    public boolean isScrollable() {
-        return pitId != null;
-    }
-
 
     public static Cursor of(String index, List<CursorField> cursorFields) {
-        return new Cursor(index, cursorFields, null, null, 0, 0, false);
-    }
-
-    public Cursor scroll(Object[] sortValues, int documentCount) {
-        var progress = this.runningDocumentCount + documentCount;
-        if (progress == this.scrollLimit)
-            return this.reframe(this.includeLowerBound);
-
-        return new Cursor(this.getIndex(), this.cursorFields, this.pitId, sortValues, progress, this.scrollLimit, this.includeLowerBound);
-    }
-
-    public Cursor scrollable(String pitId, Object[] sortValues, int documentCount, long scrollLimit) {
-        return new Cursor(this.getIndex(), this.cursorFields, pitId, sortValues,
-                this.runningDocumentCount + documentCount, scrollLimit, this.includeLowerBound);
-    }
-
-    @Override
-    // Overriding equals and hashCode for the sortValues object array which falls back to the Object default
-    // where the instances must be the same to be equal.
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Cursor cursor = (Cursor) o;
-        return Objects.equals(index, cursor.index) && Objects.equals(cursorFields, cursor.cursorFields)
-                && Objects.equals(pitId, cursor.pitId) && Arrays.equals(sortValues, cursor.sortValues) && Objects.equals(
-                runningDocumentCount, cursor.runningDocumentCount);
-    }
-
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(index, cursorFields, pitId, runningDocumentCount);
-        result = 31 * result + Arrays.hashCode(sortValues);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "Cursor{" +
-                "index='" + index + '\'' +
-                ", cursorFields=" + cursorFields +
-                ", pitId='" + pitId + '\'' +
-                ", sortValues=" + Arrays.toString(sortValues) +
-                ", runningDocumentCount=" + runningDocumentCount +
-                ", scrollLimit=" + scrollLimit +
-                '}';
-    }
-
-    public Cursor reframe(boolean includeLowerBound) {
-        final List<CursorField> newCursorFields;
-        if (sortValues == null || sortValues.length == 0) {
-            newCursorFields = cursorFields;
-        } else {
-            newCursorFields = new ArrayList<>(cursorFields.size());
-
-            for (int i = 0; i < cursorFields.size(); i++) {
-                newCursorFields.add(new CursorField(cursorFields.get(i).getField(), this.sortValues[i]));
-            }
-        }
-
-        return new Cursor(this.index, newCursorFields, null, null, 0, 0, includeLowerBound);
+        return new Cursor(index, cursorFields, null, null);
     }
 
     public String getIndex() {
@@ -124,23 +47,55 @@ public class Cursor {
         return pitId;
     }
 
-    public Object[] getSortValues() {
+    public List<FieldValue> getSortValues() {
         return sortValues;
     }
 
-    public int getRunningDocumentCount() {
-        return runningDocumentCount;
+    public Cursor withPitId(String pitId) {
+        return new Cursor(this.index, this.cursorFields, pitId, this.sortValues);
     }
 
-    public long getScrollLimit() {
-        return scrollLimit;
+    public Cursor withSortValues(List<FieldValue> sortValues) {
+        return new Cursor(this.index, this.cursorFields, this.pitId, sortValues);
     }
 
-    public Cursor withPitId(String encodedId) {
-        return new Cursor(this.index, this.cursorFields, encodedId, this.sortValues, this.runningDocumentCount, this.scrollLimit, this.includeLowerBound);
+
+    /**
+     * Re-frames the current cursor into a new one with any sort values transferred to cursor fields as initial values
+     * and no pitId.
+     *
+     * @return a new Cursor instance.
+     */
+    public Cursor reframe() {
+        final List<CursorField> newCursorFields;
+        if (sortValues == null || sortValues.isEmpty()) {
+
+            // cycle the current cursorFields back
+            newCursorFields = cursorFields;
+        } else {
+
+            // copy the sort values into the cursorFields as initial values
+            newCursorFields = new ArrayList<>(cursorFields.size());
+
+            for (int i = 0; i < cursorFields.size(); i++) {
+                newCursorFields.add(new CursorField(cursorFields.get(i).getField(), this.sortValues.get(i)));
+            }
+        }
+
+        return new Cursor(this.index, newCursorFields, null, null);
     }
 
-    public boolean includeLowerBound() {
-        return includeLowerBound;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Cursor cursor = (Cursor) o;
+        return Objects.equals(index, cursor.index) && Objects.equals(cursorFields, cursor.cursorFields) && Objects.equals(pitId, cursor.pitId) && Objects.equals(sortValues, cursor.sortValues);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index, cursorFields, pitId, sortValues);
     }
 }

@@ -18,8 +18,8 @@ package com.github.dariobalinzo;
 
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
-import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.ElasticIndexMonitorThread;
+import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.task.ElasticSourceTask;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;

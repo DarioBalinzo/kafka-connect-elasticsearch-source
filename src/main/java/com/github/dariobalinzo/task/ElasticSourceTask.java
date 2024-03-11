@@ -18,12 +18,12 @@ package com.github.dariobalinzo.task;
 
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
+import com.github.dariobalinzo.elastic.ESResultIterator;
 import com.github.dariobalinzo.elastic.ElasticConnection;
 import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.CursorField;
-import com.github.dariobalinzo.elastic.response.PageResult;
 import com.github.dariobalinzo.filter.BlacklistFilter;
 import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
@@ -31,7 +31,6 @@ import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.*;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
@@ -86,21 +85,21 @@ public class ElasticSourceTask extends SourceTask {
         indices = Arrays.asList(config.getString(ElasticSourceTaskConfig.INDICES_CONFIG).split(","));
         if (indices.isEmpty()) {
             throw new ConnectException("Invalid configuration: each ElasticSourceTask must have at "
-                    + "least one index assigned to it");
+                + "least one index assigned to it");
         }
 
         topic = config.getString(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG);
-        String incrementingFieldName = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
+        var incrementingFieldName = config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG);
         Objects.requireNonNull(incrementingFieldName, ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG
-                + " conf is mandatory");
-        CursorField primaryCursorField = new CursorField(incrementingFieldName,
-                config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_INITIAL_VALUE_CONFIG));
+            + " conf is mandatory");
+        var primaryCursorField = new CursorField(incrementingFieldName,
+            config.getString(ElasticSourceConnectorConfig.INCREMENTING_FIELD_INITIAL_VALUE_CONFIG));
         cursorFields.add(primaryCursorField);
 
-        String secondaryIncrementingFieldName = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
+        var secondaryIncrementingFieldName = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
         if (secondaryIncrementingFieldName != null) {
-            CursorField secondaryCursorField = new CursorField(secondaryIncrementingFieldName,
-                    config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG));
+            var secondaryCursorField = new CursorField(secondaryIncrementingFieldName,
+                config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG));
             cursorFields.add(secondaryCursorField);
         }
 
@@ -112,30 +111,30 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initConnectorFilters() {
-        String whiteFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG);
+        var whiteFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG);
         if (whiteFilters != null) {
-            String[] whiteFiltersArray = whiteFilters.split(";");
+            var whiteFiltersArray = whiteFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
             documentFilters.add(new WhitelistFilter(whiteFiltersSet));
         }
 
-        String blackFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_BLACKLIST_CONFIG);
+        var blackFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_BLACKLIST_CONFIG);
         if (blackFilters != null) {
-            String[] blackFiltersArray = blackFilters.split(";");
+            var blackFiltersArray = blackFilters.split(";");
             Set<String> blackFiltersSet = new HashSet<>(Arrays.asList(blackFiltersArray));
             documentFilters.add(new BlacklistFilter(blackFiltersSet));
         }
 
-        String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
+        var jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
         if (jsonCastFilters != null) {
-            String[] jsonCastFiltersArray = jsonCastFilters.split(";");
+            var jsonCastFiltersArray = jsonCastFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
             documentFilters.add(new JsonCastFilter(whiteFiltersSet));
         }
     }
 
     private void initConnectorFieldConverter() {
-        String nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
+        var nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
 
         FieldNameConverter fieldNameConverter;
         switch (nameConverterConfig) {
@@ -152,30 +151,30 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initEsConnection() {
-        String esScheme = config.getString(ElasticSourceConnectorConfig.ES_SCHEME_CONF);
-        String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
-        int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
+        var esScheme = config.getString(ElasticSourceConnectorConfig.ES_SCHEME_CONF);
+        var esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
+        var esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
 
-        String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
-        String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
+        var esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
+        var esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
 
-        int batchSize = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG));
+        var batchSize = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG));
 
-        int maxConnectionAttempts = Integer.parseInt(config.getString(
-                ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG
+        var maxConnectionAttempts = Integer.parseInt(config.getString(
+            ElasticSourceConnectorConfig.CONNECTION_ATTEMPTS_CONFIG
         ));
-        long connectionRetryBackoff = Long.parseLong(config.getString(
-                ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
+        var connectionRetryBackoff = Long.parseLong(config.getString(
+            ElasticSourceConnectorConfig.CONNECTION_BACKOFF_CONFIG
         ));
-        ElasticConnectionBuilder connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
-                .withProtocol(esScheme)
-                .withMaxAttempts(maxConnectionAttempts)
-                .withBackoff(connectionRetryBackoff);
+        var connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
+            .withProtocol(esScheme)
+            .withMaxAttempts(maxConnectionAttempts)
+            .withBackoff(connectionRetryBackoff);
 
-        String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
-        String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
-        String keystore = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_CONF);
-        String keystorePass = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_PWD_CONF);
+        var truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
+        var truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);
+        var keystore = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_CONF);
+        var keystorePass = config.getString(ElasticSourceConnectorConfig.ES_KEYSTORE_PWD_CONF);
 
         if (truststore != null) {
             connectionBuilder.withTrustStore(truststore, truststorePass);
@@ -189,11 +188,11 @@ public class ElasticSourceTask extends SourceTask {
             es = connectionBuilder.build();
         } else {
             es = connectionBuilder.withUser(esUser)
-                    .withPassword(esPwd)
-                    .build();
+                .withPassword(esPwd)
+                .build();
         }
 
-        Integer pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG);
+        var pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG);
 
         elasticRepository = new ElasticRepository(es, batchSize, pitTimeout);
     }
@@ -204,15 +203,15 @@ public class ElasticSourceTask extends SourceTask {
     public List<SourceRecord> poll() {
         List<SourceRecord> results = new ArrayList<>();
         try {
-            for (String index : indices) {
+            for (var index : indices) {
                 if (!stopping.get()) {
                     logger.info("fetching from {}", index);
-                    Cursor cursor = fetchAndAlignLastOffset(index, cursorFields);
+                    var cursor = fetchAndAlignLastOffset(index, cursorFields);
                     logger.info("found last initialValue {}", cursor);
-                    PageResult pageResult = elasticRepository.search(cursor);
-                    parseResult(pageResult, results);
-                    if (pageResult.isLastPage()) {
-                        cursorCache.put(cursor.getIndex(), pageResult.cursor().reframe(false));
+                    try (var iterator = elasticRepository.getIterator(cursor)) {
+                        var pair = parseResult(index, iterator);
+                        results.addAll(pair.getLhs());
+                        cursorCache.put(index, pair.getRhs().reframe());
                     }
                     logger.info("index {} total messages: {} ", index, sent.get(index));
                 }
@@ -235,13 +234,13 @@ public class ElasticSourceTask extends SourceTask {
         }
 
         // if cache is empty we check the framework
-        Map<String, Object> offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
+        var offset = context.offsetStorageReader().offset(Collections.singletonMap(INDEX, index));
         logger.info("offset from framework: {}", offset);
         if (offset == null || offset.isEmpty()) {
             return Cursor.of(index, cursorFields);
         }
 
-        Cursor cursor = new OffsetSerializer().deserialize(offset);
+        var cursor = new OffsetSerializer().deserialize(offset);
         if (cursor == null) {
             return Cursor.of(index, cursorFields);
         }
@@ -249,36 +248,56 @@ public class ElasticSourceTask extends SourceTask {
         return cursor;
     }
 
-    private void parseResult(PageResult pageResult, List<SourceRecord> results) {
-        String index = pageResult.getIndex();
-        while (pageResult.hasNext() && !stopping.get()) {
-            PageResult.Document elasticDocument = pageResult.next();
-            if (elasticDocument != null) {
-                cursorCache.put(index, elasticDocument.getDocumentCursor());
-                Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-                Map<String, Object> sourceOffset = new OffsetSerializer().serialize(elasticDocument.getDocumentCursor());
+    private Pair<List<SourceRecord>, Cursor> parseResult(String index, ESResultIterator iterator) {
+        var results = new ArrayList<SourceRecord>();
+        while (iterator.hasNext() && !stopping.get()) {
+            var record = iterator.next();
+            var sourcePartition = Collections.singletonMap(INDEX, index);
+            var sourceOffset = new OffsetSerializer().serialize(record.getCursor());
 
-                sent.merge(index, 1, Integer::sum);
+            sent.merge(index, 1, Integer::sum);
 
-                var docMap = elasticDocument.asMap();
-                documentFilters.forEach(jsonFilter -> jsonFilter.filter(docMap));
-                Schema schema = schemaConverter.convert(docMap, index);
-                Struct struct = structConverter.convert(docMap, schema);
-
-                SourceRecord sourceRecord = new SourceRecord(
-                        sourcePartition,
-                        sourceOffset,
-                        topic + index,
-                        //KEY
-                        Schema.STRING_SCHEMA,
-                        elasticDocument.getId(),
-                        //VALUE
-                        schema,
-                        struct);
-
-                results.add(sourceRecord);
+            var docMap = record.getData();
+            for (DocumentFilter jsonFilter : documentFilters) {
+                jsonFilter.filter(docMap);
             }
+            var schema = schemaConverter.convert(docMap, index);
+            var struct = structConverter.convert(docMap, schema);
+
+            results.add(new SourceRecord(
+                sourcePartition,
+                sourceOffset,
+                topic + index,
+                //KEY
+                Schema.STRING_SCHEMA,
+                record.getId(),
+                //VALUE
+                schema,
+                struct));
         }
+
+        // return results and the cursor for the last record returned
+        return new Pair<>(results, iterator.getCursor());
+    }
+
+    private static class Pair<L, R> {
+        private final L lhs;
+        private final R rhs;
+
+
+        private Pair(L lhs, R rhs) {
+            this.lhs = lhs;
+            this.rhs = rhs;
+        }
+
+        public L getLhs() {
+            return lhs;
+        }
+
+        public R getRhs() {
+            return rhs;
+        }
+
     }
 
     //will be called by connect with a different thread than poll thread
