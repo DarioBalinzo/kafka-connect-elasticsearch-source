@@ -24,15 +24,12 @@ import org.apache.kafka.connect.data.Struct;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
 public class SchemaConverterTest {
 
-    private final SchemaConverter schemaConverter = new SchemaConverter(new AvroName());
-    private final StructConverter structConverter = new StructConverter(new AvroName());
+    private final SchemaConverter schemaConverter = new ParsingSchemaConverter(new AvroName());
+    private final StructConverter structConverter = new ParsingStructConverter(new AvroName());
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test

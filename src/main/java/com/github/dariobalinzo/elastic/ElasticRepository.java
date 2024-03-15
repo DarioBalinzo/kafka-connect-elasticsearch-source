@@ -17,13 +17,11 @@
 package com.github.dariobalinzo.elastic;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.JsonpMapper;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
-import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.github.dariobalinzo.elastic.response.Cursor;
-import org.elasticsearch.action.search.ClosePointInTimeRequest;
 import org.elasticsearch.client.Request;
-import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +38,7 @@ public class ElasticRepository {
     private final static Logger logger = LoggerFactory.getLogger(ElasticRepository.class);
 
     private final ElasticConnection elasticConnection;
+    private final ElasticsearchClient javaClient;
 
     private int pageSize = 5000;
     private final int pitTimeoutSeconds;
@@ -53,6 +52,14 @@ public class ElasticRepository {
         this.elasticConnection = elasticConnection;
         this.pageSize = max(1, pageSize);
         this.pitTimeoutSeconds = max(35, pitTimeoutSeconds);
+
+        var transport = new RestClientTransport(
+            this.elasticConnection.getClient().getLowLevelClient(),
+            new JacksonJsonpMapper()
+        );
+
+        // uses the newer java api client
+        this.javaClient = new ElasticsearchClient(transport);
     }
 
     protected ElasticConnection getElasticConnection() {
@@ -60,13 +67,10 @@ public class ElasticRepository {
     }
 
     public ESResultIterator getIterator(Cursor cursor) {
-        ElasticsearchTransport transport = new RestClientTransport(
-            this.elasticConnection.getClient().getLowLevelClient(),
-            new JacksonJsonpMapper()
-        );
+        logger.info("Creating ESResultIterator with cursor: {}", cursor);
 
-        // uses the newer java api client
-        return new ESResultIterator(new ElasticsearchClient(transport), cursor, pageSize, pitTimeoutSeconds);
+        logger.info("Creating ESResultIterator with client: {}", javaClient);
+        return new ESResultIterator(javaClient, cursor, pageSize, pitTimeoutSeconds);
     }
 
     public List<String> catIndices(String prefix) {
@@ -82,11 +86,11 @@ public class ElasticRepository {
         }
 
         List<String> result = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()))) {
+        try (var reader = new BufferedReader(new InputStreamReader(resp.getEntity().getContent()))) {
             String line;
 
             while ((line = reader.readLine()) != null) {
-                String index = line.split("\\s+")[2];
+                var index = line.split("\\s+")[2];
                 if (index.startsWith(prefix)) {
                     result.add(index);
                 }
@@ -111,5 +115,9 @@ public class ElasticRepository {
 
     public void setPageSize(int pageSize) {
         this.pageSize = pageSize;
+    }
+
+    public JsonpMapper getMapper() {
+        return this.javaClient._jsonpMapper();
     }
 }

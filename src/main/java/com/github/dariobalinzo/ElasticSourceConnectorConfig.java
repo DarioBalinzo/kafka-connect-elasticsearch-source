@@ -29,8 +29,8 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
     public final static String ES_HOST_CONF = "es.host";
     private final static String ES_HOST_DOC = "ElasticSearch host. " +
-            "Optionally it is possible to specify many hosts " +
-            "using ; as separator (host1;host2;host3)";
+        "Optionally it is possible to specify many hosts " +
+        "using ; as separator (host1;host2;host3)";
     private final static String ES_HOST_DISPLAY = "Elastic host";
 
     public final static String ES_SCHEME_CONF = "es.scheme";
@@ -64,34 +64,33 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
 
     public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG = "point_in_time_timeout_seconds";
-    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC = "Set the timeout of any created point in time cursors in seconds. Defaults to 300 (5 minutes) restricted to a minimum of 30." +
-            "If you expect a large number of duplicate primary and/or secondary keys in your data, you may need to increase this value or you may get stalled. " +
-            "Point in Time cursors are cheap to create but will become expensive if held a long time.";
+    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC = "Set the timeout of any created point in time cursors in seconds. " +
+        "Defaults to 30s and is extended on every query issued until all pages are read.";
     public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DISPLAY = "Point in Time Timeout Seconds";
-    public static final Integer ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT = 300;
+    public static final Integer ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT = 30;
 
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
     private static final String CONNECTION_ATTEMPTS_DOC
-            = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
+        = "Maximum number of attempts to retrieve a valid Elasticsearch connection.";
     private static final String CONNECTION_ATTEMPTS_DISPLAY = "Elasticsearch connection attempts";
     private static final String CONNECTION_ATTEMPTS_DEFAULT = "3";
 
     public static final String CONNECTION_BACKOFF_CONFIG = "connection.backoff.ms";
     private static final String CONNECTION_BACKOFF_DOC
-            = "Backoff time in milliseconds between connection attempts.";
+        = "Backoff time in milliseconds between connection attempts.";
     private static final String CONNECTION_BACKOFF_DISPLAY
-            = "Elastic connection backoff in milliseconds";
+        = "Elastic connection backoff in milliseconds";
     private static final String CONNECTION_BACKOFF_DEFAULT = "10000";
 
     public static final String POLL_INTERVAL_MS_CONFIG = "poll.interval.ms";
     private static final String POLL_INTERVAL_MS_DOC = "Frequency in ms to poll for new data in "
-            + "each index.";
+        + "each index.";
     private static final String POLL_INTERVAL_MS_DEFAULT = "5000";
     private static final String POLL_INTERVAL_MS_DISPLAY = "Poll Interval (ms)";
 
     public static final String BATCH_MAX_ROWS_CONFIG = "batch.max.rows";
     private static final String BATCH_MAX_ROWS_DOC =
-            "Maximum number of documents to include in a single batch when polling for new data.";
+        "Maximum number of documents to include in a single batch when polling for new data.";
     private static final String BATCH_MAX_ROWS_DEFAULT = "10000";
     private static final String BATCH_MAX_ROWS_DISPLAY = "Max Documents Per Batch";
 
@@ -103,24 +102,24 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
     public static final String INCREMENTING_FIELD_NAME_CONFIG = "incrementing.field.name";
     private static final String INCREMENTING_FIELD_NAME_DOC =
-            "The name of the strictly incrementing field to use to detect new records.";
+        "The name of the strictly incrementing field to use to detect new records.";
     private static final String INCREMENTING_FIELD_NAME_DEFAULT = "";
     private static final String INCREMENTING_FIELD_NAME_DISPLAY = "Incrementing Field Name";
 
     public static final String INCREMENTING_FIELD_INITIAL_VALUE_CONFIG = "incrementing.field.initial.value";
     private static final String INCREMENTING_FIELD_INITIAL_VALUE_DOC =
-            "The initial value to start at for the incrementing field, default is zero (0) or empty string ('') probably.";
+        "The initial value to start at for the incrementing field, default is zero (0) or empty string ('') probably.";
     private static final String INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY = "Incrementing Field Initial Value";
 
 
     public static final String SECONDARY_INCREMENTING_FIELD_NAME_CONFIG = "incrementing.secondary.field.name";
     private static final String SECONDARY_INCREMENTING_FIELD_NAME_DOC =
-            "In case the main incrementing field may have duplicates, this secondary field is used as a secondary sort field" +
-                    " in order to avoid data losses when paginating";
+        "In case the main incrementing field may have duplicates, this secondary field is used as a secondary sort field" +
+            " in order to avoid data losses when paginating";
     private static final String SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY = "Secondary Incrementing Field Name";
     public static final String SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG = "incrementing.secondary.field.initial.value";
     private static final String SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DOC =
-            "The initial value to start at for the secondary incrementing field, default is zero (0) or empty string ('') probably.";
+        "The initial value to start at for the secondary incrementing field, default is zero (0) or empty string ('') probably.";
     private static final String SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY = "Secondary Incrementing Field Initial Value";
 
     public static final String INDEX_PREFIX_CONFIG = "index.prefix";
@@ -136,7 +135,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
 
     public static final String TOPIC_PREFIX_CONFIG = "topic.prefix";
     private static final String TOPIC_PREFIX_DOC =
-            "Prefix to prepend to index names to generate the name of the Kafka topic to publish data";
+        "Prefix to prepend to index names to generate the name of the Kafka topic to publish data";
     private static final String TOPIC_PREFIX_DISPLAY = "Topic Prefix";
 
     private static final String DATABASE_GROUP = "Elasticsearch";
@@ -165,6 +164,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public static final String CONNECTOR_FIELDNAME_CONVERTER_DOC = "Determine which name converter should be used for document fields: avro converter as standard";
     public static final String CONNECTOR_FIELDNAME_CONVERTER_DISPLAY = "Fields name converter (avro, nop)";
 
+    public static final String CONNECTOR_FIELDNAME_ENABLE_PARSE_CONFIG = "enable_parse";
+    public static final String CONNECTOR_FIELDNAME_ENABLE_PARSE_DOC = "Disable to publish raw json string instead of parsing nested objects";
+    public static final String CONNECTOR_FIELDNAME_ENABLE_PARSE_DISPLAY = "Disable Parsing, publish raw json string";
+
     public static final String NOP_FIELDNAME_CONVERTER = "nop";
     public static final String AVRO_FIELDNAME_CONVERTER = "avro";
 
@@ -181,284 +184,294 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static void addDatabaseOptions(ConfigDef config) {
         int orderInGroup = 0;
         config.define(
-                ES_HOST_CONF,
-                Type.STRING,
-                Importance.HIGH,
-                ES_HOST_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.LONG,
-                ES_HOST_DISPLAY,
-                Collections.singletonList(INDEX_PREFIX_CONFIG)
+            ES_HOST_CONF,
+            Type.STRING,
+            Importance.HIGH,
+            ES_HOST_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.LONG,
+            ES_HOST_DISPLAY,
+            Collections.singletonList(INDEX_PREFIX_CONFIG)
         ).define(
-                ES_SCHEME_CONF,
-                Type.STRING,
-                ES_SCHEME_DEFAULT,
-                Importance.MEDIUM,
-                ES_SCHEME_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.LONG,
-                ES_SCHEME_DISPLAY
+            ES_SCHEME_CONF,
+            Type.STRING,
+            ES_SCHEME_DEFAULT,
+            Importance.MEDIUM,
+            ES_SCHEME_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.LONG,
+            ES_SCHEME_DISPLAY
         ).define(
-                ES_PORT_CONF,
-                Type.STRING,
-                Importance.HIGH,
-                ES_PORT_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.LONG,
-                ES_PORT_DISPLAY,
-                Collections.singletonList(INDEX_PREFIX_CONFIG)
+            ES_PORT_CONF,
+            Type.STRING,
+            Importance.HIGH,
+            ES_PORT_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.LONG,
+            ES_PORT_DISPLAY,
+            Collections.singletonList(INDEX_PREFIX_CONFIG)
         ).define(
-                ES_USER_CONF,
-                Type.STRING,
-                null,
-                Importance.HIGH,
-                ES_USER_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.LONG,
-                ES_USER_DISPLAY
+            ES_USER_CONF,
+            Type.STRING,
+            null,
+            Importance.HIGH,
+            ES_USER_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.LONG,
+            ES_USER_DISPLAY
         ).define(
-                ES_PWD_CONF,
-                Type.STRING,
-                null,
-                Importance.HIGH,
-                ES_PWD_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_PWD_DISPLAY
+            ES_PWD_CONF,
+            Type.STRING,
+            null,
+            Importance.HIGH,
+            ES_PWD_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            ES_PWD_DISPLAY
         ).define(
-                ES_KEYSTORE_CONF,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                ES_KEYSTORE_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_KEYSTORE_DOC
+            ES_KEYSTORE_CONF,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            ES_KEYSTORE_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            ES_KEYSTORE_DOC
         ).define(
-                ES_KEYSTORE_PWD_CONF,
-                Type.STRING,
-                "",
-                Importance.MEDIUM,
-                ES_KEYSTORE_PWD_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_KEYSTORE_PWD_DOC
+            ES_KEYSTORE_PWD_CONF,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            ES_KEYSTORE_PWD_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            ES_KEYSTORE_PWD_DOC
         ).define(
-                ES_TRUSTSTORE_CONF,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                ES_TRUSTSTORE_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_TRUSTSTORE_DOC
+            ES_TRUSTSTORE_CONF,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            ES_TRUSTSTORE_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            ES_TRUSTSTORE_DOC
         ).define(
-                ES_TRUSTSTORE_PWD_CONF,
-                Type.STRING,
-                "",
-                Importance.MEDIUM,
-                ES_TRUSTSTORE_PWD_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_TRUSTSTORE_PWD_DOC
+            ES_TRUSTSTORE_PWD_CONF,
+            Type.STRING,
+            "",
+            Importance.MEDIUM,
+            ES_TRUSTSTORE_PWD_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            ES_TRUSTSTORE_PWD_DOC
         ).define(
-                ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG,
-                Type.INT,
-                ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT,
-                Importance.MEDIUM,
-                ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC
+            ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG,
+            Type.INT,
+            ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT,
+            Importance.MEDIUM,
+            ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC
         ).define(
-                CONNECTION_ATTEMPTS_CONFIG,
-                Type.STRING,
-                CONNECTION_ATTEMPTS_DEFAULT,
-                Importance.LOW,
-                CONNECTION_ATTEMPTS_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                ConfigDef.Width.SHORT,
-                CONNECTION_ATTEMPTS_DISPLAY
+            CONNECTION_ATTEMPTS_CONFIG,
+            Type.STRING,
+            CONNECTION_ATTEMPTS_DEFAULT,
+            Importance.LOW,
+            CONNECTION_ATTEMPTS_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            ConfigDef.Width.SHORT,
+            CONNECTION_ATTEMPTS_DISPLAY
         ).define(
-                CONNECTION_BACKOFF_CONFIG,
-                Type.STRING,
-                CONNECTION_BACKOFF_DEFAULT,
-                Importance.LOW,
-                CONNECTION_BACKOFF_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                CONNECTION_BACKOFF_DISPLAY
+            CONNECTION_BACKOFF_CONFIG,
+            Type.STRING,
+            CONNECTION_BACKOFF_DEFAULT,
+            Importance.LOW,
+            CONNECTION_BACKOFF_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            CONNECTION_BACKOFF_DISPLAY
         ).define(
-                INDEX_PREFIX_CONFIG,
-                Type.STRING,
-                INDEX_PREFIX_DEFAULT,
-                Importance.MEDIUM,
-                INDEX_PREFIX_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.LONG,
-                INDEX_PREFIX_DISPLAY
+            INDEX_PREFIX_CONFIG,
+            Type.STRING,
+            INDEX_PREFIX_DEFAULT,
+            Importance.MEDIUM,
+            INDEX_PREFIX_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.LONG,
+            INDEX_PREFIX_DISPLAY
         ).define(
-                INDEX_NAMES_CONFIG,
-                Type.STRING,
-                INDEX_NAMES_DEFAULT,
-                Importance.MEDIUM,
-                INDEX_NAMES_DOC,
-                DATABASE_GROUP,
-                ++orderInGroup,
-                Width.LONG,
-                INDEX_NAMES_DISPLAY
+            INDEX_NAMES_CONFIG,
+            Type.STRING,
+            INDEX_NAMES_DEFAULT,
+            Importance.MEDIUM,
+            INDEX_NAMES_DOC,
+            DATABASE_GROUP,
+            ++orderInGroup,
+            Width.LONG,
+            INDEX_NAMES_DISPLAY
         ).define(
-                FIELDS_WHITELIST_CONFIG,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                FIELDS_WHITELIST_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                FIELDS_WHITELIST_DISPLAY
+            FIELDS_WHITELIST_CONFIG,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            FIELDS_WHITELIST_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            FIELDS_WHITELIST_DISPLAY
         ).define(
-                FIELDS_BLACKLIST_CONFIG,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                FIELDS_BLACKLIST_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                FIELDS_BLACKLIST_DISPLAY
+            FIELDS_BLACKLIST_CONFIG,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            FIELDS_BLACKLIST_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            FIELDS_BLACKLIST_DISPLAY
         ).define(
-                FIELDS_JSON_CAST_CONFIG,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                FIELDS_WHITELIST_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                FIELDS_JSON_CAST_DISPLAY
+            FIELDS_JSON_CAST_CONFIG,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            FIELDS_WHITELIST_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            FIELDS_JSON_CAST_DISPLAY
         );
     }
 
     private static void addModeOptions(ConfigDef config) {
         int orderInGroup = 0;
         config.define(
-                MODE_CONFIG,
-                Type.STRING,
+            MODE_CONFIG,
+            Type.STRING,
+            MODE_UNSPECIFIED,
+            ConfigDef.ValidString.in(
                 MODE_UNSPECIFIED,
-                ConfigDef.ValidString.in(
-                        MODE_UNSPECIFIED,
-                        MODE_BULK,
-                        MODE_TIMESTAMP,
-                        MODE_INCREMENTING,
-                        MODE_TIMESTAMP_INCREMENTING
-                ),
-                Importance.HIGH,
-                MODE_DOC,
-                MODE_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                MODE_DISPLAY,
-                Collections.singletonList(
-                        INCREMENTING_FIELD_NAME_CONFIG
-                )
+                MODE_BULK,
+                MODE_TIMESTAMP,
+                MODE_INCREMENTING,
+                MODE_TIMESTAMP_INCREMENTING
+            ),
+            Importance.HIGH,
+            MODE_DOC,
+            MODE_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            MODE_DISPLAY,
+            Collections.singletonList(
+                INCREMENTING_FIELD_NAME_CONFIG
+            )
         ).define(
-                INCREMENTING_FIELD_NAME_CONFIG,
-                Type.STRING,
-                INCREMENTING_FIELD_NAME_DEFAULT,
-                Importance.MEDIUM,
-                INCREMENTING_FIELD_NAME_DOC,
-                MODE_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                INCREMENTING_FIELD_NAME_DISPLAY
+            INCREMENTING_FIELD_NAME_CONFIG,
+            Type.STRING,
+            INCREMENTING_FIELD_NAME_DEFAULT,
+            Importance.MEDIUM,
+            INCREMENTING_FIELD_NAME_DOC,
+            MODE_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            INCREMENTING_FIELD_NAME_DISPLAY
         ).define(
-                INCREMENTING_FIELD_INITIAL_VALUE_CONFIG,
-                Type.STRING,
-                null,
-                Importance.MEDIUM,
-                INCREMENTING_FIELD_INITIAL_VALUE_DOC,
-                MODE_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                INCREMENTING_FIELD_NAME_DISPLAY
+            INCREMENTING_FIELD_INITIAL_VALUE_CONFIG,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            INCREMENTING_FIELD_INITIAL_VALUE_DOC,
+            MODE_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            INCREMENTING_FIELD_NAME_DISPLAY
         ).define(
-                SECONDARY_INCREMENTING_FIELD_NAME_CONFIG,
-                Type.STRING,
-                null,
-                Importance.LOW,
-                SECONDARY_INCREMENTING_FIELD_NAME_DOC,
-                MODE_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY
+            SECONDARY_INCREMENTING_FIELD_NAME_CONFIG,
+            Type.STRING,
+            null,
+            Importance.LOW,
+            SECONDARY_INCREMENTING_FIELD_NAME_DOC,
+            MODE_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            SECONDARY_INCREMENTING_FIELD_NAME_DISPLAY
         ).define(
-                SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG,
-                Type.STRING,
-                null,
-                Importance.LOW,
-                SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DOC,
-                MODE_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY
+            SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_CONFIG,
+            Type.STRING,
+            null,
+            Importance.LOW,
+            SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DOC,
+            MODE_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            SECONDARY_INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY
         );
     }
 
     private static void addConnectorOptions(ConfigDef config) {
         int orderInGroup = 0;
         config.define(
-                POLL_INTERVAL_MS_CONFIG,
-                Type.STRING,
-                POLL_INTERVAL_MS_DEFAULT,
-                Importance.HIGH,
-                POLL_INTERVAL_MS_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                POLL_INTERVAL_MS_DISPLAY
+            POLL_INTERVAL_MS_CONFIG,
+            Type.STRING,
+            POLL_INTERVAL_MS_DEFAULT,
+            Importance.HIGH,
+            POLL_INTERVAL_MS_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            POLL_INTERVAL_MS_DISPLAY
         ).define(
-                BATCH_MAX_ROWS_CONFIG,
-                Type.STRING,
-                BATCH_MAX_ROWS_DEFAULT,
-                Importance.LOW,
-                BATCH_MAX_ROWS_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.SHORT,
-                BATCH_MAX_ROWS_DISPLAY
+            BATCH_MAX_ROWS_CONFIG,
+            Type.STRING,
+            BATCH_MAX_ROWS_DEFAULT,
+            Importance.LOW,
+            BATCH_MAX_ROWS_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.SHORT,
+            BATCH_MAX_ROWS_DISPLAY
         ).define(
-                TOPIC_PREFIX_CONFIG,
-                Type.STRING,
-                Importance.HIGH,
-                TOPIC_PREFIX_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                TOPIC_PREFIX_DISPLAY
+            TOPIC_PREFIX_CONFIG,
+            Type.STRING,
+            Importance.HIGH,
+            TOPIC_PREFIX_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            TOPIC_PREFIX_DISPLAY
         ).define(
-                CONNECTOR_FIELDNAME_CONVERTER_CONFIG,
-                Type.STRING,
-                AVRO_FIELDNAME_CONVERTER,
-                Importance.MEDIUM,
-                CONNECTOR_FIELDNAME_CONVERTER_DOC,
-                CONNECTOR_GROUP,
-                ++orderInGroup,
-                Width.MEDIUM,
-                CONNECTOR_FIELDNAME_CONVERTER_DISPLAY
+            CONNECTOR_FIELDNAME_ENABLE_PARSE_CONFIG,
+            Type.BOOLEAN,
+            true,
+            Importance.MEDIUM,
+            CONNECTOR_FIELDNAME_ENABLE_PARSE_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            CONNECTOR_FIELDNAME_ENABLE_PARSE_DISPLAY
+        ).define(
+            CONNECTOR_FIELDNAME_CONVERTER_CONFIG,
+            Type.STRING,
+            AVRO_FIELDNAME_CONVERTER,
+            Importance.MEDIUM,
+            CONNECTOR_FIELDNAME_CONVERTER_DOC,
+            CONNECTOR_GROUP,
+            ++orderInGroup,
+            Width.MEDIUM,
+            CONNECTOR_FIELDNAME_CONVERTER_DISPLAY
         );
     }
 

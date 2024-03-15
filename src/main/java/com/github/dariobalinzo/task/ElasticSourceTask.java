@@ -16,6 +16,7 @@
 
 package com.github.dariobalinzo.task;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.ESResultIterator;
@@ -68,6 +69,7 @@ public class ElasticSourceTask extends SourceTask {
     private ElasticRepository elasticRepository;
 
     private final List<DocumentFilter> documentFilters = new ArrayList<>();
+    private Integer pageSize;
 
     @Override
     public String version() {
@@ -134,20 +136,30 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initConnectorFieldConverter() {
-        var nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
+        var enableParse = config.getBoolean(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_ENABLE_PARSE_CONFIG);
 
-        FieldNameConverter fieldNameConverter;
-        switch (nameConverterConfig) {
-            case ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER:
-                fieldNameConverter = new NopNameConverter();
-                break;
-            case ElasticSourceConnectorConfig.AVRO_FIELDNAME_CONVERTER:
-            default:
-                fieldNameConverter = new AvroName();
-                break;
+        if (enableParse) {
+            var nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
+
+            FieldNameConverter fieldNameConverter;
+            switch (nameConverterConfig) {
+                case ElasticSourceConnectorConfig.NOP_FIELDNAME_CONVERTER:
+                    fieldNameConverter = new NopNameConverter();
+                    break;
+                case ElasticSourceConnectorConfig.AVRO_FIELDNAME_CONVERTER:
+                default:
+                    fieldNameConverter = new AvroName();
+                    break;
+            }
+
+            this.schemaConverter = new ParsingSchemaConverter(fieldNameConverter);
+            this.structConverter = new ParsingStructConverter(fieldNameConverter);
+        } else {
+            this.schemaConverter = new SimpleStringSchemaConverter();
+            this.structConverter = new SimpleStringStructConverter();
         }
-        this.schemaConverter = new SchemaConverter(fieldNameConverter);
-        this.structConverter = new StructConverter(fieldNameConverter);
+
+        this.pageSize = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.BATCH_MAX_ROWS_CONFIG));
     }
 
     private void initEsConnection() {
@@ -208,12 +220,26 @@ public class ElasticSourceTask extends SourceTask {
                     logger.info("fetching from {}", index);
                     var cursor = fetchAndAlignLastOffset(index, cursorFields);
                     logger.info("found last initialValue {}", cursor);
-                    try (var iterator = elasticRepository.getIterator(cursor)) {
-                        var pair = parseResult(index, iterator);
-                        results.addAll(pair.getLhs());
-                        cursorCache.put(index, pair.getRhs().reframe());
+                    var iterator = elasticRepository.getIterator(cursor);
+                    try {
+                        var pageResults = parseResult(index, iterator, this.pageSize);
+                        logger.debug("fetched page of {} records from {}", pageResults.size(), index);
+                        results.addAll(pageResults);
+                        logger.info("index {} total messages: {} ", index, sent.get(index));
+                        cursorCache.put(index, iterator.getCursor());
+                    } catch (Exception e) {
+                        if (e.getCause() instanceof ElasticsearchException) {
+                            logger.error("Got error, will reframe cursor.", e);
+                            logger.info("Got error, re-framing last cursor {}", cursor);
+                            // for exceptions reframe the cursor and put it back in the cache, this clears
+                            // any pit and sort values. the pit expiring is likely the cause of elasticsearch exceptions.
+                            // DO include lower here it may not have gotten to the end of a load of duplicate sort keys so
+                            // gotta start again maybe.
+                            cursorCache.put(index, cursor.reframe(true));
+                        }
+
+                        throw e;
                     }
-                    logger.info("index {} total messages: {} ", index, sent.get(index));
                 }
             }
             if (results.isEmpty()) {
@@ -224,7 +250,8 @@ public class ElasticSourceTask extends SourceTask {
         } catch (Exception e) {
             logger.error("error", e);
         }
-        return results;
+
+        return results.isEmpty() ? null : results;
     }
 
     private Cursor fetchAndAlignLastOffset(String index, List<CursorField> cursorFields) {
@@ -248,12 +275,15 @@ public class ElasticSourceTask extends SourceTask {
         return cursor;
     }
 
-    private Pair<List<SourceRecord>, Cursor> parseResult(String index, ESResultIterator iterator) {
+    private List<SourceRecord> parseResult(String index, ESResultIterator iterator, int pageSize) {
         var results = new ArrayList<SourceRecord>();
+        var counter = 0;
+        var offsetSerializer = new OffsetSerializer();
         while (iterator.hasNext() && !stopping.get()) {
             var record = iterator.next();
+            logger.debug("record: {}", record);
             var sourcePartition = Collections.singletonMap(INDEX, index);
-            var sourceOffset = new OffsetSerializer().serialize(record.getCursor());
+            var sourceOffset = offsetSerializer.serialize(iterator.getCursor());
 
             sent.merge(index, 1, Integer::sum);
 
@@ -264,7 +294,7 @@ public class ElasticSourceTask extends SourceTask {
             var schema = schemaConverter.convert(docMap, index);
             var struct = structConverter.convert(docMap, schema);
 
-            results.add(new SourceRecord(
+            var sourceRecord = new SourceRecord(
                 sourcePartition,
                 sourceOffset,
                 topic + index,
@@ -273,31 +303,20 @@ public class ElasticSourceTask extends SourceTask {
                 record.getId(),
                 //VALUE
                 schema,
-                struct));
+                struct
+            );
+
+            results.add(sourceRecord);
+
+            // return the page if limit reached - the cursor will cycle back for the next page
+            if (++counter >= pageSize) {
+                break;
+            }
         }
 
-        // return results and the cursor for the last record returned
-        return new Pair<>(results, iterator.getCursor());
-    }
-
-    private static class Pair<L, R> {
-        private final L lhs;
-        private final R rhs;
-
-
-        private Pair(L lhs, R rhs) {
-            this.lhs = lhs;
-            this.rhs = rhs;
-        }
-
-        public L getLhs() {
-            return lhs;
-        }
-
-        public R getRhs() {
-            return rhs;
-        }
-
+        // return results and the cursor for the last record returned - if it reached the end it will have
+        // been closed and the pit and sortValues cleared.
+        return results;
     }
 
     //will be called by connect with a different thread than poll thread
