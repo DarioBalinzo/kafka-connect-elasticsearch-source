@@ -63,11 +63,12 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private final static String ES_TRUSTSTORE_PWD_DOC = "Elasticsearch truststore password";
 
 
-    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG = "point_in_time_timeout_seconds";
-    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC = "Set the timeout of any created point in time cursors in seconds. " +
+    public static final String ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_CONFIG = "point.in.time.keepalive.seconds";
+    public static final String ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_DOC = "Set the keep alive of any created point in time cursors in seconds. " +
         "Defaults to 30s and is extended on every query issued until all pages are read.";
-    public static final String ES_POINT_IN_TIME_TIMEOUT_SECONDS_DISPLAY = "Point in Time Timeout Seconds";
-    public static final Integer ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT = 30;
+    public static final String ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_DISPLAY = "Point in Time Keep Alive Seconds";
+
+    public static final Integer ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_DEFAULT = 30;
 
     public static final String CONNECTION_ATTEMPTS_CONFIG = "connection.attempts";
     private static final String CONNECTION_ATTEMPTS_DOC
@@ -110,7 +111,6 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String INCREMENTING_FIELD_INITIAL_VALUE_DOC =
         "The initial value to start at for the incrementing field, default is zero (0) or empty string ('') probably.";
     private static final String INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY = "Incrementing Field Initial Value";
-
 
     public static final String SECONDARY_INCREMENTING_FIELD_NAME_CONFIG = "incrementing.secondary.field.name";
     private static final String SECONDARY_INCREMENTING_FIELD_NAME_DOC =
@@ -164,9 +164,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public static final String CONNECTOR_FIELDNAME_CONVERTER_DOC = "Determine which name converter should be used for document fields: avro converter as standard";
     public static final String CONNECTOR_FIELDNAME_CONVERTER_DISPLAY = "Fields name converter (avro, nop)";
 
-    public static final String CONNECTOR_FIELDNAME_ENABLE_PARSE_CONFIG = "enable_parse";
-    public static final String CONNECTOR_FIELDNAME_ENABLE_PARSE_DOC = "Disable to publish raw json string instead of parsing nested objects";
-    public static final String CONNECTOR_FIELDNAME_ENABLE_PARSE_DISPLAY = "Disable Parsing, publish raw json string";
+    public static final String ENABLE_PARSE_CONFIG = "enable.parse";
+    public static final Boolean ENABLE_PARSE_DEFAULT = false;
+    public static final String ENABLE_PARSE_DOC = "False to publish raw json string inside a root `doc` node instead of parsing nested objects.";
+    public static final String ENABLE_PARSE_DISPLAY = "Disable Parsing, publish raw json string inside `doc` node";
 
     public static final String NOP_FIELDNAME_CONVERTER = "nop";
     public static final String AVRO_FIELDNAME_CONVERTER = "avro";
@@ -274,15 +275,15 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
             Width.SHORT,
             ES_TRUSTSTORE_PWD_DOC
         ).define(
-            ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG,
+            ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_CONFIG,
             Type.INT,
-            ES_POINT_IN_TIME_TIMEOUT_SECONDS_DEFAULT,
+            ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_DEFAULT,
             Importance.MEDIUM,
-            ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC,
+            ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_DOC,
             DATABASE_GROUP,
             ++orderInGroup,
             Width.SHORT,
-            ES_POINT_IN_TIME_TIMEOUT_SECONDS_DOC
+            ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_DISPLAY
         ).define(
             CONNECTION_ATTEMPTS_CONFIG,
             Type.STRING,
@@ -397,7 +398,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
             MODE_GROUP,
             ++orderInGroup,
             Width.MEDIUM,
-            INCREMENTING_FIELD_NAME_DISPLAY
+            INCREMENTING_FIELD_INITIAL_VALUE_DISPLAY
         ).define(
             SECONDARY_INCREMENTING_FIELD_NAME_CONFIG,
             Type.STRING,
@@ -453,15 +454,15 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
             Width.MEDIUM,
             TOPIC_PREFIX_DISPLAY
         ).define(
-            CONNECTOR_FIELDNAME_ENABLE_PARSE_CONFIG,
+            ENABLE_PARSE_CONFIG,
             Type.BOOLEAN,
-            true,
+            ENABLE_PARSE_DEFAULT,
             Importance.MEDIUM,
-            CONNECTOR_FIELDNAME_ENABLE_PARSE_DOC,
+            ENABLE_PARSE_DOC,
             CONNECTOR_GROUP,
             ++orderInGroup,
             Width.MEDIUM,
-            CONNECTOR_FIELDNAME_ENABLE_PARSE_DISPLAY
+            ENABLE_PARSE_DISPLAY
         ).define(
             CONNECTOR_FIELDNAME_CONVERTER_CONFIG,
             Type.STRING,

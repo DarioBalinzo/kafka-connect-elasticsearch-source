@@ -136,7 +136,7 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initConnectorFieldConverter() {
-        var enableParse = config.getBoolean(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_ENABLE_PARSE_CONFIG);
+        var enableParse = config.getBoolean(ElasticSourceConnectorConfig.ENABLE_PARSE_CONFIG);
 
         if (enableParse) {
             var nameConverterConfig = config.getString(ElasticSourceConnectorConfig.CONNECTOR_FIELDNAME_CONVERTER_CONFIG);
@@ -204,7 +204,7 @@ public class ElasticSourceTask extends SourceTask {
                 .build();
         }
 
-        var pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_TIMEOUT_SECONDS_CONFIG);
+        var pitTimeout = config.getInt(ElasticSourceConnectorConfig.ES_POINT_IN_TIME_KEEP_ALIVE_SECONDS_CONFIG);
 
         elasticRepository = new ElasticRepository(es, batchSize, pitTimeout);
     }

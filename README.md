@@ -8,8 +8,8 @@ and nested objects/ arrays.
 
 ## Requirements:
 
-- Elasticsearch 6.x and 7.x
-- Java >= 8
+- Elasticsearch 7.15+
+- Java >= 11
 - Maven
 
 ## Output data serialization format:
@@ -116,9 +116,14 @@ Elasticsearch password
 * Default: null
 * Importance: high
 
-
 ``incrementing.field.name``
 The name of the strictly incrementing field to use to detect new records.
+
+* Type: any
+* Importance: high
+
+``incrementing.field.initial.value``
+Where to start for the incrementing field.
 
 * Type: any
 * Importance: high
@@ -127,6 +132,12 @@ The name of the strictly incrementing field to use to detect new records.
 In case the main incrementing field may have duplicates, 
 this secondary field is used as a secondary sort field in order 
 to avoid data losses when paginating (available starting from versions >= 1.4).
+
+* Type: any
+* Importance: low
+
+``incrementing.secondary.field.initial.value``
+Where to start for the incrementing secondary field.
 
 * Type: any
 * Importance: low
@@ -245,3 +256,21 @@ in order to be serialized correctly. To disable the field name conversion set th
 * Type: string
 * Importance: medium
 * Default: avro
+
+
+``point.in.time.keepalive.seconds``
+The keep-alive of any created point in time cursors in seconds. Defaults to 30 and is extended on every query issued 
+until all pages are read.
+
+* Type: int
+* Importance: low
+* Default: 30
+
+
+``enable.parse``
+False to disable any attempt to parse documents, they are written as strings into a root `doc` node. Defaults to `true`
+to maintain backwards compatibility.
+
+* Type: boolean
+* Importance: meedium
+* Default: true
