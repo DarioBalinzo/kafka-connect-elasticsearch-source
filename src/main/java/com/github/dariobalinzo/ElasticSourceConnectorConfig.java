@@ -165,7 +165,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public static final String CONNECTOR_FIELDNAME_CONVERTER_DISPLAY = "Fields name converter (avro, nop)";
 
     public static final String ENABLE_PARSE_CONFIG = "enable.parse";
-    public static final Boolean ENABLE_PARSE_DEFAULT = false;
+    public static final Boolean ENABLE_PARSE_DEFAULT = true;
     public static final String ENABLE_PARSE_DOC = "False to publish raw json string inside a root `doc` node instead of parsing nested objects.";
     public static final String ENABLE_PARSE_DISPLAY = "Disable Parsing, publish raw json string inside `doc` node";
 
@@ -349,7 +349,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
             Type.STRING,
             null,
             Importance.MEDIUM,
-            FIELDS_WHITELIST_DOC,
+            FIELDS_JSON_CAST_DOC,
             CONNECTOR_GROUP,
             ++orderInGroup,
             Width.MEDIUM,
