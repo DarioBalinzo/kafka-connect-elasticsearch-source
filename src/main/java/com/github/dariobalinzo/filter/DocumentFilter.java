@@ -17,9 +17,9 @@
 package com.github.dariobalinzo.filter;
 
 import java.util.Map;
+import java.util.Set;
 
 public interface DocumentFilter {
-
     void filter(Map<String, Object> document);
-
+    Set<String> fields();
 }

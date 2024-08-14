@@ -140,20 +140,20 @@ List of default headers to be carried to Elasticsearch by each request.
 
 * Type: string
 * Importance: medium
-* Default: null
+* Default: `null`
 
 ``es.user``
 Elasticsearch username
 
 * Type: string
-* Default: null
+* Default: `null`
 * Importance: high
 
 ``es.password``
 Elasticsearch password
 
 * Type: password
-* Default: null
+* Default: `null`
 * Importance: high
 
 
@@ -224,7 +224,7 @@ Periodically, new indices are discovered if they match the pattern.
 List of elasticsearch indices: `es1,es2,es3`
 
 * Type: string
-* Default: null
+* Default: `null`
 * Importance: medium
 
 ### Connector Configuration
@@ -256,7 +256,7 @@ nested fields. To provide multiple fields use `;` as separator
 
 * Type: string
 * Importance: medium
-* Default: null
+* Default: `null`
 
 ``value.filters.blacklist``
 Blacklist filter for extracting a subset of fields from elastic-search json documents. The blacklist filter supports
@@ -265,7 +265,7 @@ nested fields. To provide multiple fields use `;` as separator
 
 * Type: string
 * Importance: medium
-* Default: null
+* Default: `null`
 
 ``value.filters.json_cast``
 This filter casts nested fields to json string, avoiding parsing recursively as kafka connect-schema. The json-cast
@@ -274,7 +274,35 @@ filter supports nested fields. To provide multiple fields use `;` as separator
 
 * Type: string
 * Importance: medium
-* Default: null
+* Default: `null`
+
+``value.onerror.fields``
+List of fields to be included in records in case of serialization errors. Example: `order.qty,order.price,user.name`.
+
+* Type: list
+* Importance: high
+* Default: `null`
+
+``value.rawdata.field``
+Field name to include in records to store raw data value, as string.
+
+* Type: string
+* Importance: low
+* Default: `raw`
+
+``value.rawdata.include``
+When to include raw data field defined by `value.rawdata.field`. Supported values are: `all` (all records), `onerror` (only for records with schema errors) and `none`.
+
+* Type: string
+* Importance: medium
+* Default: `none`
+
+``value.rawdata.only.enable``
+Add raw data field defined by `value.rawdata.field` and ignore all other fields except the ones defined by `value.filters.whitelist`. Configuration `value.rawdata.include` is ignored and the behavior is the same as it were set to `all`. If any field causes serialization errors, fields defined by `value.onerror.fields` are included in records. This configuration aims to deal with Elasticsearch records that do not comply with Kafak Connect's set of types, for instance, arrays with items of different types.
+
+* Type: boolean
+* Importance: low
+* Default: `false`
 
 ``fieldname_converter``
 Configuring which field name converter should be used (allowed values: `avro` or `nop`). By default, the avro field name
@@ -298,4 +326,4 @@ List of fields to be included in the key structure. Default fields are the index
 
 * Type: list
 * Importance: low
-* Default: null
+* Default: `null`

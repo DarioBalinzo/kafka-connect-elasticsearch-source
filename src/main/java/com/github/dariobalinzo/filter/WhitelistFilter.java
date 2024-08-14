@@ -37,6 +37,10 @@ public class WhitelistFilter implements DocumentFilter {
         return allowedValues.contains(key) ? value : null;
     }
 
+    public Set<String> fields() {
+        return allowedValues;
+    }
+
     @Override
     public void filter(Map<String, Object> document) {
         visitor.visit(document);

@@ -308,7 +308,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 INDEX_NAMES_DISPLAY
         ).define(
                 VALUE_FILTERS_WHITELIST_CONFIG,
-                Type.STRING,
+                Type.LIST,
                 null,
                 Importance.MEDIUM,
                 VALUE_FILTERS_WHITELIST_DOC,
@@ -318,7 +318,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 VALUE_FILTERS_WHITELIST_DISPLAY
         ).define(
                 VALUE_FILTERS_BLACKLIST_CONFIG,
-                Type.STRING,
+                Type.LIST,
                 null,
                 Importance.MEDIUM,
                 VALUE_FILTERS_BLACKLIST_DOC,
@@ -328,7 +328,7 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 VALUE_FILTERS_BLACKLIST_DISPLAY
         ).define(
                 VALUE_FILTERS_JSON_CAST_CONFIG,
-                Type.STRING,
+                Type.LIST,
                 null,
                 Importance.MEDIUM,
                 VALUE_FILTERS_WHITELIST_DOC,

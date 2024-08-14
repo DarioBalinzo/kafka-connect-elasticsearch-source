@@ -31,6 +31,10 @@ public class JsonCastFilter implements DocumentFilter {
         visitor = new JsonFilterVisitor(this::checkIfJsonCastNeeded);
     }
 
+    public Set<String> fields() {
+        return fieldsToCast;
+    }
+
     @Override
     public void filter(Map<String, Object> document) {
         visitor.visit(document);

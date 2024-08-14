@@ -42,10 +42,13 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.Runnable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
@@ -80,10 +83,15 @@ public class ElasticSourceTask extends SourceTask {
     private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
+    private String includeRawFieldWhen;
     private String rawFieldName;
+    private boolean onlyRawField = false;
     private List<String> mandatoryFieldsOnError;
 
-    private final List<DocumentFilter> documentFilters = new ArrayList<>();
+    private DocumentFilter whitelistFilter;
+    private DocumentFilter blacklistFilter;
+    private DocumentFilter jsonCastFilter;
+    private Consumer<Map<String, Object>> compoundFilter;
 
     @Override
     public String version() {
@@ -112,10 +120,18 @@ public class ElasticSourceTask extends SourceTask {
         secondaryCursorSearchField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
         secondaryCursorField = secondaryCursorSearchField == null ? null : new CursorField(secondaryCursorSearchField);
         keyFormat = config.getString(ElasticSourceTaskConfig.KEY_FORMAT_CONFIG);
-        keyFields = Optional.ofNullable(config.getList(ElasticSourceTaskConfig.KEY_FIELDS_CONFIG)).orElse(Collections.emptyList());
+        keyFields = Optional
+            .ofNullable(config.getList(ElasticSourceTaskConfig.KEY_FIELDS_CONFIG))
+            .orElse(Collections.emptyList());
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
+        includeRawFieldWhen = config.getString(ElasticSourceTaskConfig.RAW_DATA_FIELD_INCLUDE_CONFIG);
+        onlyRawField = config.getBoolean(ElasticSourceTaskConfig.RAW_DATA_FIELD_ONLY_CONFIG);
+        if (onlyRawField)
+            includeRawFieldWhen = ElasticSourceTaskConfig.RAW_DATA_FIELD_INCLUDE_ALL;
         rawFieldName = config.getString(ElasticSourceTaskConfig.RAW_DATA_FIELD_NAME_CONFIG);
-        mandatoryFieldsOnError = Optional.ofNullable(config.getList(ElasticSourceTaskConfig.MANDATORY_FIELDS_ON_ERROR_CONFIG)).orElse(Collections.emptyList());
+        mandatoryFieldsOnError = Optional
+            .ofNullable(config.getList(ElasticSourceTaskConfig.MANDATORY_FIELDS_ON_ERROR_CONFIG))
+            .orElse(Collections.emptyList());
 
         initConnectorFilters();
         initConnectorFieldConverter();
@@ -123,25 +139,37 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initConnectorFilters() {
-        String whiteFilters = config.getString(ElasticSourceConnectorConfig.VALUE_FILTERS_WHITELIST_CONFIG);
-        if (whiteFilters != null) {
-            String[] whiteFiltersArray = whiteFilters.split(";");
-            Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
-            documentFilters.add(new WhitelistFilter(whiteFiltersSet));
+        List<String> whitelistFieldList = Optional
+            .ofNullable(config.getList(ElasticSourceConnectorConfig.VALUE_FILTERS_WHITELIST_CONFIG))
+            .orElse(Collections.emptyList());
+        if (whitelistFieldList.size() > 0) {
+            whitelistFilter = new WhitelistFilter(new HashSet<>(whitelistFieldList));
+            compoundFilter = Optional
+                .ofNullable(compoundFilter)
+                .map(f -> f.andThen(whitelistFilter::filter))
+                .orElse(whitelistFilter::filter);
         }
 
-        String blackFilters = config.getString(ElasticSourceConnectorConfig.VALUE_FILTERS_BLACKLIST_CONFIG);
-        if (blackFilters != null) {
-            String[] blackFiltersArray = blackFilters.split(";");
-            Set<String> blackFiltersSet = new HashSet<>(Arrays.asList(blackFiltersArray));
-            documentFilters.add(new BlacklistFilter(blackFiltersSet));
+        List<String> blacklistFieldList = Optional
+            .ofNullable(config.getList(ElasticSourceConnectorConfig.VALUE_FILTERS_BLACKLIST_CONFIG))
+            .orElse(Collections.emptyList());
+        if (blacklistFieldList.size() > 0) {
+            blacklistFilter = new BlacklistFilter(new HashSet<>(blacklistFieldList));
+            compoundFilter = Optional
+                .ofNullable(compoundFilter)
+                .map(f -> f.andThen(blacklistFilter::filter))
+                .orElse(blacklistFilter::filter);
         }
 
-        String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.VALUE_FILTERS_JSON_CAST_CONFIG);
-        if (jsonCastFilters != null) {
-            String[] jsonCastFiltersArray = jsonCastFilters.split(";");
-            Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
-            documentFilters.add(new JsonCastFilter(whiteFiltersSet));
+        List<String> jsonCastFieldList = Optional
+            .ofNullable(config.getList(ElasticSourceConnectorConfig.VALUE_FILTERS_JSON_CAST_CONFIG))
+            .orElse(Collections.emptyList());
+        if (jsonCastFieldList.size() > 0) {
+            jsonCastFilter = new JsonCastFilter(new HashSet<>(jsonCastFieldList));
+            compoundFilter = Optional
+                .ofNullable(compoundFilter)
+                .map(f -> f.andThen(jsonCastFilter::filter))
+                .orElse(jsonCastFilter::filter);
         }
     }
 
@@ -241,7 +269,6 @@ public class ElasticSourceTask extends SourceTask {
                 logger.info("no data found, sleeping for {} ms", pollingMs);
                 Thread.sleep(pollingMs);
             }
-
         } catch (Exception e) {
             logger.error("error", e);
         }
@@ -266,7 +293,7 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void parseResult(PageResult pageResult, List<SourceRecord> results) {
-        String index = pageResult.getIndex();
+        final String index = pageResult.getIndex();
         for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
             Map<String, String> sourceOffset = fieldPicker.pick(
@@ -281,7 +308,7 @@ public class ElasticSourceTask extends SourceTask {
                             )
                         )
             );
-            Map<String, Object> keySkeleton = fieldPicker.pick(
+            final Map<String, Object> keySkeleton = fieldPicker.pick(
                     elasticDocument,
                     Stream
                         .concat(
@@ -294,41 +321,47 @@ public class ElasticSourceTask extends SourceTask {
                         .collect(Collectors.toList())
                         .toArray(new String[0])
             );
+
             Schema keySchema;
             Object key;
-            if (keyFormat == ElasticSourceTaskConfig.KEY_FORMAT_STRING) {
-                keySchema = Schema.STRING_SCHEMA;
-                key = keySkeleton
-                    .keySet()
+            Supplier<String> stringKeySupplier = () -> keySkeleton
+                    .entrySet()
                     .stream()
+                    .<String>map(entry -> {
+                        Object value = entry.getValue();
+                        if (value instanceof String)
+                            return (String)value;
+                        try {
+                            return objectMapper.writeValueAsString(value);
+                        }
+                        // this should not happen
+                        catch (JsonProcessingException jsonError) {
+                            logger.error("Could not serialize value of key {} as JSON. Using Java map instead.",
+                                entry.getKey(), jsonError);
+                            return value.toString();
+                        }
+                    })
                     .collect(Collectors.joining("_", index + "_", ""));
+            if (keyFormat.equals(ElasticSourceTaskConfig.KEY_FORMAT_STRUCT)) {
+                try {
+                    keySchema = schemaConverter.convert(keySkeleton, index + "_key");
+                    key = structConverter.convert(keySkeleton, keySchema);
+                    keySkeleton.put("es_index", index);
+                } catch (Exception e) {
+                    logger.error("Could not serialize document in Kafka Connect format. " + 
+                        "String key will be used instead.", e);
+                    keySchema = Schema.STRING_SCHEMA;
+                    key = stringKeySupplier.get();
+                }
             } else {
-                keySkeleton.put("es_index", index);
-                keySchema = schemaConverter.convert(keySkeleton, index + "_key");
-                key = structConverter.convert(keySkeleton, keySchema);
+                keySchema = Schema.STRING_SCHEMA;
+                key = stringKeySupplier.get();
             }
             
-            lastCursor.put(index, pageResult.getLastCursor());
-            sent.merge(index, 1, Integer::sum);
-
-            documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
-
             Schema schema;
             Struct struct;
-            try {
-                schema = schemaConverter.convert(elasticDocument, index);
-                struct = structConverter.convert(elasticDocument, schema);
-            } catch(Exception e) {
-                logger.error("Could not serialize document in Kafka Connect format. " + 
-                    "Raw value of document will be placed into field {} as string.", rawFieldName, e);
-                Map<String, Object> skeleton = fieldPicker.pick(
-                    elasticDocument,
-                    mandatoryFieldsOnError
-                        .stream()
-                        .filter(((Predicate<String>)String::isEmpty).negate())
-                        .collect(Collectors.toList())
-                        .toArray(new String[0])
-                );
+            final Map<String, Object> skeleton = new HashMap<>();
+            Runnable rawFieldBuilder = () -> {
                 try {
                     skeleton.put(rawFieldName, objectMapper.writeValueAsString(elasticDocument));
                 }
@@ -338,22 +371,119 @@ public class ElasticSourceTask extends SourceTask {
                         "Raw value of document will be placed into field {} as Java map.", rawFieldName, jsonError);
                     skeleton.put(rawFieldName, elasticDocument.toString());
                 }
-                schema = schemaConverter.convert(skeleton, index);
-                struct = structConverter.convert(skeleton, schema);
+            };
+            if (onlyRawField || includeRawFieldWhen == ElasticSourceTaskConfig.RAW_DATA_FIELD_INCLUDE_ALL)
+                rawFieldBuilder.run();
+                
+            if (onlyRawField) {
+                skeleton.putAll(
+                    fieldPicker.pick(
+                        elasticDocument,
+                        whitelistFilter
+                            .fields()
+                            .stream()
+                            .filter(((Predicate<String>)String::isEmpty).negate())
+                            .collect(Collectors.toList())
+                            .toArray(new String[0])
+                    )
+                );
+                try {
+                    schema = schemaConverter.convert(skeleton, index);
+                    struct = structConverter.convert(skeleton, schema);
+                } catch(Exception err) {
+                    logger.error("Could not serialize whitelisted fields in Kafka Connect format. " +
+                        "Only raw field will be included.", err);
+                    Object rawValue = skeleton.get(rawFieldName);
+                    skeleton.clear();
+                    skeleton.put(rawFieldName, rawValue);
+                    schema = schemaConverter.convert(skeleton, index);
+                    struct = structConverter.convert(skeleton, schema);
+                }
+                addToResults(
+                    results,
+                    new SourceRecord(
+                        sourcePartition,
+                        sourceOffset,
+                        topic + index,
+                        // KEY
+                        keySchema,
+                        key,
+                        // VALUE
+                        schema,
+                        struct),
+                    elasticDocument,
+                    index);
+                continue;
             }
 
-            SourceRecord sourceRecord = new SourceRecord(
+            Optional
+                .ofNullable(compoundFilter)
+                .ifPresent(f -> f.accept(elasticDocument));
+            try {
+                schema = schemaConverter.convert(elasticDocument, index);
+                struct = structConverter.convert(elasticDocument, schema);
+            } catch(Exception e) {
+                logger.error("Could not serialize document in Kafka Connect format.", e);
+                if (includeRawFieldWhen == ElasticSourceTaskConfig.RAW_DATA_FIELD_INCLUDE_ONERROR)
+                    rawFieldBuilder.run();
+                skeleton.putAll(
+                    fieldPicker.pick(
+                        elasticDocument,
+                        mandatoryFieldsOnError
+                            .stream()
+                            .filter(((Predicate<String>)String::isEmpty).negate())
+                            .collect(Collectors.toList())
+                            .toArray(new String[0])
+                    )
+                );
+                try {
+                    schema = schemaConverter.convert(skeleton, index);
+                    struct = structConverter.convert(skeleton, schema);
+                } catch(Exception err) {
+                    logger.error("Could not serialize mandatory fields on error in Kafka Connect format.", e);
+                    if (includeRawFieldWhen == ElasticSourceTaskConfig.RAW_DATA_FIELD_INCLUDE_NONE)
+                        continue;
+                    Object rawValue = skeleton.get(rawFieldName);
+                    skeleton.clear();
+                    skeleton.put(rawFieldName, rawValue);
+                    schema = schemaConverter.convert(skeleton, index);
+                    struct = structConverter.convert(skeleton, schema);
+                }
+            }
+
+            addToResults(
+                results,
+                new SourceRecord(
                     sourcePartition,
                     sourceOffset,
                     topic + index,
-                    //KEY
+                    // KEY
                     keySchema,
                     key,
-                    //VALUE
+                    // VALUE
                     schema,
-                    struct);
-            results.add(sourceRecord);
+                    struct),
+                elasticDocument,
+                index);
         }
+    }
+
+    // helper
+    private void addToResults(
+        List<SourceRecord> results,
+        SourceRecord record,
+        Map<String, Object> document,
+        String index
+    ) {
+        Cursor cursor = Optional
+            .ofNullable(secondaryCursorField)
+            .map(s -> new Cursor(
+                cursorField.read(document),
+                secondaryCursorField.read(document)))
+            .orElse(new Cursor(cursorField.read(document)));
+        lastCursor.put(index, cursor);
+        sent.merge(index, 1, Integer::sum);
+        results.add(record);
     }
 
     //will be called by connect with a different thread than poll thread

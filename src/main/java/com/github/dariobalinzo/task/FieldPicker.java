@@ -3,6 +3,7 @@ package com.github.dariobalinzo.task;
 import com.github.dariobalinzo.elastic.CursorField;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,10 @@ public class FieldPicker {
     public Map<String, String> pick(Map<String, Object> document, Map<String, CursorField> fields) {
         Map<String, String> result = new HashMap<>();
         for (Map.Entry<String, CursorField> entry : fields.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().read(document));
+            String readValue = entry.getValue().read(document);
+            if (readValue == null)
+                continue;
+            result.put(entry.getKey(), readValue);
         }
         return result;
     }
@@ -35,7 +39,7 @@ public class FieldPicker {
                 result.put(field, document.get(field));
                 continue;
             }
-            if (field.length()  < 3) {
+            if (field.length() < 3) {
                 continue;
             }
             if (field.indexOf(".") < 1) {
@@ -51,11 +55,12 @@ public class FieldPicker {
             }
             Map<String, Object> structValue = (Map<String, Object>)value;
             List<String> nFields = nextLoops.get(structValue);
+            String nField = field.substring(field.indexOf(".") + 1);
             if (nFields != null) {
-                nFields.add(field.substring(field.indexOf(".")));
+                nFields.add(nField);
                 continue;
             }
-            nextLoops.put(structValue, Arrays.asList(field.substring(field.indexOf("."))));
+            nextLoops.put(structValue, new ArrayList<String>(Arrays.asList(nField)));
         }
         for (Map.Entry<Map<String, Object>, List<String>> nextLoop : nextLoops.entrySet()) {
             pick(

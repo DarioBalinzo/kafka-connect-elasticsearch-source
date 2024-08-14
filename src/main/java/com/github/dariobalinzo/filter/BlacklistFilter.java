@@ -37,6 +37,10 @@ public class BlacklistFilter implements DocumentFilter {
         return fieldsToRemove.contains(key) ? null : value;
     }
 
+    public Set<String> fields() {
+        return fieldsToRemove;
+    }
+
     @Override
     public void filter(Map<String, Object> document) {
         visitor.visit(document);
